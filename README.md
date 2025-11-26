@@ -1,2 +1,2 @@
 # basic-ere
-Basic implementation of an entity resolution engine
+A basic implementation of the Entity Resolution Engine (ERE).

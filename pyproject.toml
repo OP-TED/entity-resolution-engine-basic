@@ -1,0 +1,13 @@
+[project]
+name = "basic-ere"
+version = "0.1.0"
+description = "A basic implementation of the Entity Resolution Engine (ERE)."
+readme = "README.md"
+requires-python = ">=3.14"
+
+[dependency-groups]
+dev = [
+  "assertpy>=1.1",
+  "pytest>=9.0.1",
+]
+

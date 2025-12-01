@@ -1,13 +1,30 @@
 [project]
-name = "basic-ere"
+name = "ere"
 version = "0.1.0"
 description = "A basic implementation of the Entity Resolution Engine (ERE)."
+authors = [
+    {name = "Marco Brandizi",email = "marco.brandizi@meaningfy.ws"}
+]
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = "3.14"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+# Needed when the root doesn't contain $project_name
+packages = [
+  { include = "*", from = "src" }
+]
+
 
 [dependency-groups]
 dev = [
-  "assertpy>=1.1",
-  "pytest>=9.0.1",
+    "pytest (>=9.0.1,<10.0.0)",
+    "assertpy (>=1.1,<2.0)",
+    "rdflib (>=7.5.0,<8.0.0)"
 ]
 
+[tool.poetry.dependencies]
+pydantic = "^2.12.5"

@@ -28,3 +28,7 @@ dev = [
 
 [tool.poetry.dependencies]
 pydantic = "^2.12.5"
+
+[tool.pytest.ini_options]
+addopts = [ "-v" ]
+# TODO: add logging initialisation

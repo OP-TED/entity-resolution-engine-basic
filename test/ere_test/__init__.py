@@ -11,6 +11,26 @@ ERS_TEST_DATA_NS = "https://data.europa.eu/ers/resource/"
 # TODO; it's somewhere in linkml_meta, but I can't find it 
 ERS_SCHEMA_NS = linkml_meta.root [ "id" ] + "/"
 
+class MockupEREClient ( AbstractEREClient ):
+	"""
+	A Mockup ERE client, based on an internal in-memory store loaded with test data.
+	"""
+	def __init__ ( self ):
+		self._init_test_data ()
+		self._response_queue = []
+	
+	def _init_test_data ( self ):
+		self._store = _MockStore ()
+
+	def push_request ( self, request: EntityResolutionRequest ):
+		result = self._store.resolve ( request )
+		self._response_queue.append ( result )
+
+	def subscribe_responses ( self ) -> Iterable [ EntityResolution ]:
+		while self._response_queue:
+			yield self._response_queue.pop ( 0 )
+
+
 def hash_uri ( uri: str ) -> str:
 	"""
 	Generates a simple hash for URIs to be used for tasks like generating a cluster URI
@@ -58,6 +78,9 @@ class _ERECluster:
 
 
 class _MockStore:
+	"""
+	A mockup in-memory store for entity resolution, based on test data.
+	"""
 	def __init__ ( self ):
 		self._load_test_data ()
 		self._extract_all_clusters ()
@@ -125,10 +148,13 @@ class _MockStore:
 		
 
 	def _load_test_data ( self ):
+		"""
+		Populates the internal RDF graph with data from test files.
+		"""
+
 		self.graph = Graph ()
 		test_dir = Path ( __file__ ).parent.parent / 'resources'
 
-		# Load test-dir/example*.ttl
 		for ttl_file in test_dir.glob ( 'example*.ttl' ):
 			# TODO: logging
 			print ( f'Loading test data from { ttl_file }' )
@@ -241,6 +267,7 @@ class _MockStore:
 		"""
 		Fetches subject-centric triples from the test data, up to a couple of levels deep.
 		"""
+		
 		sparql = """
 		CONSTRUCT {
 			?myent ?p ?o.
@@ -264,21 +291,3 @@ class _MockStore:
 		return entity_graph
 	# /end: _extract_entity_rdf ()
 
-
-class MockupEREClient ( AbstractEREClient ):
-	"""
-	A Mockup ERE client, based on an internal in-memory store loaded with test data."""
-	def __init__ ( self ):
-		self._init_test_data ()
-		self._response_queue = []
-	
-	def _init_test_data ( self ):
-		self._store = _MockStore ()
-
-	def push_request ( self, request: EntityResolutionRequest ):
-		result = self._store.resolve ( request )
-		self._response_queue.append ( result )
-
-	def subscribe_responses ( self ) -> Iterable [ EntityResolution ]:
-		while self._response_queue:
-			yield self._response_queue.pop ( 0 )

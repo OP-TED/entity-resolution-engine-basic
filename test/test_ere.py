@@ -1,14 +1,24 @@
+from pyparsing import Path
 import pytest
 from assertpy import assert_that
 from rdflib import Graph
 
 from ere import AbstractEREClient
-from ere.models.ers_core import CanonicalEntity, EntityResolutionRequest, EntityResolution, Entity
+from ere.models.ers_core import (
+	CanonicalEntity,
+	EntityResolutionRequest,
+	EntityResolution,
+	Entity,
+	RebuildRequest,
+	RebuildResponse,
+	Response
+)
 
-from ere_test import MockupEREClient
+from ere_test import MockupEREClient, extract_resource_rdf
 
 # TODO: factorise
 EPD_NS = "http://data.europa.eu/a4g/resource/"
+EPO_NS = "http://data.europa.eu/a4g/ontology#"
 ORG_NS = "http://www.w3.org/ns/org#"
 
 
@@ -33,13 +43,11 @@ def test_known_entity_resolution ( mockup_ere_client: AbstractEREClient ):
 	)
 
 	mockup_ere_client.push_request ( test_req )
-	entity_resolution = catch_entity_resolution ( mockup_ere_client, test_req.requestId )
+	entity_resolution = catch_response ( mockup_ere_client, test_req.requestId, EntityResolution )
 
-	assert_that ( entity_resolution, "We have an entity resolution response" ).is_not_none ()
 	assert_that ( entity_resolution.sourceEntityId, "Resolution response has the source entity ID" )\
 	  .is_equal_to ( test_entity.id )
 	
-	assert_that ( entity_resolution.requestId, "Resolution response has the request ID" ).is_equal_to ( test_req.requestId )
 	assert_that ( entity_resolution.confidenceLevel, "Resolution response has a confidence score" )\
 	  .is_equal_to ( 0.98 )	
 
@@ -49,6 +57,9 @@ def test_known_entity_resolution ( mockup_ere_client: AbstractEREClient ):
 
 	assert_that ( canonical_entity.id, "Canonical entity has the expected URI" ).\
 	  is_equal_to ( f"{EPD_NS}id_2023-S-210-662860_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj" )
+	
+	# TODO: this is true for the basic/mockup ERE, in general, returning a result in a given format
+	# is not a requirement
 	assert_that ( canonical_entity.entityDataFormat, "Canonical entity has the expected data format" )\
 	  .is_equal_to ( "text/turtle" )	
 
@@ -81,6 +92,7 @@ def test_known_entity_resolution ( mockup_ere_client: AbstractEREClient ):
 		sparql_ask = sparql_ask % ( canonical_entity.id, sparql_assertion )
 		assert_that ( graph.query ( sparql_ask ).askAnswer, assertion_label ).is_true ()
 	
+
 def test_unknown_entity_resolution ( mockup_ere_client: AbstractEREClient ):
 	"""
 	Scenario: An unknown entity resolves to itself
@@ -117,10 +129,7 @@ def test_unknown_entity_resolution ( mockup_ere_client: AbstractEREClient ):
 	)
 
 	mockup_ere_client.push_request ( test_req )
-	entity_resolution = catch_entity_resolution ( mockup_ere_client, test_req.requestId )
-	assert_that ( entity_resolution, "We have an entity resolution response" ).is_not_none ()
-	assert_that ( entity_resolution.sourceEntityId, "Resolution response has the source entity ID" )\
-		.is_equal_to ( test_entity.id )
+	entity_resolution = catch_response ( mockup_ere_client, test_req.requestId, EntityResolution )
 	assert_that ( entity_resolution.confidenceLevel, "Resolution response has a confidence score of 1" )\
 		.is_equal_to ( 1 )
 	
@@ -134,6 +143,7 @@ def test_unknown_entity_resolution ( mockup_ere_client: AbstractEREClient ):
 	assert_that ( canonical_entity.id, "Canonical entity has the expected URI" ).\
 		is_equal_to ( test_entity.id )
 	
+	# TODO: see above about this
 	assert_that ( canonical_entity.entityDataFormat, "Canonical entity has the expected data format" )\
 		.is_equal_to ( "text/turtle" )
 	
@@ -146,18 +156,101 @@ def test_unknown_entity_resolution ( mockup_ere_client: AbstractEREClient ):
 	).is_true ()
 
 
+def test_non_matching_entity_resolves_to_itself ( mockup_ere_client: AbstractEREClient ):
+	"""
+	Scenario: An unknown entity without a sufficient similarity to known entities resolves to itself
+	"""
+	test_entity = Entity (
+		id = f"{EPD_NS}id_2023-S-211-665742_Procedure_faF7Q5dyoGpXu3Ru4RGg73",
+		type = f"{EPO_NS}Procedure"
+	)
+
+	# Load the RDF from the same test file, don't depend on the internal mock store
+	graph = Graph ()
+	graph.parse ( Path ( __file__ ).parent / 'resources/example-6.ttl', format = 'turtle' )
+	entity_graph = extract_resource_rdf ( graph, test_entity.id )
+	test_entity.entityData = entity_graph.serialize ( format = 'turtle' )
+	test_entity.entityDataFormat = 'text/turtle'
+
+	test_req = EntityResolutionRequest (
+		requestId = "test-low-score-entity-resolution-001",
+		entity = test_entity,
+		originator = "test-module"
+	)
+
+	mockup_ere_client.push_request ( test_req )
+	entity_resolution = catch_response ( mockup_ere_client, test_req.requestId, EntityResolution )
+
+	assert_that ( entity_resolution.sourceEntityId, "Resolution response has the source entity ID" )\
+	  .is_equal_to ( test_entity.id )
+	assert_that ( entity_resolution.confidenceLevel, "Resolution response has a confidence score of 1" )\
+	  .is_equal_to ( 1 )
+	
+	canonical_entity: CanonicalEntity = entity_resolution.canonicalEntity
+	assert_that ( canonical_entity, "We have a canonical entity in the resolution response" )\
+		.is_not_none ()
+	assert_that ( canonical_entity.id, "Canonical entity has the expected URI" ).\
+	  is_equal_to ( test_entity.id )
+	assert_that ( canonical_entity.entityDataFormat, "Canonical entity has the expected data format" )\
+	  .is_equal_to ( "text/turtle" )
+	
+	canonical_graph = Graph ()
+	canonical_graph.parse ( data = canonical_entity.entityData, format = 'turtle' )
+	assert_that (
+		canonical_graph.isomorphic ( entity_graph ),
+		"Canonical entity data is equivalent to the source entity data"
+	).is_true ()
+
+
+def test_ere_acknowledges_rebuild_request ( mockup_ere_client: AbstractEREClient ):
+	"""
+	Scenario: The ERE acknowledges a rebuild request
+	"""
+	rebuild_request = RebuildRequest (
+		requestId = "test-ere-acknowledges-rebuild-request-001",
+		originator = "test-module"
+	)
+
+	mockup_ere_client.push_request ( rebuild_request )
+	# Does all the assertions we want here
+	catch_response ( mockup_ere_client, rebuild_request.requestId, RebuildResponse )
+
+
+def test_ere_still_working_after_rebuild ( mockup_ere_client: AbstractEREClient ):
+	"""
+	Scenario: The ERE keeps resolving entities as usually after a rebuild request
+	"""
+	# First, send a rebuild request
+	rebuild_request = RebuildRequest (
+		requestId = "test-ere-still-working-after-rebuild-001",
+		originator = "test-module"
+	)
+	mockup_ere_client.push_request ( rebuild_request )
+	catch_response ( mockup_ere_client, rebuild_request.requestId, RebuildResponse )
+
+	# Now just repeat previous tests
+	test_known_entity_resolution ( mockup_ere_client )
+	test_unknown_entity_resolution ( mockup_ere_client )
+	test_non_matching_entity_resolves_to_itself ( mockup_ere_client )
+
 # TODO: move to a utility module
-def catch_entity_resolution ( ere_cli: AbstractEREClient, request_id: str ) -> EntityResolution:
+def catch_response ( ere_cli: AbstractEREClient, request_id: str, type_to_check: type[Response] = None ) -> Response:
 	"""
 	Subscribes to to ERE responses and keeps getting responses until one with the given
 	request ID is found.
 
-	If the response flow stops (eg, channel closed, system went down), raises a :class:`RuntimeError`.
+	If the response flow stops (eg, channel closed, system went down), raises a :class:`RuntimeError`
+	
+	If type_to_check isn't None, asserts that the response is an instance of the given type.	
 	"""
 	for response in ere_cli.subscribe_responses ():
 		if response.requestId == request_id:
+			if type_to_check:
+				assert_that ( response, f"Response for request ID '{request_id}' is of the expected type" )\
+					.is_instance_of ( type_to_check )			
 			return response
 	raise RuntimeError ( f"No response found for request ID '{request_id}'" )
+
 
 def prefix_common_namespaces ( rdf_or_sparql_body: str ) -> str:
 	"""

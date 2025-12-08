@@ -3,7 +3,7 @@ from rdflib import Graph
 from pathlib import Path
 
 from ere import AbstractEREClient
-from ere.models.ers_core import LinkMLMeta, linkml_meta
+from ere.models.ers_core import LinkMLMeta, RebuildRequest, RebuildResponse, Request, Response, linkml_meta
 from ere.models.ers_core import EntityResolutionRequest, EntityResolution, CanonicalEntity
 import hashlib
 
@@ -22,11 +22,11 @@ class MockupEREClient ( AbstractEREClient ):
 	def _init_test_data ( self ):
 		self._store = _MockStore ()
 
-	def push_request ( self, request: EntityResolutionRequest ):
-		result = self._store.resolve ( request )
+	def push_request ( self, request: Request ):
+		result = self._store.process_request ( request )
 		self._response_queue.append ( result )
 
-	def subscribe_responses ( self ) -> Iterable [ EntityResolution ]:
+	def subscribe_responses ( self ) -> Iterable [ Response ]:
 		while self._response_queue:
 			yield self._response_queue.pop ( 0 )
 
@@ -96,7 +96,23 @@ class _MockStore:
 		if cluster: return cluster
 		return self._member_index.get ( entity_uri )
 	
-	def resolve ( self, request: EntityResolutionRequest ) -> EntityResolution:
+	def process_request ( self, request: Request ):
+		"""
+		Dispatches a request to the appropriate handler.
+		"""
+
+		# TODO: this is an intial silly implementation, which violates the Open/Closed principle, move
+		# it to an abstract method for a resolution service and have a default implementation 
+		# based on a registry
+		if isinstance ( request, EntityResolutionRequest ):
+			return self.resolve_entity ( request )
+		elif isinstance ( request, RebuildRequest ):
+			return self.process_rebuild_request ( request )
+		else:
+			raise ValueError ( f'Unsupported request type: { type ( request ) }' )
+
+
+	def resolve_entity ( self, request: EntityResolutionRequest ) -> EntityResolution:
 		"""
 		Mocks up an entity resolution, that is:
 
@@ -145,7 +161,18 @@ class _MockStore:
 		)
 		result.confidenceLevel = confidence
 		return result
-		
+
+
+	def process_rebuild_request ( self, request ):
+		"""
+		Mocks up the processing of a rebuild request by reloading the test data.
+		"""
+		self.__init__ ()
+		response = RebuildResponse (
+			requestId = request.requestId
+		)
+		return response
+
 
 	def _load_test_data ( self ):
 		"""
@@ -229,9 +256,6 @@ class _MockStore:
 				member_uri = str ( row['member'] )
 				score = float ( row['confidence'] )
 				members [ member_uri ] = score
-			
-			if not members:
-				raise ValueError ( f"No members found for cluster { cluster_uri }" )
 
 			return members
 		
@@ -252,7 +276,7 @@ class _MockStore:
 			cluster_uri = str ( row [ 'cluster' ] )
 			print ( f"Loading cluster { cluster_uri }" )
 			canonical_entity_uri = extract_canonical_entity_uri ( cluster_uri )
-			canonical_entity_rdf = self._extract_entity_rdf ( canonical_entity_uri )
+			canonical_entity_rdf = extract_resource_rdf ( self.graph, canonical_entity_uri )
 			members = extract_members ( cluster_uri )
 
 			self._create_new_cluster ( canonical_entity_uri, canonical_entity_rdf, cluster_uri, members	)
@@ -263,31 +287,32 @@ class _MockStore:
 	# /end: _extract_all_clusters ()
 	
 
-	def _extract_entity_rdf ( self, entity_uri: str ) -> Graph:
-		"""
-		Fetches subject-centric triples from the test data, up to a couple of levels deep.
-		"""
-		
-		sparql = """
-		CONSTRUCT {
-			?myent ?p ?o.
-			?o ?p1 ?o1.
-			?o1 ?p2 ?o2
-		}
-		WHERE {
-			bind ( <%s> AS ?myent )
-			?myent ?p ?o.
+# TODO: should be a general utility to be moved to a RDF utils module
+def extract_resource_rdf ( graph: Graph, resource_uri: str ) -> Graph:
+	"""
+	Fetches subject-centric triples from the test data, up to a couple of levels deep.
+	"""
+	
+	sparql = """
+	CONSTRUCT {
+		?myent ?p ?o.
+		?o ?p1 ?o1.
+		?o1 ?p2 ?o2
+	}
+	WHERE {
+		bind ( <%s> AS ?myent )
+		?myent ?p ?o.
 
-			OPTIONAL { 
-				?o ?p1 ?o1. 
-				OPTIONAL { ?o1 ?p2 ?o2. }
-			}
+		OPTIONAL { 
+			?o ?p1 ?o1. 
+			OPTIONAL { ?o1 ?p2 ?o2. }
 		}
-		"""
-		sparql = sparql % entity_uri
-		entity_graph = self.graph.query ( sparql ).graph
-		if len ( entity_graph ) == 0:
-			raise ValueError ( f'No RDF found for entity { entity_uri }' )
-		return entity_graph
-	# /end: _extract_entity_rdf ()
+	}
+	"""
+	sparql = sparql % resource_uri
+	entity_graph = graph.query ( sparql ).graph
+	if len ( entity_graph ) == 0:
+		raise ValueError ( f'No RDF found for entity { resource_uri }' )
+	return entity_graph
+# /end: _extract_entity_rdf ()
 

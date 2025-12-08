@@ -9,6 +9,7 @@ from ere.models.ers_core import (
 	EntityResolutionRequest,
 	EntityResolution,
 	Entity,
+	ErrorResponse,
 	RebuildRequest,
 	RebuildResponse,
 	Response
@@ -232,6 +233,31 @@ def test_ere_still_working_after_rebuild ( mockup_ere_client: AbstractEREClient 
 	test_known_entity_resolution ( mockup_ere_client )
 	test_unknown_entity_resolution ( mockup_ere_client )
 	test_non_matching_entity_resolves_to_itself ( mockup_ere_client )
+
+
+def test_ere_replies_with_error_response_to_malformed_request ( mockup_ere_client: AbstractEREClient ):
+	"""
+	Scenario: The ERE replies with an error response to a malformed request
+	"""
+	# Send a malformed request (missing entity)
+	malformed_request = EntityResolutionRequest (
+		requestId = "test-bad-resolution-req-001",
+		entity = Entity (
+			id = "",
+			type = "FooType"
+		),  # Malformed part
+		originator = "test-module"
+	)
+	
+	mockup_ere_client.push_request ( malformed_request )
+	error_response = catch_response ( mockup_ere_client, malformed_request.requestId, ErrorResponse )
+
+	assert_that ( error_response.errorTitle, "The response has the expected error title" )\
+		.contains ( "without entity data/RDF" )
+	assert_that ( error_response.errorDetail, "The response has the expected error detail" )\
+		.contains ( "without entity data/RDF" )
+	assert_that ( error_response.errorType, "The response has an error type" )\
+		.is_equal_to ( "ValueError" )
 
 # TODO: move to a utility module
 def catch_response ( ere_cli: AbstractEREClient, request_id: str, type_to_check: type[Response] = None ) -> Response:

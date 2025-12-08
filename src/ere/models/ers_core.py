@@ -1,7 +1,3 @@
-# TODO: WARNING: this is temporarily copied here from the er-system repo.
-# We need to setup proper packaging and dependency management
-#
-
 from __future__ import annotations
 
 import re
@@ -255,6 +251,61 @@ In other words, a particular request will have `type` set with values like
 """, json_schema_extra = { "linkml_meta": {'domain_of': ['RequestOrResponseMixin']} })
 
 
+class ErrorResponse(Response):
+    """
+    Response sent by the ERE when some error/exception occurs while processing a request.
+    For instance, this may happen if the request is malformed or some internal error happens.
+
+    The attributes of this class are based on [RFC-9457](https://datatracker.ietf.org/doc/html/rfc9457).
+
+    """
+    linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'examples': [{'value': '{\n'
+                                '  "type": "ErrorResponse",\n'
+                                '  "requestId": "324fs3r345vx",\n'
+                                '  "errorType": '
+                                '"ere.exceptions.MalformedRequestError",\n'
+                                '  "errorTitle": "The entity data is missing in the '
+                                'request",\n'
+                                '  "errorDetail": "The \'entity\' attribute is '
+                                'required in EntityResolutionRequest message",\n'
+                                '  // Optional and not recommended for production use\n'
+                                '  "errorTrace": "Traceback (most recent call '
+                                'last):\\n  File \\"/app/ere/service.py\\", line 45, '
+                                'in process_request\\n..."\n'
+                                '}\n'}],
+         'from_schema': 'https://data.europa.eu/ers/schema'})
+
+    errorType: str = Field(default=..., description="""A string representing the error type, eg, the FQN of the raised exception.
+
+This corresponds to RFC-9457's `type`.
+""", json_schema_extra = { "linkml_meta": {'domain_of': ['ErrorResponse']} })
+    errorTitle: Optional[str] = Field(default=None, description="""A human readable brief message about the error that occurred.
+
+This corresponds to RFC-9457's `title`.
+""", json_schema_extra = { "linkml_meta": {'domain_of': ['ErrorResponse']} })
+    errorDetail: Optional[str] = Field(default=None, description="""A human readable detailed message about the error that occurred.
+
+This corresponds to RFC-9457's `detail`.
+""", json_schema_extra = { "linkml_meta": {'domain_of': ['ErrorResponse']} })
+    errorTrace: Optional[str] = Field(default=None, description="""A string representing a (stack) trace of the error that occurred.
+
+This is optional and typically used for debugging purposes only, since
+exposing this kind of server-side information is a security risk.
+""", json_schema_extra = { "linkml_meta": {'domain_of': ['ErrorResponse']} })
+    requestId: str = Field(default=..., description="""A string representing the unique ID of the request this response is about.
+""", json_schema_extra = { "linkml_meta": {'domain_of': ['Request', 'Response']} })
+    type: Literal["ErrorResponse"] = Field(default="ErrorResponse", description="""The type of the request or result.
+
+As per LinkML specification, `designates_type` is used here in order to allow for this
+slot to tell the concrete subclass that an instance (such as a JSON object) belongs to.
+
+In other words, a particular request will have `type` set with values like 
+`EntityResolutionRequest` or `EntityResolutionResult`
+""", json_schema_extra = { "linkml_meta": {'designates_type': True, 'domain_of': ['RequestOrResponseMixin', 'Entity']} })
+    metadata: Optional[str] = Field(default=None, description="""An optional arbitrary dictionary of further request metadata.
+""", json_schema_extra = { "linkml_meta": {'domain_of': ['RequestOrResponseMixin']} })
+
+
 class Entity(ConfiguredBaseModel):
     """
     An entity is a representation of a real-world entity, as provided by the ERS.
@@ -359,6 +410,7 @@ Request.model_rebuild()
 Response.model_rebuild()
 EntityResolutionRequest.model_rebuild()
 EntityResolution.model_rebuild()
+ErrorResponse.model_rebuild()
 Entity.model_rebuild()
 CanonicalEntity.model_rebuild()
 RebuildRequest.model_rebuild()

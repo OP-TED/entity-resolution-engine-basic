@@ -4,7 +4,10 @@ from pathlib import Path
 
 from ere import AbstractEREClient
 from ere.models.ers_core import LinkMLMeta, RebuildRequest, RebuildResponse, Request, Response, linkml_meta
-from ere.models.ers_core import EntityResolutionRequest, EntityResolution, CanonicalEntity
+from ere.models.ers_core import (
+	EntityResolutionRequest, EntityResolution, CanonicalEntity, 
+	ErrorResponse
+)
 import hashlib
 
 ERS_TEST_DATA_NS = "https://data.europa.eu/ers/resource/"
@@ -96,20 +99,41 @@ class _MockStore:
 		if cluster: return cluster
 		return self._member_index.get ( entity_uri )
 	
-	def process_request ( self, request: Request ):
+	def process_request ( self, request: Request ) -> Response:
 		"""
 		Dispatches a request to the appropriate handler.
+
+		This is also responsible for wrapping any exception into an ErrorResponse.
 		"""
 
-		# TODO: this is an intial silly implementation, which violates the Open/Closed principle, move
-		# it to an abstract method for a resolution service and have a default implementation 
-		# based on a registry
-		if isinstance ( request, EntityResolutionRequest ):
-			return self.resolve_entity ( request )
-		elif isinstance ( request, RebuildRequest ):
-			return self.process_rebuild_request ( request )
-		else:
-			raise ValueError ( f'Unsupported request type: { type ( request ) }' )
+		try:
+			# TODO: this is an intial silly implementation, which violates the Open/Closed principle, move
+			# it to an abstract method for a resolution service and have a default implementation 
+			# based on a registry
+			if isinstance ( request, EntityResolutionRequest ):
+				return self.resolve_entity ( request )
+			elif isinstance ( request, RebuildRequest ):
+				return self.process_rebuild_request ( request )
+			else:
+				raise ValueError ( f'Unsupported request type: { type ( request ) }' )
+			
+		except Exception as ex:
+			ex_type = type ( ex )
+			ex_name = ex_type.__name__
+			
+			ex_fqn_name = ex_type.__module__
+			if ex_fqn_name == 'builtins': ex_fqn_name = ''
+			if ex_fqn_name: ex_fqn_name += "."
+			ex_fqn_name += ex_name
+			
+			req_type = type ( request ).__name__
+			error_response = ErrorResponse (
+				requestId = request.requestId,
+				errorTitle = f"Request processing error: { str ( ex ) }",
+				errorDetail = f"{ex_name} Error while processing request of type { req_type }: { str ( ex ) }",
+				errorType = ex_fqn_name
+			)
+			return error_response
 
 
 	def resolve_entity ( self, request: EntityResolutionRequest ) -> EntityResolution:
@@ -163,7 +187,7 @@ class _MockStore:
 		return result
 
 
-	def process_rebuild_request ( self, request ):
+	def process_rebuild_request ( self, request ) -> RebuildResponse:
 		"""
 		Mocks up the processing of a rebuild request by reloading the test data.
 		"""

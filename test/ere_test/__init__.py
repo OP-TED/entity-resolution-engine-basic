@@ -10,6 +10,53 @@ from ere.models.ers_core import (
 )
 import hashlib
 
+"""
+Mockups and stubs for testing the ERE service.
+
+TODO: 
+
+Refactoring plan to make this more Cosmic and add a Redis-based prototype:
+
+class AbstractEREResolutionService:
+	def start(self):
+	def stop(self):
+		
+class AbstractLocalEREResolutionService(AbstractEREResolutionService):
+	# Synchronous, doesn't care about message queues etc
+	def process_request(self, request) -> Response:
+	
+class AbstractPubSubEREResolutionService(AbstractEREResolutionService):
+  # Wraps the thing that does the actual job
+
+	base_service: AbstractLocalEREResolutionService
+
+	async def _receiver_loop(self):
+		while True:
+			request = await self.listen_request()
+			# Keep creating them, they'll run in the background and they'll send 
+			# responses back, via reply_response()
+			asyncio.create_task(self.process_request_task(request))
+
+	async def process_request_task(self, request):
+		response = self.base_service.process_request(request)
+		await self.reply_response(response)
+
+	# Abstract hooks
+	async def listen_request(self): 	
+	async def reply_response(self, response):
+	
+class MockEREResolutionService(AbstractLocalEREResolutionService):
+  # The current _MockStore
+
+class RedisEREResolutionService(AbstractPubSubEREResolutionService):
+	listen_request ():
+	  # pull a request from a configured Redis queue
+	reply_response ():
+		# push a response to a configured Redis queue
+"""
+
+
+
 ERS_TEST_DATA_NS = "https://data.europa.eu/ers/resource/"
 # TODO; it's somewhere in linkml_meta, but I can't find it 
 ERS_SCHEMA_NS = linkml_meta.root [ "id" ] + "/"

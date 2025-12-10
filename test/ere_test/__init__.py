@@ -2,66 +2,19 @@ from typing import Dict, Iterable, Tuple
 from rdflib import Graph
 from pathlib import Path
 
-from ere import AbstractEREClient
-from ere.models.ers_core import LinkMLMeta, RebuildRequest, RebuildResponse, Request, Response, linkml_meta
+from ere.models.ers_core import RebuildRequest, RebuildResponse, Request, Response, linkml_meta
 from ere.models.ers_core import (
 	EntityResolutionRequest, EntityResolution, CanonicalEntity, 
 	ErrorResponse
 )
+from ere.service import AbstractEREClient, AbstractResolver
 import hashlib
-
-"""
-Mockups and stubs for testing the ERE service.
-
-TODO: 
-
-Refactoring plan to make this more Cosmic and add a Redis-based prototype:
-
-class AbstractEREResolutionService:
-	def start(self):
-	def stop(self):
-		
-class AbstractLocalEREResolutionService(AbstractEREResolutionService):
-	# Synchronous, doesn't care about message queues etc
-	def process_request(self, request) -> Response:
-	
-class AbstractPubSubEREResolutionService(AbstractEREResolutionService):
-  # Wraps the thing that does the actual job
-
-	base_service: AbstractLocalEREResolutionService
-
-	async def _receiver_loop(self):
-		while True:
-			request = await self.listen_request()
-			# Keep creating them, they'll run in the background and they'll send 
-			# responses back, via reply_response()
-			asyncio.create_task(self.process_request_task(request))
-
-	async def process_request_task(self, request):
-		response = self.base_service.process_request(request)
-		await self.reply_response(response)
-
-	# Abstract hooks
-	async def listen_request(self): 	
-	async def reply_response(self, response):
-	
-class MockEREResolutionService(AbstractLocalEREResolutionService):
-  # The current _MockStore
-
-class RedisEREResolutionService(AbstractPubSubEREResolutionService):
-	listen_request ():
-	  # pull a request from a configured Redis queue
-	reply_response ():
-		# push a response to a configured Redis queue
-"""
-
 
 
 ERS_TEST_DATA_NS = "https://data.europa.eu/ers/resource/"
-# TODO; it's somewhere in linkml_meta, but I can't find it 
 ERS_SCHEMA_NS = linkml_meta.root [ "id" ] + "/"
 
-class MockupEREClient ( AbstractEREClient ):
+class MockEREClient ( AbstractEREClient ):
 	"""
 	A Mockup ERE client, based on an internal in-memory store loaded with test data.
 	"""
@@ -70,7 +23,7 @@ class MockupEREClient ( AbstractEREClient ):
 		self._response_queue = []
 	
 	def _init_test_data ( self ):
-		self._store = _MockStore ()
+		self._store = MockResolver ()
 
 	def push_request ( self, request: Request ):
 		result = self._store.process_request ( request )
@@ -127,9 +80,9 @@ class _ERECluster:
 		return types[0]
 
 
-class _MockStore:
+class MockResolver ( AbstractResolver ):
 	"""
-	A mockup in-memory store for entity resolution, based on test data.
+	A mockup in-memory resolver for entity resolution, based on test data.
 	"""
 	def __init__ ( self ):
 		self._load_test_data ()

@@ -3,7 +3,7 @@ import pytest
 from assertpy import assert_that
 from rdflib import Graph
 
-from ere import AbstractEREClient
+from ere.service import AbstractEREClient
 from ere.models.ers_core import (
 	CanonicalEntity,
 	EntityResolutionRequest,
@@ -15,7 +15,7 @@ from ere.models.ers_core import (
 	Response
 )
 
-from ere_test import MockupEREClient, extract_resource_rdf
+from ere_test import MockEREClient, extract_resource_rdf
 
 # TODO: factorise
 EPD_NS = "http://data.europa.eu/a4g/resource/"
@@ -25,7 +25,7 @@ ORG_NS = "http://www.w3.org/ns/org#"
 
 @pytest.fixture
 def mockup_ere_client () -> AbstractEREClient:
-	return MockupEREClient ()
+	return MockEREClient ()
 
 # TODO: add Gherkin annotations
 def test_known_entity_resolution ( mockup_ere_client: AbstractEREClient ):

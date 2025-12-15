@@ -2,8 +2,9 @@
 Abstract definitions for the ERE service
 """
 
-
+import asyncio
 from concurrent.futures import Executor, InterpreterPoolExecutor
+import logging
 import os
 from ere.models.ers_core import Request, Response
 
@@ -12,17 +13,15 @@ from abc import ABC, abstractmethod
 from typing import Protocol
 from collections.abc import Iterable
 
+log = logging.getLogger ( __name__ )
+
+
 class AbstractService ( ABC ):
 	"""
-	In general, an ERE service can be started and stopped, with default implementations
-	doing nothing.
+	In general, an ERE service can be run asynchronously.
 	"""
 	@abstractmethod
-	def start ( self ):
-		pass
-	
-	@abstractmethod
-	def stop ( self ):
+	async def run ( self ):
 		pass
 
 
@@ -43,7 +42,7 @@ class AbstractResolver ( Protocol ):
 		return self.process_request ( request )
 	
 
-class AbstractPubSubResolutionService ( AbstractService, AbstractResolver ):
+class AbstractPubSubResolutionService ( AbstractService ):
 	"""
 	An abstract ERE resolution service that works in a publish-subscribe fashion.
 
@@ -59,21 +58,23 @@ class AbstractPubSubResolutionService ( AbstractService, AbstractResolver ):
 	## Attributes
 
 	- resolver: An :class:`AbstractResolver` instance that does the actual resolution work.
+
 	- parallelism: The number of parallel workers to use for processing requests. 
 		By default, it uses the number of CPU cores.
+
 	- executor_type: The type of executor to use for parallel processing. By default, it 
 		uses :class:`InterpreterPoolExecutor`, which is optimised for CPU-bound tasks, as it is
 		expected for the delegate resolver.
+
 	- is_running: A boolean flag indicating whether the service is running.
 	  This is read-only and managed by :meth:`_service_loop`, which in turn should be
-		launched by :meth:`start`, and by meth:`stop`. 
+		launched by :meth:`start`, and by meth:`stop`.
 	"""
 
-	def __init__( self, resolver: AbstractResolver = None ):
+	def __init__ ( self, resolver: AbstractResolver = None ):
 		self.resolver: AbstractResolver = resolver
 		self.parallelism: int = os.cpu_count ()
 		self.executor_type: Executor = InterpreterPoolExecutor
-		self.is_running: bool = False
 
 
 	@abstractmethod
@@ -95,6 +96,10 @@ class AbstractPubSubResolutionService ( AbstractService, AbstractResolver ):
 		pass
 
 
+	async def run ( self ):
+		await asyncio.gather ( self._service_loop () )
+
+
 	async def _service_loop ( self ):
 		"""
 		The service loop. The default implementation keeps pulling requests, sending them
@@ -109,8 +114,7 @@ class AbstractPubSubResolutionService ( AbstractService, AbstractResolver ):
 		TODO: The input queue isn't bounded. Usually, this can be set in the implementing
 		subsystem (eg, Redis). In future, we may want to add semaphore-based limiting.
 		"""
-		self.is_running = True
-		while self.is_running:
+		while True:
 			with self.executor_type ( max_workers = self.parallelism ) as executor:		
 				request = await self._pull_request ()
 				executor.submit ( self._process_push_helper, request )
@@ -128,10 +132,7 @@ class AbstractPubSubResolutionService ( AbstractService, AbstractResolver ):
 		response = self.resolver.process_request ( request )
 		self._push_response ( response )
 
-# TODO: 
-# - Redis impl, Redis client
-# - default start/stop?
-#
+
 
 class AbstractEREClient ( ABC ):
 	@abstractmethod

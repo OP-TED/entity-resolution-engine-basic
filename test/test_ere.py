@@ -15,20 +15,18 @@ from ere.models.ers_core import (
 	Response
 )
 
-from ere_test import MockEREClient, extract_resource_rdf
-
-# TODO: factorise
-EPD_NS = "http://data.europa.eu/a4g/resource/"
-EPO_NS = "http://data.europa.eu/a4g/ontology#"
-ORG_NS = "http://www.w3.org/ns/org#"
+from ere_test import ( 
+	MockEREClient, extract_resource_rdf, prefix_common_namespaces, catch_response,
+	EPD_NS, EPO_NS, ORG_NS
+)
 
 
 @pytest.fixture
-def mockup_ere_client () -> AbstractEREClient:
+def mock_ere_client () -> AbstractEREClient:
 	return MockEREClient ()
 
 # TODO: add Gherkin annotations
-def test_known_entity_resolution ( mockup_ere_client: AbstractEREClient ):
+def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
 	"""
 	Scenario: A known entity returns the canonical entity it's equivalent to
 	"""
@@ -43,8 +41,8 @@ def test_known_entity_resolution ( mockup_ere_client: AbstractEREClient ):
 		originator = "test-module"
 	)
 
-	mockup_ere_client.push_request ( test_req )
-	entity_resolution = catch_response ( mockup_ere_client, test_req.requestId, EntityResolution )
+	mock_ere_client.push_request ( test_req )
+	entity_resolution = catch_response ( mock_ere_client, test_req.requestId, EntityResolution )
 
 	assert_that ( entity_resolution.sourceEntityId, "Resolution response has the source entity ID" )\
 	  .is_equal_to ( test_entity.id )
@@ -94,7 +92,7 @@ def test_known_entity_resolution ( mockup_ere_client: AbstractEREClient ):
 		assert_that ( graph.query ( sparql_ask ).askAnswer, assertion_label ).is_true ()
 	
 
-def test_unknown_entity_resolution ( mockup_ere_client: AbstractEREClient ):
+def test_unknown_entity_resolution ( mock_ere_client: AbstractEREClient ):
 	"""
 	Scenario: An unknown entity resolves to itself
 
@@ -129,8 +127,8 @@ def test_unknown_entity_resolution ( mockup_ere_client: AbstractEREClient ):
 		originator = "test-module"
 	)
 
-	mockup_ere_client.push_request ( test_req )
-	entity_resolution = catch_response ( mockup_ere_client, test_req.requestId, EntityResolution )
+	mock_ere_client.push_request ( test_req )
+	entity_resolution = catch_response ( mock_ere_client, test_req.requestId, EntityResolution )
 	assert_that ( entity_resolution.confidenceLevel, "Resolution response has a confidence score of 1" )\
 		.is_equal_to ( 1 )
 	
@@ -157,7 +155,7 @@ def test_unknown_entity_resolution ( mockup_ere_client: AbstractEREClient ):
 	).is_true ()
 
 
-def test_non_matching_entity_resolves_to_itself ( mockup_ere_client: AbstractEREClient ):
+def test_non_matching_entity_resolves_to_itself ( mock_ere_client: AbstractEREClient ):
 	"""
 	Scenario: An unknown entity without a sufficient similarity to known entities resolves to itself
 	"""
@@ -179,8 +177,8 @@ def test_non_matching_entity_resolves_to_itself ( mockup_ere_client: AbstractERE
 		originator = "test-module"
 	)
 
-	mockup_ere_client.push_request ( test_req )
-	entity_resolution = catch_response ( mockup_ere_client, test_req.requestId, EntityResolution )
+	mock_ere_client.push_request ( test_req )
+	entity_resolution = catch_response ( mock_ere_client, test_req.requestId, EntityResolution )
 
 	assert_that ( entity_resolution.sourceEntityId, "Resolution response has the source entity ID" )\
 	  .is_equal_to ( test_entity.id )
@@ -203,7 +201,7 @@ def test_non_matching_entity_resolves_to_itself ( mockup_ere_client: AbstractERE
 	).is_true ()
 
 
-def test_ere_acknowledges_rebuild_request ( mockup_ere_client: AbstractEREClient ):
+def test_ere_acknowledges_rebuild_request ( mock_ere_client: AbstractEREClient ):
 	"""
 	Scenario: The ERE acknowledges a rebuild request
 	"""
@@ -212,12 +210,12 @@ def test_ere_acknowledges_rebuild_request ( mockup_ere_client: AbstractEREClient
 		originator = "test-module"
 	)
 
-	mockup_ere_client.push_request ( rebuild_request )
+	mock_ere_client.push_request ( rebuild_request )
 	# Does all the assertions we want here
-	catch_response ( mockup_ere_client, rebuild_request.requestId, RebuildResponse )
+	catch_response ( mock_ere_client, rebuild_request.requestId, RebuildResponse )
 
 
-def test_ere_still_working_after_rebuild ( mockup_ere_client: AbstractEREClient ):
+def test_ere_still_working_after_rebuild ( mock_ere_client: AbstractEREClient ):
 	"""
 	Scenario: The ERE keeps resolving entities as usually after a rebuild request
 	"""
@@ -226,16 +224,16 @@ def test_ere_still_working_after_rebuild ( mockup_ere_client: AbstractEREClient 
 		requestId = "test-ere-still-working-after-rebuild-001",
 		originator = "test-module"
 	)
-	mockup_ere_client.push_request ( rebuild_request )
-	catch_response ( mockup_ere_client, rebuild_request.requestId, RebuildResponse )
+	mock_ere_client.push_request ( rebuild_request )
+	catch_response ( mock_ere_client, rebuild_request.requestId, RebuildResponse )
 
 	# Now just repeat previous tests
-	test_known_entity_resolution ( mockup_ere_client )
-	test_unknown_entity_resolution ( mockup_ere_client )
-	test_non_matching_entity_resolves_to_itself ( mockup_ere_client )
+	test_known_entity_resolution ( mock_ere_client )
+	test_unknown_entity_resolution ( mock_ere_client )
+	test_non_matching_entity_resolves_to_itself ( mock_ere_client )
 
 
-def test_ere_replies_with_error_response_to_malformed_request ( mockup_ere_client: AbstractEREClient ):
+def test_ere_replies_with_error_response_to_malformed_request ( mock_ere_client: AbstractEREClient ):
 	"""
 	Scenario: The ERE replies with an error response to a malformed request
 	"""
@@ -249,8 +247,8 @@ def test_ere_replies_with_error_response_to_malformed_request ( mockup_ere_clien
 		originator = "test-module"
 	)
 	
-	mockup_ere_client.push_request ( malformed_request )
-	error_response = catch_response ( mockup_ere_client, malformed_request.requestId, ErrorResponse )
+	mock_ere_client.push_request ( malformed_request )
+	error_response = catch_response ( mock_ere_client, malformed_request.requestId, ErrorResponse )
 
 	assert_that ( error_response.errorTitle, "The response has the expected error title" )\
 		.contains ( "without entity data/RDF" )
@@ -259,46 +257,3 @@ def test_ere_replies_with_error_response_to_malformed_request ( mockup_ere_clien
 	assert_that ( error_response.errorType, "The response has an error type" )\
 		.is_equal_to ( "ValueError" )
 
-# TODO: move to a utility module
-def catch_response ( ere_cli: AbstractEREClient, request_id: str, type_to_check: type[Response] = None ) -> Response:
-	"""
-	Subscribes to to ERE responses and keeps getting responses until one with the given
-	request ID is found.
-
-	If the response flow stops (eg, channel closed, system went down), raises a :class:`RuntimeError`
-	
-	If type_to_check isn't None, asserts that the response is an instance of the given type.	
-	"""
-	for response in ere_cli.subscribe_responses ():
-		if response.requestId == request_id:
-			if type_to_check:
-				assert_that ( response, f"Response for request ID '{request_id}' is of the expected type" )\
-					.is_instance_of ( type_to_check )			
-			return response
-	raise RuntimeError ( f"No response found for request ID '{request_id}'" )
-
-
-def prefix_common_namespaces ( rdf_or_sparql_body: str ) -> str:
-	"""
-	Simple helper to have your Turtle or SPARQL string prefixed with common namespace prefixes.
-	"""
-	return """
-		PREFIX cccev: <http://data.europa.eu/m8g/>
-		PREFIX dct:   <http://purl.org/dc/terms/>
-		PREFIX ep:    <http://eprints.org/ontology/>
-		PREFIX epd:   <http://data.europa.eu/a4g/resource/>
-		PREFIX epo:   <http://data.europa.eu/a4g/ontology#>
-		PREFIX locn:  <http://www.w3.org/ns/locn#>
-		PREFIX org:   <http://www.w3.org/ns/org#>
-		PREFIX owl:   <http://www.w3.org/2002/07/owl#>
-		PREFIX ql:    <http://semweb.mmlab.be/ns/ql#>
-		PREFIX rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-		PREFIX rdfs:  <http://www.w3.org/2000/01/rdf-schema#>
-		PREFIX rml:   <http://semweb.mmlab.be/ns/rml#>
-		PREFIX rr:    <http://www.w3.org/ns/r2rml#>
-		PREFIX skos:  <http://www.w3.org/2004/02/skos/core#>
-		PREFIX tedm:  <http://data.europa.eu/a4g/mapping/sf-rml/>
-		PREFIX time:  <http://www.w3.org/2006/time#>
-		PREFIX xsd:   <http://www.w3.org/2001/XMLSchema#>
-
-	""" + rdf_or_sparql_body

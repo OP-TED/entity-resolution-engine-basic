@@ -10,9 +10,15 @@ from ere.models.ers_core import (
 from ere.service import AbstractEREClient, AbstractResolver
 import hashlib
 
+from assertpy import assert_that
 
 ERS_TEST_DATA_NS = "https://data.europa.eu/ers/resource/"
 ERS_SCHEMA_NS = linkml_meta.root [ "id" ] + "/"
+
+EPD_NS = "http://data.europa.eu/a4g/resource/"
+EPO_NS = "http://data.europa.eu/a4g/ontology#"
+ORG_NS = "http://www.w3.org/ns/org#"
+
 
 class MockEREClient ( AbstractEREClient ):
 	"""
@@ -23,10 +29,10 @@ class MockEREClient ( AbstractEREClient ):
 		self._response_queue = []
 	
 	def _init_test_data ( self ):
-		self._store = MockResolver ()
+		self._resolver = MockResolver ()
 
 	def push_request ( self, request: Request ):
-		result = self._store.process_request ( request )
+		result = self._resolver.process_request ( request )
 		self._response_queue.append ( result )
 
 	def subscribe_responses ( self ) -> Iterable [ Response ]:
@@ -311,7 +317,6 @@ class MockResolver ( AbstractResolver ):
 	# /end: _extract_all_clusters ()
 	
 
-# TODO: should be a general utility to be moved to a RDF utils module
 def extract_resource_rdf ( graph: Graph, resource_uri: str ) -> Graph:
 	"""
 	Fetches subject-centric triples from the test data, up to a couple of levels deep.
@@ -340,3 +345,45 @@ def extract_resource_rdf ( graph: Graph, resource_uri: str ) -> Graph:
 	return entity_graph
 # /end: _extract_entity_rdf ()
 
+def catch_response ( ere_cli: AbstractEREClient, request_id: str, type_to_check: type[Response] = None ) -> Response:
+	"""
+	Subscribes to to ERE responses and keeps getting responses until one with the given
+	request ID is found.
+
+	If the response flow stops (eg, channel closed, system went down), raises a :class:`RuntimeError`
+	
+	If type_to_check isn't None, asserts that the response is an instance of the given type.	
+	"""
+	for response in ere_cli.subscribe_responses ():
+		if response.requestId == request_id:
+			if type_to_check:
+				assert_that ( response, f"Response for request ID '{request_id}' is of the expected type" )\
+					.is_instance_of ( type_to_check )			
+			return response
+	raise RuntimeError ( f"No response found for request ID '{request_id}'" )
+
+
+def prefix_common_namespaces ( rdf_or_sparql_body: str ) -> str:
+	"""
+	Simple helper to have your Turtle or SPARQL string prefixed with common namespace prefixes.
+	"""
+	return """
+		PREFIX cccev: <http://data.europa.eu/m8g/>
+		PREFIX dct:   <http://purl.org/dc/terms/>
+		PREFIX ep:    <http://eprints.org/ontology/>
+		PREFIX epd:   <http://data.europa.eu/a4g/resource/>
+		PREFIX epo:   <http://data.europa.eu/a4g/ontology#>
+		PREFIX locn:  <http://www.w3.org/ns/locn#>
+		PREFIX org:   <http://www.w3.org/ns/org#>
+		PREFIX owl:   <http://www.w3.org/2002/07/owl#>
+		PREFIX ql:    <http://semweb.mmlab.be/ns/ql#>
+		PREFIX rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+		PREFIX rdfs:  <http://www.w3.org/2000/01/rdf-schema#>
+		PREFIX rml:   <http://semweb.mmlab.be/ns/rml#>
+		PREFIX rr:    <http://www.w3.org/ns/r2rml#>
+		PREFIX skos:  <http://www.w3.org/2004/02/skos/core#>
+		PREFIX tedm:  <http://data.europa.eu/a4g/mapping/sf-rml/>
+		PREFIX time:  <http://www.w3.org/2006/time#>
+		PREFIX xsd:   <http://www.w3.org/2001/XMLSchema#>
+
+	""" + rdf_or_sparql_body

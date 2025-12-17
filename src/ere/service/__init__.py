@@ -3,9 +3,10 @@ Abstract definitions for the ERE service
 """
 
 import asyncio
-from concurrent.futures import Executor, InterpreterPoolExecutor
+from concurrent.futures import Executor, InterpreterPoolExecutor, ThreadPoolExecutor
 import logging
 import os
+from threading import Thread
 from ere.models.ers_core import Request, Response
 
 from abc import ABC, abstractmethod
@@ -14,16 +15,6 @@ from typing import Protocol
 from collections.abc import Iterable
 
 log = logging.getLogger ( __name__ )
-
-
-class AbstractService ( ABC ):
-	"""
-	In general, an ERE service can be run asynchronously.
-	"""
-	@abstractmethod
-	async def run ( self ):
-		pass
-
 
 class AbstractResolver ( Protocol ):
 	@abstractmethod
@@ -41,6 +32,110 @@ class AbstractResolver ( Protocol ):
 	def __call__ ( self, request: Request ) -> Response:
 		return self.process_request ( request )
 	
+
+class AbstractService ( ABC ):
+	"""
+	In general, an ERE service can be :meth:`run` or started in a background thread using :meth:`start`.
+	"""
+
+	def __init__(self):
+		"""
+
+		## Attributes
+
+		- is_running: A read-only boolean flag indicating whether the service is running.
+		  This is set by :meth:`run` (and hence, by :meth:`start`) and reset by :meth:`stop`.
+			Concrete implementations should check this flag to decide whether to keep running.
+
+		- async_timeout: The timeout (in seconds) for waiting upon blocking asynchronous calls
+			made during the service lifecycle (eg, :meth:`_pull_request`). This ensures that 
+			the service (eg, a service loop) can periodically check whether it was stopped and 
+			exit cleanly. It mainly affects how long it takes to stop the service and how much 
+			CPU overhead the service causes (eg, by waking often in a service loop). You should 
+			be fine with the default value, but cases like tests can benefit from a lower value.
+
+		"""
+		self.async_timeout: float = 3
+		self._thread: Thread = None
+		# To back is_running, it's set/reset by run()/stop()
+		self._is_running: bool = False 
+
+
+	@abstractmethod
+	def run ( self ):
+		"""
+		Runs the service and blocks until it's stopped by some external event, such as SIGINT/SIGTERM.
+		
+		This is supposed to be used in situations like a CLI wrapper. The alternative (eg, in tests) is
+		to run the service in a background thread, which is available from :meth:`start`.
+
+		The default implementation just sets an internal flag to make :attr:`is_running` return True.
+		This implies that a concrete implementation should call this before doing the actual running.
+		"""
+		if self._is_running:
+			raise RuntimeError ( f"{self.__class__.__name__}.run(): service is already running" )
+		
+		log.info ( f"Entering {self.__class__.__name__}.run()" )
+		self._is_running = True
+
+
+	def start ( self ):
+		"""
+		Starts the service, by calling :meth:`run` in a background thread.
+
+		If your service implementation has special things to do before thread wrapping, you
+		should call this method (or better, do your own things in :meth:`run`)
+		"""
+		def runner ():
+			# The background thread needs its own event loop, in order to not have interference
+			# from the main thread.
+			loop = asyncio.new_event_loop ()
+			asyncio.set_event_loop ( loop )
+			try:
+				# loop.run_until_complete ( self.run() )
+				self.run ()
+			finally:
+				loop.close ()
+
+		log.info ( f"Starting {self.__class__.__name__} in the background" )
+		# Unfortunately, components like pytest seems to ignore daemon mode, but having it doesn't
+		# hurt.
+		#  
+		self._thread = Thread ( target = runner, daemon = True )
+		self._thread.start()
+		# TODO: wait until the service is really started?
+		log.info ( f"{self.__class__.__name__} started in the background" )
+
+
+	def stop ( self ):
+		if not self._is_running:
+			log.warning ( f"{self.__class__.__name__}.stop(): service is not running, ignoring stop request" )
+			return
+		
+		log.info ( f"Stopping {self.__class__.__name__}" )
+		self._is_running = False
+
+		if not self._thread:
+			# It was started in the foreground by calling run(), so we're done
+			log.info ( f"{self.__class__.__name__} stopped" )
+			return
+
+		self._thread.join ( timeout = self.async_timeout + 1.0 )
+		if self._thread.is_alive ():
+			log.warning ( 
+				f"{self.__class__.__name__}.stop(): background thread did not stop within the configured timeout"
+			)
+		else:
+			log.info ( f"{self.__class__.__name__} stopped" )
+		
+		self._thread = None
+
+	
+	@property
+	def is_running ( self ) -> bool:
+		return self._is_running
+
+
 
 class AbstractPubSubResolutionService ( AbstractService ):
 	"""
@@ -63,18 +158,17 @@ class AbstractPubSubResolutionService ( AbstractService ):
 		By default, it uses the number of CPU cores.
 
 	- executor_type: The type of executor to use for parallel processing. By default, it 
-		uses :class:`InterpreterPoolExecutor`, which is optimised for CPU-bound tasks, as it is
-		expected for the delegate resolver.
+		uses :class:`ThreadPoolExecutor`. :class:`InterpreterPoolExecutor` should be better
+		for CPU-bound tasks, but we have experienced various problems with it (eg, resolution
+		workers not starting).
 
-	- is_running: A boolean flag indicating whether the service is running.
-	  This is read-only and managed by :meth:`_service_loop`, which in turn should be
-		launched by :meth:`start`, and by meth:`stop`.
 	"""
 
 	def __init__ ( self, resolver: AbstractResolver = None ):
+		super ().__init__ ()
 		self.resolver: AbstractResolver = resolver
 		self.parallelism: int = os.cpu_count ()
-		self.executor_type: Executor = InterpreterPoolExecutor
+		self.executor_type: Executor = ThreadPoolExecutor
 
 
 	@abstractmethod
@@ -96,8 +190,9 @@ class AbstractPubSubResolutionService ( AbstractService ):
 		pass
 
 
-	async def run ( self ):
-		await asyncio.gather ( self._service_loop () )
+	def run ( self ):
+		super ().run () # Sets is_running to True
+		asyncio.run ( self._service_loop () )
 
 
 	async def _service_loop ( self ):
@@ -114,10 +209,21 @@ class AbstractPubSubResolutionService ( AbstractService ):
 		TODO: The input queue isn't bounded. Usually, this can be set in the implementing
 		subsystem (eg, Redis). In future, we may want to add semaphore-based limiting.
 		"""
-		while True:
-			with self.executor_type ( max_workers = self.parallelism ) as executor:		
-				request = await self._pull_request ()
-				executor.submit ( self._process_push_helper, request )
+		try:
+			with self.executor_type ( max_workers = self.parallelism ) as executor:
+				log.debug ( f"PubSubResolutionService: starting service loop with parallelism {self.parallelism}, executor type {self.executor_type.__name__}" )
+				while self._is_running:
+					# We need this to allow for periodically checking if we were stopped
+					try:
+						request = await asyncio.wait_for ( self._pull_request (), timeout = self.async_timeout )
+						if request is None: continue # timeout or shutdown
+						log.debug ( f"PubSubResolutionService: dispatching request id: {request.requestId}" )
+						executor.submit ( self._process_push_helper, request )
+					except asyncio.TimeoutError:
+						pass
+		except asyncio.CancelledError:
+			# TODO: graceful shutdown (ie, synch with executor)
+			log.info ( "Service loop cancelled, shutting down." )
 
 
 	def _process_push_helper ( self, request: Request ):
@@ -129,8 +235,12 @@ class AbstractPubSubResolutionService ( AbstractService ):
 		are a sequence that is run in parallel, while :meth:`_service_loop` keeps pulling
 		requests and dispatching them to this method.
 		"""
+		log.debug ( f"Service: sending request id: {request.requestId} to the resolver" )
 		response = self.resolver.process_request ( request )
+		log.debug ( f"Service: got response for request id: {request.requestId} from the resolver, pushing it back" )
 		self._push_response ( response )
+
+		
 
 
 

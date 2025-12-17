@@ -1,3 +1,7 @@
+"""
+Tests the :class:`RedisResolutionService` and :class:`RedisEREClient` with the mock resolver.
+"""
+
 import logging
 import pytest
 from ere.service import AbstractEREClient
@@ -11,7 +15,7 @@ from ere_test import (
 from ere.models.ers_core import (
 	CanonicalEntity,
 	EntityResolutionRequest,
-	EntityResolution,
+	EntityResolutionResponse,
 	Entity,
 	ErrorResponse,
 	RebuildRequest,
@@ -30,31 +34,34 @@ log = logging.getLogger ( __name__ )
 
 
 @pytest.fixture ( autouse = True )
-async def create_mock_service ( redisdb ):
-	mock_service = RedisResolutionService ( 
+def create_mock_service ( redisdb ):
+	log.info ( "Creating mock_service" )
+	mock_service = RedisResolutionService (
 		resolver = MockResolver (), config_or_client = redisdb
 	)
-	task = asyncio.create_task ( mock_service.run () )
-	await asyncio.sleep ( 3 )  # Give it time to start
-	log.info ( "mock_service started" )
-	yield
-	task.cancel ()
+	mock_service.async_timeout = 1.0  # make tests faster
+	mock_service.start () # Starts in the background
+
+	log.info ( "mock_service started, handing control to tests" )
+
 	try:
-		await task
-	except asyncio.CancelledError:
-		log.info ( "mock_service stopped" )
+		yield
+	finally:
+		mock_service.stop ()
+
 
 
 @pytest.fixture
 def mock_ere_client ( redisdb ) -> AbstractEREClient:
 	return RedisEREClient ( config_or_client = redisdb )
 
+
 @pytest.mark.integration
-@pytest.mark.asyncio
-async def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
+def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
 	"""
 	Scenario: A known entity returns the canonical entity it's equivalent to
 	"""
+	log.info ( "test_known_entity_resolution: starting" )
 	test_entity = Entity (
 		id = f"{EPD_NS}id_2023-S-210-661238_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj",
 		type = f"{ORG_NS}Organization"
@@ -67,7 +74,7 @@ async def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
 	)
 
 	mock_ere_client.push_request ( test_req )
-	entity_resolution = catch_response ( mock_ere_client, test_req.requestId, EntityResolution )
+	entity_resolution = catch_response ( mock_ere_client, test_req.requestId, EntityResolutionResponse )
 
 	assert_that ( entity_resolution.sourceEntityId, "Resolution response has the source entity ID" )\
 	  .is_equal_to ( test_entity.id )

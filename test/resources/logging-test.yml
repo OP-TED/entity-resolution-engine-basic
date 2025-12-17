@@ -11,7 +11,7 @@ handlers:
     class: logging.StreamHandler
     stream: ext://sys.stderr
     formatter: simpleFormatter
-    level: INFO
+    level: DEBUG
 
   file:
     class: logging.FileHandler
@@ -42,6 +42,4 @@ root:
   - console
   - file
 
-loggers:
-  py4j:
-    level: INFO
+# loggers:

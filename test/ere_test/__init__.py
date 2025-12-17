@@ -4,7 +4,7 @@ from pathlib import Path
 
 from ere.models.ers_core import RebuildRequest, RebuildResponse, Request, Response, linkml_meta
 from ere.models.ers_core import (
-	EntityResolutionRequest, EntityResolution, CanonicalEntity, 
+	EntityResolutionRequest, EntityResolutionResponse, CanonicalEntity, 
 	ErrorResponse
 )
 from ere.service import AbstractEREClient, AbstractResolver
@@ -142,7 +142,7 @@ class MockResolver ( AbstractResolver ):
 			return error_response
 
 
-	def resolve_entity ( self, request: EntityResolutionRequest ) -> EntityResolution:
+	def resolve_entity ( self, request: EntityResolutionRequest ) -> EntityResolutionResponse:
 		"""
 		Mocks up an entity resolution, that is:
 
@@ -179,12 +179,15 @@ class MockResolver ( AbstractResolver ):
 		if not confidence:
 			raise RuntimeError ( f'Internal error during mockup entity resolution for entity { entity_uri }: confidence score not found or not created' )
 
-		can_entity = CanonicalEntity ( type = cluster.get_canonical_entity_type () )
-		can_entity.id = cluster.canonical_entity_uri
+		can_entity = CanonicalEntity (
+			type = cluster.get_canonical_entity_type (),
+			id = cluster.canonical_entity_uri
+		)
+
 		can_entity.entityData = cluster.canonical_entity_rdf.serialize ( format = 'turtle' )
 		can_entity.entityDataFormat = 'text/turtle'
 
-		result = EntityResolution (
+		result = EntityResolutionResponse (
 			requestId = request.requestId,
 			canonicalEntity = can_entity,
 			sourceEntityId = entity_uri,

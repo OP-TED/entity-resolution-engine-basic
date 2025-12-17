@@ -7,7 +7,7 @@ from ere.service import AbstractEREClient
 from ere.models.ers_core import (
 	CanonicalEntity,
 	EntityResolutionRequest,
-	EntityResolution,
+	EntityResolutionResponse,
 	Entity,
 	ErrorResponse,
 	RebuildRequest,
@@ -42,7 +42,7 @@ def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
 	)
 
 	mock_ere_client.push_request ( test_req )
-	entity_resolution = catch_response ( mock_ere_client, test_req.requestId, EntityResolution )
+	entity_resolution = catch_response ( mock_ere_client, test_req.requestId, EntityResolutionResponse )
 
 	assert_that ( entity_resolution.sourceEntityId, "Resolution response has the source entity ID" )\
 	  .is_equal_to ( test_entity.id )
@@ -128,7 +128,7 @@ def test_unknown_entity_resolution ( mock_ere_client: AbstractEREClient ):
 	)
 
 	mock_ere_client.push_request ( test_req )
-	entity_resolution = catch_response ( mock_ere_client, test_req.requestId, EntityResolution )
+	entity_resolution = catch_response ( mock_ere_client, test_req.requestId, EntityResolutionResponse )
 	assert_that ( entity_resolution.confidenceLevel, "Resolution response has a confidence score of 1" )\
 		.is_equal_to ( 1 )
 	
@@ -178,7 +178,7 @@ def test_non_matching_entity_resolves_to_itself ( mock_ere_client: AbstractERECl
 	)
 
 	mock_ere_client.push_request ( test_req )
-	entity_resolution = catch_response ( mock_ere_client, test_req.requestId, EntityResolution )
+	entity_resolution = catch_response ( mock_ere_client, test_req.requestId, EntityResolutionResponse )
 
 	assert_that ( entity_resolution.sourceEntityId, "Resolution response has the source entity ID" )\
 	  .is_equal_to ( test_entity.id )

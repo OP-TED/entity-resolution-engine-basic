@@ -203,7 +203,7 @@ In other words, a particular request will have `type` set with values like
 """, json_schema_extra = { "linkml_meta": {'domain_of': ['RequestOrResponseMixin']} })
 
 
-class EntityResolution(Response):
+class EntityResolutionResponse(Response):
     """
     An entity resolution response sent by the ERE.
 
@@ -212,7 +212,7 @@ class EntityResolution(Response):
 
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'examples': [{'value': '{\n'
-                                '  "type": "EntityResolution",\n'
+                                '  "type": "EntityResolutionResponse",\n'
                                 '  "sourceEntityId": '
                                 '"http://data.europa.eu/ers/id/324fs3r345vx-q11rea",\n'
                                 '  "confidenceLevel": 0.91,\n'
@@ -231,15 +231,15 @@ class EntityResolution(Response):
 
     canonicalEntity: CanonicalEntity = Field(default=..., description="""The canonical entity that the ERE has associated to the original entity.
 This includes the canonical entity URI and its type.
-""", json_schema_extra = { "linkml_meta": {'domain_of': ['EntityResolution']} })
+""", json_schema_extra = { "linkml_meta": {'domain_of': ['EntityResolutionResponse']} })
     sourceEntityId: str = Field(default=..., description="""The ID or URI of the original entity that has been resolved.
-""", json_schema_extra = { "linkml_meta": {'domain_of': ['EntityResolution']} })
+""", json_schema_extra = { "linkml_meta": {'domain_of': ['EntityResolutionResponse']} })
     confidenceLevel: Optional[float] = Field(default=None, description="""A 0-1 value of how confident the ERE is about associating the original entity
 with the canonical entity's cluster.
-""", json_schema_extra = { "linkml_meta": {'domain_of': ['EntityResolution']} })
+""", json_schema_extra = { "linkml_meta": {'domain_of': ['EntityResolutionResponse']} })
     requestId: str = Field(default=..., description="""A string representing the unique ID of the request this response is about.
 """, json_schema_extra = { "linkml_meta": {'domain_of': ['Request', 'Response']} })
-    type: Literal["EntityResolution"] = Field(default="EntityResolution", description="""The type of the request or result.
+    type: Literal["EntityResolutionResponse"] = Field(default="EntityResolutionResponse", description="""The type of the request or result.
 
 As per LinkML specification, `designates_type` is used here in order to allow for this
 slot to tell the concrete subclass that an instance (such as a JSON object) belongs to.
@@ -315,7 +315,10 @@ class Entity(ConfiguredBaseModel):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://data.europa.eu/ers/schema'})
 
-    id: str = Field(default=..., description="""A string containing the entity ID or URI (set by the ERS or, for canonical entities, by the ERE).
+    id: Optional[str] = Field(default=None, description="""A string containing the entity ID or URI (set by the ERS or, for canonical entities, by the ERE).
+
+Note that the ID isn't mandatory when an entity is submitted for resolution, since the initial input
+might be something like unstructured text, where the entity and its ID is to be recognised.        
 """, json_schema_extra = { "linkml_meta": {'domain_of': ['Entity', 'CanonicalEntity']} })
     type: str = Field(default=..., description="""A string representing the entity type URI (based on CET).
 
@@ -338,7 +341,9 @@ class CanonicalEntity(Entity):
     """
     linkml_meta: ClassVar[LinkMLMeta] = LinkMLMeta({'from_schema': 'https://data.europa.eu/ers/schema'})
 
-    id: Optional[str] = Field(default=None, description="""The (canonical) URI of the canonical entity. This restricts the parent range to URIs only.
+    id: str = Field(default=..., description="""The (canonical) URI of the canonical entity. This restricts the parent range to URIs only.
+
+Contrary to `Entity.id`, this is always known/required for canonical entities.
 """, json_schema_extra = { "linkml_meta": {'domain_of': ['Entity', 'CanonicalEntity']} })
     type: str = Field(default=..., description="""A string representing the entity type URI (based on CET).
 
@@ -409,7 +414,7 @@ RequestOrResponseMixin.model_rebuild()
 Request.model_rebuild()
 Response.model_rebuild()
 EntityResolutionRequest.model_rebuild()
-EntityResolution.model_rebuild()
+EntityResolutionResponse.model_rebuild()
 ErrorResponse.model_rebuild()
 Entity.model_rebuild()
 CanonicalEntity.model_rebuild()

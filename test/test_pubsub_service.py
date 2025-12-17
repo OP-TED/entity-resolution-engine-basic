@@ -4,21 +4,18 @@ Tests the generic working logic in :class:`AbstractPubSubResolutionService`,
 by means of mock implementations that use 'channels' based on in-memory queues.
 """
 
-from collections.abc import Iterable
-import queue
-import threading
-
-from assertpy import assert_that
-import concurrent
-import pytest
-from ere.models.ers_core import Entity, EntityResolutionResponse, EntityResolutionRequest, Request, Response, Response
-from ere.service import AbstractPubSubResolutionService, AbstractEREClient
 import asyncio
+import logging
+import queue
+from collections.abc import Iterable
+
+import pytest
+from assertpy import assert_that
 from ere_test import EPD_NS, ORG_NS, MockResolver, catch_response
 
-import logging
-
-from concurrent.futures import ThreadPoolExecutor, Future, Executor
+from ere.models.ers_core import (Entity, EntityResolutionRequest,
+                                 EntityResolutionResponse, Request, Response)
+from ere.service import AbstractEREClient, AbstractPubSubResolutionService
 
 log = logging.getLogger ( __name__ )
 

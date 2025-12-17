@@ -1,24 +1,15 @@
-from pyparsing import Path
 import pytest
 from assertpy import assert_that
+from ere_test import (EPD_NS, EPO_NS, ORG_NS, MockEREClient, catch_response,
+                      extract_resource_rdf, prefix_common_namespaces)
+from pyparsing import Path
 from rdflib import Graph
 
+from ere.models.ers_core import (CanonicalEntity, Entity,
+                                 EntityResolutionRequest,
+                                 EntityResolutionResponse, ErrorResponse,
+                                 RebuildRequest, RebuildResponse)
 from ere.service import AbstractEREClient
-from ere.models.ers_core import (
-	CanonicalEntity,
-	EntityResolutionRequest,
-	EntityResolutionResponse,
-	Entity,
-	ErrorResponse,
-	RebuildRequest,
-	RebuildResponse,
-	Response
-)
-
-from ere_test import ( 
-	MockEREClient, extract_resource_rdf, prefix_common_namespaces, catch_response,
-	EPD_NS, EPO_NS, ORG_NS
-)
 
 
 @pytest.fixture

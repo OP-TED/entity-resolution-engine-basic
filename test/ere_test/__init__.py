@@ -1,16 +1,15 @@
-from typing import Dict, Iterable, Tuple
-from rdflib import Graph
-from pathlib import Path
-
-from ere.models.ers_core import RebuildRequest, RebuildResponse, Request, Response, linkml_meta
-from ere.models.ers_core import (
-	EntityResolutionRequest, EntityResolutionResponse, CanonicalEntity, 
-	ErrorResponse
-)
-from ere.service import AbstractEREClient, AbstractResolver
 import hashlib
+from pathlib import Path
+from typing import Dict, Iterable
 
 from assertpy import assert_that
+from rdflib import Graph
+
+from ere.models.ers_core import (CanonicalEntity, EntityResolutionRequest,
+                                 EntityResolutionResponse, ErrorResponse,
+                                 RebuildRequest, RebuildResponse, Request,
+                                 Response, linkml_meta)
+from ere.service import AbstractEREClient, AbstractResolver
 
 ERS_TEST_DATA_NS = "https://data.europa.eu/ers/resource/"
 ERS_SCHEMA_NS = linkml_meta.root [ "id" ] + "/"

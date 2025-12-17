@@ -1,7 +1,7 @@
-from brandizpyes.logging import logger_config
 import os
 
 import pytest
+from brandizpyes.logging import logger_config
 
 """
 Pytest configuration file, which the framework picks up at startup.

@@ -3,16 +3,15 @@ Abstract definitions for the ERE service
 """
 
 import asyncio
-from concurrent.futures import Executor, InterpreterPoolExecutor, ThreadPoolExecutor
 import logging
 import os
-from threading import Thread
-from ere.models.ers_core import Request, Response
-
 from abc import ABC, abstractmethod
-
-from typing import Protocol
 from collections.abc import Iterable
+from concurrent.futures import (Executor, ThreadPoolExecutor)
+from threading import Thread
+from typing import Protocol
+
+from ere.models.ers_core import Request, Response
 
 log = logging.getLogger ( __name__ )
 
@@ -27,7 +26,6 @@ class AbstractResolver ( Protocol ):
 
 		This should take care of wrapping exceptions into ErrorResponse results.
 		"""
-		pass
 
 	def __call__ ( self, request: Request ) -> Response:
 		return self.process_request ( request )
@@ -178,7 +176,6 @@ class AbstractPubSubResolutionService ( AbstractService ):
 
 		This is an abstract placeholder to be implemented by concrete subclasses.
 		"""
-		pass
 
 	@abstractmethod
 	def _push_response ( self, response: Response ):
@@ -187,7 +184,6 @@ class AbstractPubSubResolutionService ( AbstractService ):
 
 		This is an abstract placeholder to be implemented by concrete subclasses.
 		"""
-		pass
 
 
 	def run ( self ):
@@ -252,7 +248,6 @@ class AbstractEREClient ( ABC ):
 
 			See the ERE Contract document for details.
 			"""
-			pass
 
 	@abstractmethod
 	def subscribe_responses ( self ) -> Iterable[ Response ]:
@@ -262,4 +257,3 @@ class AbstractEREClient ( ABC ):
 			This is a generator that yields responses as the implementation publishes them 
 			to the response channel.
 			"""
-			pass

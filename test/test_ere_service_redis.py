@@ -3,32 +3,17 @@ Tests the :class:`RedisResolutionService` and :class:`RedisEREClient` with the m
 """
 
 import logging
+
 import pytest
-from ere.service import AbstractEREClient
-from ere.service.redis import RedisResolutionService, RedisEREClient
-from ere_test import (
-	extract_resource_rdf, prefix_common_namespaces, catch_response, MockResolver,
-	EPD_NS, EPO_NS, ORG_NS
-)
-
-
-from ere.models.ers_core import (
-	CanonicalEntity,
-	EntityResolutionRequest,
-	EntityResolutionResponse,
-	Entity,
-	ErrorResponse,
-	RebuildRequest,
-	RebuildResponse,
-	Response
-)
-
+from assertpy import assert_that
+from ere_test import (EPD_NS, ORG_NS, MockResolver, catch_response, prefix_common_namespaces)
 from rdflib import Graph
 
-from assertpy import assert_that
-
-import pytest
-import asyncio
+from ere.models.ers_core import (CanonicalEntity, Entity,
+                                 EntityResolutionRequest,
+                                 EntityResolutionResponse)
+from ere.service import AbstractEREClient
+from ere.service.redis import RedisEREClient, RedisResolutionService
 
 log = logging.getLogger ( __name__ )
 

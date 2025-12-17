@@ -1,23 +1,19 @@
-from collections.abc import Iterable
-from concurrent.futures import InterpreterPoolExecutor
+import asyncio
 import json
 import logging
-import os
-import asyncio
+from collections.abc import Iterable
 
 import redis
-import redis.asyncio as aredis
+from linkml_runtime.dumpers import JSONDumper
+from linkml_runtime.loaders import JSONLoader
 from redis.exceptions import ConnectionError, TimeoutError
 
-from ere.service import AbstractPubSubResolutionService, AbstractResolver, AbstractEREClient
-from ere.models.ers_core import ( 
-	Request, Response, EntityResolutionRequest, EntityResolutionResponse,
-	ErrorResponse, RebuildRequest, RebuildResponse, RequestOrResponseMixin
-)
-
-from linkml_runtime.loaders import JSONLoader
-from linkml_runtime.dumpers import JSONDumper
-
+from ere.models.ers_core import (EntityResolutionRequest,
+                                 EntityResolutionResponse, ErrorResponse,
+                                 RebuildRequest, RebuildResponse, Request,
+                                 RequestOrResponseMixin, Response)
+from ere.service import (AbstractEREClient, AbstractPubSubResolutionService,
+                         AbstractResolver)
 
 log = logging.getLogger ( __name__ )
 

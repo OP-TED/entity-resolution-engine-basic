@@ -11,34 +11,12 @@ from rdflib import Graph
 
 from ere.models.ers_core import (CanonicalEntity, Entity,
                                  EntityResolutionRequest,
-                                 EntityResolutionResponse)
+                                 EntityResolutionResponse, ErrorResponse)
 from ere.service import AbstractEREClient
 from ere.service.redis import RedisEREClient, RedisResolutionService
 
 log = logging.getLogger ( __name__ )
 
-
-@pytest.fixture ( autouse = True )
-def create_mock_service ( redisdb ):
-	log.info ( "Creating mock_service" )
-	mock_service = RedisResolutionService (
-		resolver = MockResolver (), config_or_client = redisdb
-	)
-	mock_service.async_timeout = 1.0  # make tests faster
-	mock_service.start () # Starts in the background
-
-	log.info ( "mock_service started, handing control to tests" )
-
-	try:
-		yield
-	finally:
-		mock_service.stop ()
-
-
-
-@pytest.fixture
-def mock_ere_client ( redisdb ) -> AbstractEREClient:
-	return RedisEREClient ( config_or_client = redisdb )
 
 
 @pytest.mark.integration
@@ -107,3 +85,59 @@ def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
 		sparql_ask = prefix_common_namespaces ( sparql_ask )
 		sparql_ask = sparql_ask % ( canonical_entity.id, sparql_assertion )
 		assert_that ( graph.query ( sparql_ask ).askAnswer, assertion_label ).is_true ()
+
+
+
+@pytest.mark.integration
+def test_ere_replies_with_error_response_to_malformed_request ( mock_ere_client: AbstractEREClient ):
+	"""
+	Scenario: The ERE replies with an error response to a malformed request
+	"""
+	# Send a malformed request (missing entity)
+	malformed_request = EntityResolutionRequest (
+		requestId = "test-bad-resolution-req-001",
+		entity = Entity (
+			id = "",
+			type = "FooType"
+		),  # Malformed part
+		originator = "test-module"
+	)
+	
+	mock_ere_client.push_request ( malformed_request )
+	error_response = catch_response ( mock_ere_client, malformed_request.requestId, ErrorResponse )
+
+	assert_that ( error_response.errorTitle, "The response has the expected error title" )\
+		.contains ( "without entity data/RDF" )
+	assert_that ( error_response.errorDetail, "The response has the expected error detail" )\
+		.contains ( "without entity data/RDF" )
+	assert_that ( error_response.errorType, "The response has an error type" )\
+		.is_equal_to ( "ValueError" )
+	
+
+@pytest.fixture ( autouse = True )
+def create_mock_service ( redisdb ):
+	"""
+	As in similar cases, the service fixture isn't directly used by the tests, in fact, 
+	here the client uses Redis networking.
+	
+	"""
+
+	log.info ( "Creating mock_service" )
+	mock_service = RedisResolutionService (
+		resolver = MockResolver (), config_or_client = redisdb
+	)
+	mock_service.async_timeout = 1.0  # make tests faster
+	mock_service.start () # Starts in the background
+
+	log.info ( "mock_service started, handing control to tests" )
+
+	try:
+		yield
+	finally:
+		mock_service.stop ()
+
+
+
+@pytest.fixture
+def mock_ere_client ( redisdb ) -> AbstractEREClient:
+	return RedisEREClient ( config_or_client = redisdb )

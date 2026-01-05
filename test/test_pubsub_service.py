@@ -19,27 +19,6 @@ from ere.service import AbstractEREClient, AbstractPubSubResolutionService
 
 log = logging.getLogger ( __name__ )
 
-@pytest.fixture
-def mock_ere_client () -> AbstractEREClient:
-	return FooPubSubClient ()
-
-
-@pytest.fixture ( autouse = True )
-def create_mock_service ():
-	log.info ( "Creating mock_service" )
-	mock_service = FooPubSubResolutionService ()
-	mock_service.async_timeout = 1.0  # make tests faster
-
-	mock_service.start () # Starts in the background
-
-	log.info ( "mock_service started, handing control to tests" )
-
-	try:
-		yield
-	finally:
-		mock_service.stop ()
-
-
 
 def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
 	"""
@@ -61,6 +40,32 @@ def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
 
 	assert_that ( entity_resolution.sourceEntityId, "Resolution response has the source entity ID" )\
 	  .is_equal_to ( test_entity.id )
+
+
+@pytest.fixture
+def mock_ere_client () -> AbstractEREClient:
+	return FooPubSubClient ()
+
+
+@pytest.fixture ( autouse = True )
+def create_mock_service ():
+	"""
+	The service fixture isn't directly used by the tests, for they interact with the client fixture 
+	through network communication, or mechanisms that emulate it (like in-memory queues used hereby).
+	
+	"""
+	log.info ( "Creating mock_service" )
+	mock_service = FooPubSubResolutionService ()
+	mock_service.async_timeout = 1.0  # make tests faster
+
+	mock_service.start () # Starts in the background
+
+	log.info ( "mock_service started, handing control to tests" )
+
+	try:
+		yield
+	finally:
+		mock_service.stop ()
 
 
 # The "channels" used by the mock service/client to emulate the interaction in a real service

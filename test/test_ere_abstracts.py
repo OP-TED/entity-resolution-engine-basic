@@ -1,3 +1,12 @@
+"""
+Tests the abstract definitions about the ERE service.
+
+In practice, this module tests the ERE contract specification, by using a mock resolver and a mock 
+service client (which calls the resolver directly, bypassing any network interaction concerns).
+
+Both the mock client and the mock resolver behave as specified in the ERE contract (and in the Gherkin scenarios).
+
+"""
 import pytest
 from assertpy import assert_that
 from ere_test import (EPD_NS, EPO_NS, ORG_NS, MockEREClient, catch_response,
@@ -11,10 +20,6 @@ from ere.models.ers_core import (CanonicalEntity, Entity,
                                  RebuildRequest, RebuildResponse)
 from ere.service import AbstractEREClient
 
-
-@pytest.fixture
-def mock_ere_client () -> AbstractEREClient:
-	return MockEREClient ()
 
 # TODO: add Gherkin annotations
 def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
@@ -248,3 +253,7 @@ def test_ere_replies_with_error_response_to_malformed_request ( mock_ere_client:
 	assert_that ( error_response.errorType, "The response has an error type" )\
 		.is_equal_to ( "ValueError" )
 
+
+@pytest.fixture
+def mock_ere_client () -> AbstractEREClient:
+	return MockEREClient ()

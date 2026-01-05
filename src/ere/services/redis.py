@@ -12,7 +12,7 @@ from ere.models.ers_core import (EntityResolutionRequest,
                                  EntityResolutionResponse, ErrorResponse,
                                  RebuildRequest, RebuildResponse, Request,
                                  RequestOrResponseMixin, Response)
-from ere.service import (AbstractEREClient, AbstractPubSubResolutionService,
+from ere.services import (AbstractEREClient, AbstractPubSubResolutionService,
                          AbstractResolver)
 
 log = logging.getLogger ( __name__ )

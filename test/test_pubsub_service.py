@@ -15,7 +15,7 @@ from ere_test import EPD_NS, ORG_NS, MockResolver, catch_response
 
 from ere.models.ers_core import (Entity, EntityResolutionRequest,
                                  EntityResolutionResponse, Request, Response)
-from ere.service import AbstractEREClient, AbstractPubSubResolutionService
+from ere.services import AbstractEREClient, AbstractPubSubResolutionService
 
 log = logging.getLogger ( __name__ )
 

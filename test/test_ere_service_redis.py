@@ -12,8 +12,8 @@ from rdflib import Graph
 from ere.models.ers_core import (CanonicalEntity, Entity,
                                  EntityResolutionRequest,
                                  EntityResolutionResponse, ErrorResponse)
-from ere.service import AbstractEREClient
-from ere.service.redis import RedisEREClient, RedisResolutionService
+from ere.services import AbstractEREClient
+from ere.services.redis import RedisEREClient, RedisResolutionService
 
 log = logging.getLogger ( __name__ )
 

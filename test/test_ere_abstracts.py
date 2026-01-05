@@ -18,7 +18,7 @@ from ere.models.ers_core import (CanonicalEntity, Entity,
                                  EntityResolutionRequest,
                                  EntityResolutionResponse, ErrorResponse,
                                  RebuildRequest, RebuildResponse)
-from ere.service import AbstractEREClient
+from ere.services import AbstractEREClient
 
 
 # TODO: add Gherkin annotations

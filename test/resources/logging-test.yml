@@ -1,6 +1,4 @@
 # Used to run tests via pytest. This is loaded by conftest.py, which pytest auto-loads.
-# It hasn't the usual, auto-loaded logging-test.yml, since the latter is used to test
-# our logging module itself.
 #
 
 version: 1

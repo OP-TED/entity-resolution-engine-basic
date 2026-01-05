@@ -1,3 +1,7 @@
+"""
+Helpers and mockups for ERE tests.
+
+"""
 import hashlib
 from pathlib import Path
 from typing import Dict, Iterable

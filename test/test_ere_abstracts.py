@@ -13,11 +13,11 @@ from ere_test import (EPD_NS, EPO_NS, ORG_NS, MockEREClient, catch_response,
 from pyparsing import Path
 from rdflib import Graph
 
+from ere.entrypoints import AbstractClient
 from ere.models.ers_core import (CanonicalEntity, Entity,
                                  EntityResolutionRequest,
                                  EntityResolutionResponse, ErrorResponse,
                                  RebuildRequest, RebuildResponse)
-from ere.entrypoints import AbstractClient
 
 
 # TODO: add Gherkin annotations

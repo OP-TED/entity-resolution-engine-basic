@@ -3,7 +3,6 @@ A basic implementation of the Entity Resolution Engine (ERE).
 
 ## TODO
 * Migrate `pytest-redis` to Test Containers
-* Move utilities in modules like redis.py to a utils module
 * CLI wrapper to start the Redis service
 * Dockerisation
 * github action for test, build, PyPI publish. * Also, add code cleaning:

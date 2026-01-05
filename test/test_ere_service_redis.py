@@ -6,14 +6,15 @@ import logging
 
 import pytest
 from assertpy import assert_that
-from ere.entrypoints.redis import RedisEREClient
-from ere_test import (EPD_NS, ORG_NS, MockResolver, catch_response, prefix_common_namespaces)
+from ere_test import (EPD_NS, ORG_NS, MockResolver, catch_response,
+                      prefix_common_namespaces)
 from rdflib import Graph
 
+from ere.entrypoints import AbstractClient
+from ere.entrypoints.redis import RedisEREClient
 from ere.models.ers_core import (CanonicalEntity, Entity,
                                  EntityResolutionRequest,
                                  EntityResolutionResponse, ErrorResponse)
-from ere.entrypoints import AbstractClient
 from ere.services.redis import RedisResolutionService
 
 log = logging.getLogger ( __name__ )

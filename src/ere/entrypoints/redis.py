@@ -1,13 +1,13 @@
+from collections.abc import Iterable
+
+import redis
+from linkml_runtime.dumpers import JSONDumper
+from redis.exceptions import ConnectionError, TimeoutError
+
 from ere.entrypoints import AbstractClient
 from ere.models.ers_core import Request, Response
 from ere.services.redis import RedisConnectionConfig, log
-
-import redis
-from redis.exceptions import ConnectionError, TimeoutError
-
-from collections.abc import Iterable
 from ere.utils import get_response_from_message
-from linkml_runtime.dumpers import JSONDumper
 
 _linkml_dumper = JSONDumper () # Just to cache it
 

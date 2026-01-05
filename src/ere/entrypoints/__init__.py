@@ -1,8 +1,7 @@
-from ere.models.ers_core import Request, Response
-
-
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+
+from ere.models.ers_core import Request, Response
 
 
 class AbstractClient ( ABC ):

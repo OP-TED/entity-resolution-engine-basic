@@ -5,9 +5,13 @@
 # TODO: move to a utils module
 #
 import json
-from linkml_runtime.dumpers import JSONDumper
+
 from linkml_runtime.loaders import JSONLoader
-from ere.models.ers_core import EntityResolutionRequest, EntityResolutionResponse, ErrorResponse, RebuildRequest, RebuildResponse, Request, RequestOrResponseMixin, Response
+
+from ere.models.ers_core import (EntityResolutionRequest,
+                                 EntityResolutionResponse, ErrorResponse,
+                                 RebuildRequest, RebuildResponse, Request,
+                                 RequestOrResponseMixin, Response)
 
 SUPPORTED_REQUEST_CLASSES = {
 	cls.__name__: cls for cls in [ EntityResolutionRequest, RebuildRequest ]

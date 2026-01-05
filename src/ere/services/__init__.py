@@ -6,7 +6,7 @@ import asyncio
 import logging
 import os
 from abc import ABC, abstractmethod
-from concurrent.futures import (Executor, ThreadPoolExecutor)
+from concurrent.futures import Executor, ThreadPoolExecutor
 from threading import Thread
 
 from ere.adapters import AbstractResolver

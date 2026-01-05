@@ -10,11 +10,11 @@ from assertpy import assert_that
 from rdflib import Graph
 
 from ere.adapters import AbstractResolver
+from ere.entrypoints import AbstractClient
 from ere.models.ers_core import (CanonicalEntity, EntityResolutionRequest,
                                  EntityResolutionResponse, ErrorResponse,
                                  RebuildRequest, RebuildResponse, Request,
                                  Response, linkml_meta)
-from ere.entrypoints import AbstractClient
 
 ERS_TEST_DATA_NS = "https://data.europa.eu/ers/resource/"
 ERS_SCHEMA_NS = linkml_meta.root [ "id" ] + "/"

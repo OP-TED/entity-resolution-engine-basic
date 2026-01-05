@@ -2,12 +2,11 @@ import asyncio
 import logging
 
 import redis
+from linkml_runtime.dumpers import JSONDumper
 
 from ere.adapters import AbstractResolver
-from ere.models.ers_core import (Request,
-                                 Response)
-from ere.services import (AbstractPubSubResolutionService)
-from linkml_runtime.dumpers import JSONDumper
+from ere.models.ers_core import Request, Response
+from ere.services import AbstractPubSubResolutionService
 from ere.utils import get_request_from_message
 
 log = logging.getLogger ( __name__ )

@@ -1,8 +1,7 @@
-from ere.models.ers_core import Request, Response
-
-
 from abc import abstractmethod
 from typing import Protocol
+
+from ere.models.ers_core import Request, Response
 
 
 class AbstractResolver ( Protocol ):

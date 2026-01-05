@@ -3,12 +3,15 @@ Tests the :class:`RedisResolutionService` and :class:`RedisEREClient` with the m
 """
 
 import logging
+from typing import Generator
 
 import pytest
+import redis
 from assertpy import assert_that
 from ere_test import (EPD_NS, ORG_NS, MockResolver, catch_response,
                       prefix_common_namespaces)
 from rdflib import Graph
+from testcontainers.redis import RedisContainer
 
 from ere.entrypoints import AbstractClient
 from ere.entrypoints.redis import RedisEREClient
@@ -117,7 +120,7 @@ def test_ere_replies_with_error_response_to_malformed_request ( mock_ere_client:
 	
 
 @pytest.fixture ( autouse = True )
-def create_mock_service ( redisdb ):
+def create_mock_service ( redisdb_client: redis.Redis ) -> Generator[ None, None, None ]:
 	"""
 	As in similar cases, the service fixture isn't directly used by the tests, in fact, 
 	here the client uses Redis networking.
@@ -126,7 +129,7 @@ def create_mock_service ( redisdb ):
 
 	log.info ( "Creating mock_service" )
 	mock_service = RedisResolutionService (
-		resolver = MockResolver (), config_or_client = redisdb
+		resolver = MockResolver (), config_or_client = redisdb_client
 	)
 	mock_service.async_timeout = 1.0  # make tests faster
 	mock_service.start () # Starts in the background
@@ -141,5 +144,14 @@ def create_mock_service ( redisdb ):
 
 
 @pytest.fixture
-def mock_ere_client ( redisdb ) -> AbstractClient:
-	return RedisEREClient ( config_or_client = redisdb )
+def mock_ere_client ( redisdb_client: redis.Redis ) -> AbstractClient:
+	return RedisEREClient ( config_or_client = redisdb_client )
+
+
+@pytest.fixture
+def redisdb_client () -> Generator[redis.Redis, None, None]:
+	"""
+	Provides a Redis client through Test Containers.
+	"""
+	with RedisContainer() as redis_container:
+		yield redis_container.get_client()

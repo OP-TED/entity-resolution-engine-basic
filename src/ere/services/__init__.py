@@ -6,30 +6,13 @@ import asyncio
 import logging
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
 from concurrent.futures import (Executor, ThreadPoolExecutor)
 from threading import Thread
-from typing import Protocol
 
+from ere.adapters import AbstractResolver
 from ere.models.ers_core import Request, Response
 
 log = logging.getLogger ( __name__ )
-
-class AbstractResolver ( Protocol ):
-	@abstractmethod
-	def process_request ( self, request: Request ) -> Response:
-		"""
-		Resolves an entity resolution request, returning the corresponding response.
-
-		This only concerns the resolution logic, leaving out aspects like transport or
-		asynchronous processing.
-
-		This should take care of wrapping exceptions into ErrorResponse results.
-		"""
-
-	def __call__ ( self, request: Request ) -> Response:
-		return self.process_request ( request )
-	
 
 class AbstractService ( ABC ):
 	"""
@@ -51,8 +34,8 @@ class AbstractService ( ABC ):
 			exit cleanly. It mainly affects how long it takes to stop the service and how much 
 			CPU overhead the service causes (eg, by waking often in a service loop). You should 
 			be fine with the default value, but cases like tests can benefit from a lower value.
-
 		"""
+
 		self.async_timeout: float = 3
 		self._thread: Thread = None
 		# To back is_running, it's set/reset by run()/stop()
@@ -70,6 +53,7 @@ class AbstractService ( ABC ):
 		The default implementation just sets an internal flag to make :attr:`is_running` return True.
 		This implies that a concrete implementation should call this before doing the actual running.
 		"""
+
 		if self._is_running:
 			raise RuntimeError ( f"{self.__class__.__name__}.run(): service is already running" )
 		
@@ -84,6 +68,7 @@ class AbstractService ( ABC ):
 		If your service implementation has special things to do before thread wrapping, you
 		should call this method (or better, do your own things in :meth:`run`)
 		"""
+
 		def runner ():
 			# The background thread needs its own event loop, in order to not have interference
 			# from the main thread.
@@ -159,7 +144,6 @@ class AbstractPubSubResolutionService ( AbstractService ):
 		uses :class:`ThreadPoolExecutor`. :class:`InterpreterPoolExecutor` should be better
 		for CPU-bound tasks, but we have experienced various problems with it (eg, resolution
 		workers not starting).
-
 	"""
 
 	def __init__ ( self, resolver: AbstractResolver = None ):
@@ -185,7 +169,6 @@ class AbstractPubSubResolutionService ( AbstractService ):
 		This is an abstract placeholder to be implemented by concrete subclasses.
 		"""
 
-
 	def run ( self ):
 		super ().run () # Sets is_running to True
 		asyncio.run ( self._service_loop () )
@@ -205,9 +188,10 @@ class AbstractPubSubResolutionService ( AbstractService ):
 		TODO: The input queue isn't bounded. Usually, this can be set in the implementing
 		subsystem (eg, Redis). In future, we may want to add semaphore-based limiting.
 		"""
+
 		try:
 			with self.executor_type ( max_workers = self.parallelism ) as executor:
-				log.debug ( f"PubSubResolutionService: starting service loop with parallelism {self.parallelism}, executor type {self.executor_type.__name__}" )
+				log.debug ( f"PubSubResolutionService: starting service loop with parallelism: {self.parallelism}, executor type: {self.executor_type.__name__}" )
 				while self._is_running:
 					# We need this to allow for periodically checking if we were stopped
 					try:
@@ -231,29 +215,8 @@ class AbstractPubSubResolutionService ( AbstractService ):
 		are a sequence that is run in parallel, while :meth:`_service_loop` keeps pulling
 		requests and dispatching them to this method.
 		"""
+		
 		log.debug ( f"Service: sending request id: {request.requestId} to the resolver" )
 		response = self.resolver.process_request ( request )
 		log.debug ( f"Service: got response for request id: {request.requestId} from the resolver, pushing it back" )
 		self._push_response ( response )
-
-		
-
-
-
-class AbstractEREClient ( ABC ):
-	@abstractmethod
-	def push_request ( self, request: Request ):
-			"""
-			Pushes a request to the request channel of the ERE system.
-
-			See the ERE Contract document for details.
-			"""
-
-	@abstractmethod
-	def subscribe_responses ( self ) -> Iterable[ Response ]:
-			"""
-			Subscribes to the response channel.
-
-			This is a generator that yields responses as the implementation publishes them 
-			to the response channel.
-			"""

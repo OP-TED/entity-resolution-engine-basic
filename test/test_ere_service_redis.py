@@ -6,21 +6,22 @@ import logging
 
 import pytest
 from assertpy import assert_that
+from ere.entrypoints.redis import RedisEREClient
 from ere_test import (EPD_NS, ORG_NS, MockResolver, catch_response, prefix_common_namespaces)
 from rdflib import Graph
 
 from ere.models.ers_core import (CanonicalEntity, Entity,
                                  EntityResolutionRequest,
                                  EntityResolutionResponse, ErrorResponse)
-from ere.services import AbstractEREClient
-from ere.services.redis import RedisEREClient, RedisResolutionService
+from ere.entrypoints import AbstractClient
+from ere.services.redis import RedisResolutionService
 
 log = logging.getLogger ( __name__ )
 
 
 
 @pytest.mark.integration
-def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
+def test_known_entity_resolution ( mock_ere_client: AbstractClient ):
 	"""
 	Scenario: A known entity returns the canonical entity it's equivalent to
 	"""
@@ -89,7 +90,7 @@ def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
 
 
 @pytest.mark.integration
-def test_ere_replies_with_error_response_to_malformed_request ( mock_ere_client: AbstractEREClient ):
+def test_ere_replies_with_error_response_to_malformed_request ( mock_ere_client: AbstractClient ):
 	"""
 	Scenario: The ERE replies with an error response to a malformed request
 	"""
@@ -139,5 +140,5 @@ def create_mock_service ( redisdb ):
 
 
 @pytest.fixture
-def mock_ere_client ( redisdb ) -> AbstractEREClient:
+def mock_ere_client ( redisdb ) -> AbstractClient:
 	return RedisEREClient ( config_or_client = redisdb )

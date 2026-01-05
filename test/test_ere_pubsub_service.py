@@ -11,16 +11,17 @@ from collections.abc import Iterable
 
 import pytest
 from assertpy import assert_that
+from ere.entrypoints import AbstractClient
 from ere_test import EPD_NS, ORG_NS, MockResolver, catch_response
 
 from ere.models.ers_core import (Entity, EntityResolutionRequest,
                                  EntityResolutionResponse, Request, Response)
-from ere.services import AbstractEREClient, AbstractPubSubResolutionService
+from ere.services import AbstractPubSubResolutionService
 
 log = logging.getLogger ( __name__ )
 
 
-def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
+def test_known_entity_resolution ( mock_ere_client: AbstractClient ):
 	"""
 	Scenario: A known entity returns the canonical entity it's equivalent to
 	"""
@@ -43,7 +44,7 @@ def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
 
 
 @pytest.fixture
-def mock_ere_client () -> AbstractEREClient:
+def mock_ere_client () -> AbstractClient:
 	return FooPubSubClient ()
 
 
@@ -107,7 +108,7 @@ class FooPubSubResolutionService ( AbstractPubSubResolutionService ):
 		log.debug ( f"Service: pushed response to queue, id: {response.requestId}" )
 
 
-class FooPubSubClient ( AbstractEREClient ):
+class FooPubSubClient ( AbstractClient ):
 	"""
 	The counterpart of :class:`FooPubSubResolutionService`
 
@@ -125,4 +126,3 @@ class FooPubSubClient ( AbstractEREClient ):
 			response = _response_queue.get()
 			log.debug ( f"Client: got a response from queue, id: {response.requestId}" )
 			yield response
-

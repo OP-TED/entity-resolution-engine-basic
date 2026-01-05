@@ -5,7 +5,6 @@ In practice, this module tests the ERE contract specification, by using a mock r
 service client (which calls the resolver directly, bypassing any network interaction concerns).
 
 Both the mock client and the mock resolver behave as specified in the ERE contract (and in the Gherkin scenarios).
-
 """
 import pytest
 from assertpy import assert_that
@@ -18,14 +17,15 @@ from ere.models.ers_core import (CanonicalEntity, Entity,
                                  EntityResolutionRequest,
                                  EntityResolutionResponse, ErrorResponse,
                                  RebuildRequest, RebuildResponse)
-from ere.services import AbstractEREClient
+from ere.entrypoints import AbstractClient
 
 
 # TODO: add Gherkin annotations
-def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
+def test_known_entity_resolution ( mock_ere_client: AbstractClient ):
 	"""
 	Scenario: A known entity returns the canonical entity it's equivalent to
 	"""
+
 	test_entity = Entity (
 		id = f"{EPD_NS}id_2023-S-210-661238_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj",
 		type = f"{ORG_NS}Organization"
@@ -88,13 +88,14 @@ def test_known_entity_resolution ( mock_ere_client: AbstractEREClient ):
 		assert_that ( graph.query ( sparql_ask ).askAnswer, assertion_label ).is_true ()
 	
 
-def test_unknown_entity_resolution ( mock_ere_client: AbstractEREClient ):
+def test_unknown_entity_resolution ( mock_ere_client: AbstractClient ):
 	"""
 	Scenario: An unknown entity resolves to itself
 
 	An unknown entity, with no equivalents known to ERE results into a new cluster with the
 	entity itself as canonical entity.
 	"""
+
 	test_entity = Entity (
 		id = f"{EPD_NS}id_unknown_entity_001",
 		type = f"{ORG_NS}Organization"
@@ -151,10 +152,11 @@ def test_unknown_entity_resolution ( mock_ere_client: AbstractEREClient ):
 	).is_true ()
 
 
-def test_non_matching_entity_resolves_to_itself ( mock_ere_client: AbstractEREClient ):
+def test_non_matching_entity_resolves_to_itself ( mock_ere_client: AbstractClient ):
 	"""
 	Scenario: An unknown entity without a sufficient similarity to known entities resolves to itself
 	"""
+
 	test_entity = Entity (
 		id = f"{EPD_NS}id_2023-S-211-665742_Procedure_faF7Q5dyoGpXu3Ru4RGg73",
 		type = f"{EPO_NS}Procedure"
@@ -197,10 +199,11 @@ def test_non_matching_entity_resolves_to_itself ( mock_ere_client: AbstractERECl
 	).is_true ()
 
 
-def test_ere_acknowledges_rebuild_request ( mock_ere_client: AbstractEREClient ):
+def test_ere_acknowledges_rebuild_request ( mock_ere_client: AbstractClient ):
 	"""
 	Scenario: The ERE acknowledges a rebuild request
 	"""
+
 	rebuild_request = RebuildRequest (
 		requestId = "test-ere-acknowledges-rebuild-request-001",
 		originator = "test-module"
@@ -211,10 +214,11 @@ def test_ere_acknowledges_rebuild_request ( mock_ere_client: AbstractEREClient )
 	catch_response ( mock_ere_client, rebuild_request.requestId, RebuildResponse )
 
 
-def test_ere_still_working_after_rebuild ( mock_ere_client: AbstractEREClient ):
+def test_ere_still_working_after_rebuild ( mock_ere_client: AbstractClient ):
 	"""
 	Scenario: The ERE keeps resolving entities as usually after a rebuild request
 	"""
+	
 	# First, send a rebuild request
 	rebuild_request = RebuildRequest (
 		requestId = "test-ere-still-working-after-rebuild-001",
@@ -229,7 +233,7 @@ def test_ere_still_working_after_rebuild ( mock_ere_client: AbstractEREClient ):
 	test_non_matching_entity_resolves_to_itself ( mock_ere_client )
 
 
-def test_ere_replies_with_error_response_to_malformed_request ( mock_ere_client: AbstractEREClient ):
+def test_ere_replies_with_error_response_to_malformed_request ( mock_ere_client: AbstractClient ):
 	"""
 	Scenario: The ERE replies with an error response to a malformed request
 	"""
@@ -255,5 +259,5 @@ def test_ere_replies_with_error_response_to_malformed_request ( mock_ere_client:
 
 
 @pytest.fixture
-def mock_ere_client () -> AbstractEREClient:
+def mock_ere_client () -> AbstractClient:
 	return MockEREClient ()

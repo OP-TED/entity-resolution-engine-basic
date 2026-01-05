@@ -1,7 +1,7 @@
 """
 Helpers and mockups for ERE tests.
-
 """
+
 import hashlib
 from pathlib import Path
 from typing import Dict, Iterable
@@ -9,11 +9,12 @@ from typing import Dict, Iterable
 from assertpy import assert_that
 from rdflib import Graph
 
+from ere.adapters import AbstractResolver
 from ere.models.ers_core import (CanonicalEntity, EntityResolutionRequest,
                                  EntityResolutionResponse, ErrorResponse,
                                  RebuildRequest, RebuildResponse, Request,
                                  Response, linkml_meta)
-from ere.services import AbstractEREClient, AbstractResolver
+from ere.entrypoints import AbstractClient
 
 ERS_TEST_DATA_NS = "https://data.europa.eu/ers/resource/"
 ERS_SCHEMA_NS = linkml_meta.root [ "id" ] + "/"
@@ -23,7 +24,7 @@ EPO_NS = "http://data.europa.eu/a4g/ontology#"
 ORG_NS = "http://www.w3.org/ns/org#"
 
 
-class MockEREClient ( AbstractEREClient ):
+class MockEREClient ( AbstractClient ):
 	"""
 	A Mockup ERE client, based on an internal in-memory store loaded with test data.
 	"""
@@ -49,6 +50,7 @@ def hash_uri ( uri: str ) -> str:
 
 	TODO: utils module
 	"""
+	
 	return hashlib.md5 ( uri.encode ( 'utf-8' ) ).hexdigest ()
 
 
@@ -154,6 +156,7 @@ class MockResolver ( AbstractResolver ):
 		  of that cluster with the confidence associated to that member
 		- else creates a new cluster with this entity as canonical entity and returns itself with confidence 1.0
 		"""
+
 		can_entity = None
 		confidence = None
 
@@ -203,6 +206,7 @@ class MockResolver ( AbstractResolver ):
 		"""
 		Mocks up the processing of a rebuild request by reloading the test data.
 		"""
+
 		self.__init__ ()
 		response = RebuildResponse (
 			requestId = request.requestId
@@ -351,7 +355,7 @@ def extract_resource_rdf ( graph: Graph, resource_uri: str ) -> Graph:
 	return entity_graph
 # /end: _extract_entity_rdf ()
 
-def catch_response ( ere_cli: AbstractEREClient, request_id: str, type_to_check: type[Response] = None ) -> Response:
+def catch_response ( ere_cli: AbstractClient, request_id: str, type_to_check: type[Response] = None ) -> Response:
 	"""
 	Subscribes to to ERE responses and keeps getting responses until one with the given
 	request ID is found.
@@ -360,6 +364,7 @@ def catch_response ( ere_cli: AbstractEREClient, request_id: str, type_to_check:
 	
 	If type_to_check isn't None, asserts that the response is an instance of the given type.	
 	"""
+
 	for response in ere_cli.subscribe_responses ():
 		if response.requestId == request_id:
 			if type_to_check:

@@ -6,6 +6,7 @@ TODO. For testing, you need: Python, Poetry, Docker (used by pytest + testcontai
 
 
 ## TODO
+* Migrate entity-resolution-spec to Poetry (and ers?)
 * Complete this hereby README
 * CLI wrapper to start the Redis service
 * Dockerisation

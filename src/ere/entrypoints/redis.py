@@ -1,11 +1,11 @@
-from collections.abc import Iterable
+from collections.abc import Generator, Iterable
 
 import redis
 from linkml_runtime.dumpers import JSONDumper
 from redis.exceptions import ConnectionError, TimeoutError
 
 from ere.entrypoints import AbstractClient
-from ere.models.ers_core import Request, Response
+from ere.models.core import ERERequest, EREResponse
 from ere.services.redis import RedisConnectionConfig, log
 from ere.utils import get_response_from_message
 
@@ -38,20 +38,20 @@ class RedisEREClient ( AbstractClient ):
 		self.response_channel_id = 'ere_responses'
 
 
-	def push_request ( self, request: Request ):
-		log.debug ( f"Redis ERE client, pushing request id: {request.requestId} to channel: {self.request_channel_id}" )
+	def push_request ( self, request: ERERequest ):
+		log.debug ( f"Redis ERE client, pushing request id: {request.ereRequestId} to channel: {self.request_channel_id}" )
 		msg_json_str = _linkml_dumper.dumps ( request )
 		self._redis_client.lpush ( self.request_channel_id, msg_json_str )
-		log.debug ( f"Redis ERE client, request id: {request.requestId} sent" )
+		log.debug ( f"Redis ERE client, request id: {request.ereRequestId} sent" )
 
 
-	def subscribe_responses ( self ) -> Iterable[ Response ]:
+	def subscribe_responses ( self ) -> Generator[EREResponse, None, None]:
 		while True:
 			try:
 				log.debug ( f"Redis ERE client, waiting for response on channel: {self.response_channel_id}" )
 				_, raw_msg = self._redis_client.brpop ( self.response_channel_id )
 				response = get_response_from_message ( raw_msg, self.character_encoding )
-				log.debug ( f"Redis ERE client, received response id: {response.requestId}" )
+				log.debug ( f"Redis ERE client, received response id: {response.ereRequestId}" )
 				yield response
 			except ( ConnectionError, TimeoutError ) as ex:
 				log.error ( f"Redis ERE client, ending subscribe_responses() due to connection issue: {ex}" )

@@ -36,12 +36,18 @@ redis = "^7.1.0"
 linkml-runtime = "^1.9.5"
 # TODO: should we have a registry?
 # TODO: fix when merged to develop or release
-ers-core = { git = "https://github.com/OP-TED/entity-resolution-spec.git", branch = "feature/ERS1-52/spec-prj-refact" }
+ers-core = { git = "https://github.com/OP-TED/entity-resolution-spec.git", branch = "develop" }
 
 
 [tool.pytest.ini_options]
 addopts = [
   "-v", 
   "--basetemp=/tmp/pytest" # pytest-redis doesn't like long paths in macOS
+]
+# Skips warning from 3rd party libs, such as rdflib
+filterwarnings = [
+  "once",
+  "ignore",
+  "default::Warning:ere\\..*"
 ]
 # Logging is set up in conftest.py

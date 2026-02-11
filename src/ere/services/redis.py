@@ -5,7 +5,7 @@ import redis
 from linkml_runtime.dumpers import JSONDumper
 
 from ere.adapters import AbstractResolver
-from ere.models.ers_core import Request, Response
+from ere.models.core import ERERequest, EREResponse
 from ere.services import AbstractPubSubResolutionService
 from ere.utils import get_request_from_message
 
@@ -15,7 +15,7 @@ _linkml_dumper = JSONDumper () # Just to cache it
 
 class RedisConnectionConfig:
 	"""
-	TODO: comment me
+	Simple data class to hold Redis connection configuration.
 	"""
 
 	def __init__ ( self, host: str = 'localhost', port: int = 6379, db: int = 0 ):
@@ -23,7 +23,7 @@ class RedisConnectionConfig:
 		self.port = port
 		self.db = db
 
-	def __str__(self):
+	def __str__( self ) -> str:
 		return f"RedisConnectionConfig ( host: \"{self.host}\", port: \"{self.port}\", db: \"{self.db}\" )"
 
 
@@ -61,10 +61,9 @@ class RedisResolutionService ( AbstractPubSubResolutionService ):
 		self.response_channel_id = 'ere_responses'
 
 	
-	async def _pull_request ( self ) -> Request:
+	async def _pull_request ( self ) -> ERERequest:
 		log.debug ( f"RedisResolutionService, Pulling request from channel: {self.request_channel_id}" )
 		
-		# _, raw_msg = self._redis_client.brpop ( self.request_channel_id )
 		loop = asyncio.get_running_loop()
 		_, raw_msg = await loop.run_in_executor (
 			None,
@@ -72,12 +71,12 @@ class RedisResolutionService ( AbstractPubSubResolutionService ):
     )
 
 		request = get_request_from_message ( raw_msg, self.character_encoding )
-		log.debug ( f"RedisResolutionService, pulled request id: {request.requestId}" )
+		log.debug ( f"RedisResolutionService, pulled request id: {request.ereRequestId}" )
 		return request
 	
 
-	def _push_response ( self, response: Response ):
-		log.debug ( f"RedisResolutionService, pushing response id: {response.requestId} to channel: {self.response_channel_id}" )
+	def _push_response ( self, response: EREResponse ):
+		log.debug ( f"RedisResolutionService, pushing response id: {response.ereRequestId} to channel: {self.response_channel_id}" )
 		msg_json_str = _linkml_dumper.dumps ( response )		
 		self._redis_client.lpush ( self.response_channel_id, msg_json_str )
-		log.debug ( f"RedisResolutionService, response id: {response.requestId} sent" )
+		log.debug ( f"RedisResolutionService, response id: {response.ereRequestId} sent" )

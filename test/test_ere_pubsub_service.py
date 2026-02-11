@@ -7,15 +7,17 @@ by means of mock implementations that use 'channels' based on in-memory queues.
 import asyncio
 import logging
 import queue
-from collections.abc import Iterable
+from collections.abc import Generator
 
 import pytest
 from assertpy import assert_that
-from ere_test import EPD_NS, ORG_NS, MockResolver, catch_response
+from ere_test import EPD_NS, ORG_NS, MockResolver, catch_response, create_timestamp
 
 from ere.entrypoints import AbstractClient
-from ere.models.ers_core import (Entity, EntityResolutionRequest,
-                                 EntityResolutionResponse, Request, Response)
+from ere.models.core import (
+	EntityMentionResolutionRequest, EntityMentionResolutionResponse, ERERequest, EREResponse,
+	ClusterReference, EntityMention, EntityMentionIdentifier
+)
 from ere.services import AbstractPubSubResolutionService
 
 log = logging.getLogger ( __name__ )
@@ -23,24 +25,43 @@ log = logging.getLogger ( __name__ )
 
 def test_known_entity_resolution ( mock_ere_client: AbstractClient ):
 	"""
-	Scenario: A known entity returns the canonical entity it's equivalent to
+	Scenario: A resolution request returns existing cluster candidate references 
 	"""
 	log.info ( "test_known_entity_resolution: starting" )
-	test_entity = Entity (
-		id = f"{EPD_NS}id_2023-S-210-661238_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj",
-		type = f"{ORG_NS}Organization"
-	)
-	# TODO: fill the entity with test data
-	test_req = EntityResolutionRequest (
-    requestId = "test-known-entity-resolution-001",
-		entity = test_entity,
-		originator = "test-module"
-	)
-	mock_ere_client.push_request ( test_req )
-	entity_resolution = catch_response ( mock_ere_client, test_req.requestId, EntityResolutionResponse )
 
-	assert_that ( entity_resolution.sourceEntityId, "Resolution response has the source entity ID" )\
-	  .is_equal_to ( test_entity.id )
+	test_entity_uri = f"{EPD_NS}id_2023-S-210-661238_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj"
+
+	expected_cluster = ClusterReference (
+		clusterId = f"{EPD_NS}id_2023-S-210-662860_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj_Cluster",
+		confidenceScore = 0.98
+	)
+	expected_alt_cluster = ClusterReference (
+		clusterId = f"{EPD_NS}id_2023-S-210-661238_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj_alt_Cluster",
+		confidenceScore = 0.80
+	)
+
+	test_entity_mention = EntityMention (
+		identifier = EntityMentionIdentifier ( 
+			requestId = test_entity_uri,
+			sourceId = "test-module",
+			entityType = f"{ORG_NS}Organization"
+		),
+		# Not important here, the mock resolver just looks up static test data
+		# TODO: validation of ID/content match
+		contentType = "text/turtle",
+		content = "<foo>"
+	)
+	test_req = EntityMentionResolutionRequest (
+		entityMention = test_entity_mention,
+		ereRequestId = "test-known-entity-resolution-001",
+		timestamp =	create_timestamp (),		
+	)
+
+	mock_ere_client.push_request ( test_req )
+	entity_resolution: EntityMentionResolutionResponse = catch_response ( mock_ere_client, test_req.ereRequestId, EntityMentionResolutionResponse )
+
+	assert_that ( entity_resolution.entityMentionId, "Resolution response has the source entity mention ID" )\
+	  .is_equal_to ( test_entity_mention.identifier )
 
 
 @pytest.fixture
@@ -83,10 +104,10 @@ class FooPubSubResolutionService ( AbstractPubSubResolutionService ):
 	def __init__ ( self ):
 		super ().__init__ ( resolver = MockResolver () )
 
-	async def _pull_request ( self ) -> Request:
-		def guarded_get () -> Request | None:
+	async def _pull_request ( self ) -> ERERequest | None:
+		def guarded_get () -> ERERequest | None:
 			"""
-			Pulls a request from the requst 'channel', enforcing a timeout and managing 
+			Pulls a request from the request 'channel', enforcing a timeout and managing 
 			exceptions like timeout, empty queue, etc.
 			"""
 			try:
@@ -97,15 +118,14 @@ class FooPubSubResolutionService ( AbstractPubSubResolutionService ):
 		log.debug ( "Service: pulling request from queue" )
 		# Needs to go in a thread, in order to not block the event loop in waiting
 		request = await asyncio.to_thread( guarded_get )
-		id = request.requestId if request else 'None'
+		id = request.ereRequestId if request else 'None'
 		log.debug ( f"Service: got a request from queue, id: {id}" )
-
 		return request
 	
-	def _push_response ( self, response: Response ):
-		log.debug ( f"Service: pushing response to queue, id: {response.requestId}" )
+	def _push_response ( self, response: EREResponse ):
+		log.debug ( f"Service: pushing response to queue, id: {response.ereRequestId}" )
 		_response_queue.put_nowait ( response )
-		log.debug ( f"Service: pushed response to queue, id: {response.requestId}" )
+		log.debug ( f"Service: pushed response to queue, id: {response.ereRequestId}" )
 
 
 class FooPubSubClient ( AbstractClient ):
@@ -115,14 +135,14 @@ class FooPubSubClient ( AbstractClient ):
 	Uses the in-memory queues to emulate a client interacting with an ERE service through
 	a message queue service.
 	"""
-	def push_request ( self, request: Request ):
-		log.debug ( f"Client: pushing request to queue, id: {request.requestId}" )
+	def push_request ( self, request: ERERequest ):
+		log.debug ( f"Client: pushing request to queue, id: {request.ereRequestId}" )
 		_request_queue.put_nowait ( request )
-		log.debug ( f"Client: pushed request to queue, id: {request.requestId}" )
+		log.debug ( f"Client: pushed request to queue, id: {request.ereRequestId}" )
 	
-	def subscribe_responses ( self ) -> Iterable[ Response ]:
+	def subscribe_responses ( self ) -> Generator[EREResponse, None, None]:
 		while True:
 			log.debug ( "Client: waiting for response from queue" )
 			response = _response_queue.get()
-			log.debug ( f"Client: got a response from queue, id: {response.requestId}" )
+			log.debug ( f"Client: got a response from queue, id: {response.ereRequestId}" )
 			yield response

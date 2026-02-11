@@ -10,7 +10,7 @@ from concurrent.futures import Executor, ThreadPoolExecutor
 from threading import Thread
 
 from ere.adapters import AbstractResolver
-from ere.models.ers_core import Request, Response
+from ere.models.core import ERERequest, EREResponse
 
 log = logging.getLogger ( __name__ )
 
@@ -154,7 +154,7 @@ class AbstractPubSubResolutionService ( AbstractService ):
 
 
 	@abstractmethod
-	async def _pull_request ( self ) -> Request:
+	async def _pull_request ( self ) -> ERERequest:
 		"""
 		Pulls a request from a request channel or alike resource.
 
@@ -162,7 +162,7 @@ class AbstractPubSubResolutionService ( AbstractService ):
 		"""
 
 	@abstractmethod
-	def _push_response ( self, response: Response ):
+	def _push_response ( self, response: EREResponse ):
 		"""
 		Pushes a response to a response channel or alike resource.
 
@@ -197,7 +197,7 @@ class AbstractPubSubResolutionService ( AbstractService ):
 					try:
 						request = await asyncio.wait_for ( self._pull_request (), timeout = self.async_timeout )
 						if request is None: continue # timeout or shutdown
-						log.debug ( f"PubSubResolutionService: dispatching request id: {request.requestId}" )
+						log.debug ( f"PubSubResolutionService: dispatching request id: {request.ereRequestId}" )
 						executor.submit ( self._process_push_helper, request )
 					except asyncio.TimeoutError:
 						pass
@@ -206,7 +206,7 @@ class AbstractPubSubResolutionService ( AbstractService ):
 			log.info ( "Service loop cancelled, shutting down." )
 
 
-	def _process_push_helper ( self, request: Request ):
+	def _process_push_helper ( self, request: ERERequest ):
 		"""
 		Helper used by :meth:`_service_loop` to submit a request to the delegate resolver
 		and push its response to :meth:`_push_response`.
@@ -216,7 +216,7 @@ class AbstractPubSubResolutionService ( AbstractService ):
 		requests and dispatching them to this method.
 		"""
 		
-		log.debug ( f"Service: sending request id: {request.requestId} to the resolver" )
+		log.debug ( f"Service: sending request id: {request.ereRequestId} to the resolver" )
 		response = self.resolver.process_request ( request )
-		log.debug ( f"Service: got response for request id: {request.requestId} from the resolver, pushing it back" )
+		log.debug ( f"Service: got response for request id: {request.ereRequestId} from the resolver, pushing it back" )
 		self._push_response ( response )

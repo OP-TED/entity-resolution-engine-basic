@@ -2,22 +2,29 @@
 Helpers and mockups for ERE tests.
 """
 
+import datetime
 import hashlib
+from logging import getLogger
 from pathlib import Path
-from typing import Dict, Iterable
+from typing import Dict, Generator, Iterable
 
 from assertpy import assert_that
 from rdflib import Graph
 
 from ere.adapters import AbstractResolver
 from ere.entrypoints import AbstractClient
-from ere.models.ers_core import (CanonicalEntity, EntityResolutionRequest,
-                                 EntityResolutionResponse, ErrorResponse,
-                                 RebuildRequest, RebuildResponse, Request,
-                                 Response, linkml_meta)
+from ere.models.core import ( 
+	ERERequest, EREResponse, 
+	EntityMentionResolutionRequest, EntityMentionResolutionResponse,
+	FullRebuildRequest, FullRebuildResponse, EREErrorResponse,
+	ClusterReference,
+	EntityMentionIdentifier
+)
+
+log = getLogger ( __name__ )
 
 ERS_TEST_DATA_NS = "https://data.europa.eu/ers/resource/"
-ERS_SCHEMA_NS = linkml_meta.root [ "id" ] + "/"
+ERS_SCHEMA_NS = "https://data.europa.eu/ers/schema/"
 
 EPD_NS = "http://data.europa.eu/a4g/resource/"
 EPO_NS = "http://data.europa.eu/a4g/ontology#"
@@ -35,23 +42,13 @@ class MockEREClient ( AbstractClient ):
 	def _init_test_data ( self ):
 		self._resolver = MockResolver ()
 
-	def push_request ( self, request: Request ):
+	def push_request ( self, request: ERERequest ):
 		result = self._resolver.process_request ( request )
 		self._response_queue.append ( result )
 
-	def subscribe_responses ( self ) -> Iterable [ Response ]:
+	def subscribe_responses ( self ) -> Generator[EREResponse, None, None]:
 		while self._response_queue:
 			yield self._response_queue.pop ( 0 )
-
-
-def hash_uri ( uri: str ) -> str:
-	"""
-	Generates a simple hash for URIs to be used for tasks like generating a cluster URI
-
-	TODO: utils module
-	"""
-	
-	return hashlib.md5 ( uri.encode ( 'utf-8' ) ).hexdigest ()
 
 
 # TODO: will become an internal class for the implementation
@@ -59,76 +56,59 @@ class _ERECluster:
 	def __init__ ( 
 		self,
 		uri: str, 
-		canonical_entity_uri: str, 
-		canonical_entity_rdf: Graph | str = None,
 		members: Dict [str, float] = {}
 	):
 		self.uri = uri
-		self.canonical_entity_uri = canonical_entity_uri
 		self.members = members
 
-		if not canonical_entity_rdf: raise ValueError ( 'ERECluster needs an RDF representation for its canonical entity' )
-		if isinstance ( canonical_entity_rdf, Graph ):
-			self.canonical_entity_rdf = canonical_entity_rdf
-			return
-	
-		self.canonical_entity_rdf = Graph ()
-		self.canonical_entity_rdf.parse ( data = canonical_entity_rdf, format = "turtle" )
-	def get_canonical_entity_type ( self ) -> str:
-		sparql = """
-		SELECT ?type WHERE {
-			<%s> a ?type .
-		}
-		"""
-		sparql = sparql % self.canonical_entity_uri
-		types = []
-		for row in self.canonical_entity_rdf.query ( sparql ):
-			types.append ( str ( row['type'] ) )
-		if not types:
-			raise ValueError ( f'No type found for entity { self.canonical_entity_uri }' )
-		if len ( types ) > 1:
-			raise ValueError ( f'Multiple types found for entity { self.canonical_entity_uri }: { types }' )
-		return types[0]
 
 
 class MockResolver ( AbstractResolver ):
 	"""
 	A mockup in-memory resolver for entity resolution, based on test data.
 	"""
+
+	SUPPORTED_ENTITY_TYPES = { f"{ORG_NS}Organization", f"{EPO_NS}Procedure" }
+
 	def __init__ ( self ):
 		self._load_test_data ()
 		self._extract_all_clusters ()
-
-	def get_cluster_by_canonical_entity ( self, canonical_entity_uri: str ) -> _ERECluster:
-		return self._canonical_entity_index.get ( canonical_entity_uri )
 	
-	def get_cluster_by_member ( self, member_uri: str ) -> _ERECluster:
-		return self._member_index.get ( member_uri )
+	def get_member_clusters ( self, member_uri: str ) -> list[tuple[str, float]]:
+		"""
+		Returns: a list of tuples of (cluster URI, confidence score) for the entity URI.
+		"""
+		clusters = self._member_index.get ( member_uri )
+		if not clusters: return []
+		result = [ (cluster.uri, cluster.members [ member_uri ]) for cluster in clusters ]
+
+		return result
 	
 	def get_cluster_by_entity ( self, entity_uri: str ) -> _ERECluster:
 		cluster = self._canonical_entity_index.get ( entity_uri )
 		if cluster: return cluster
 		return self._member_index.get ( entity_uri )
 	
-	def process_request ( self, request: Request ) -> Response:
+	def process_request ( self, request: ERERequest ) -> EREResponse:
 		"""
 		Dispatches a request to the appropriate handler.
 
-		This is also responsible for wrapping any exception into an ErrorResponse.
+		This is also responsible for wrapping any exception into an :class:`EREErrorResponse`.
 		"""
 
 		try:
-			# TODO: this is an intial silly implementation, which violates the Open/Closed principle, move
+			# TODO: this is an initial silly implementation, which violates the Open/Closed principle, move
 			# it to an abstract method for a resolution service and have a default implementation 
 			# based on a registry
-			if isinstance ( request, EntityResolutionRequest ):
+			if isinstance ( request, EntityMentionResolutionRequest ):
 				return self.resolve_entity ( request )
-			elif isinstance ( request, RebuildRequest ):
-				return self.process_rebuild_request ( request )
+			elif isinstance ( request, FullRebuildRequest ):
+				return self.process_full_rebuild_request ( request )
 			else:
 				raise ValueError ( f'Unsupported request type: { type ( request ) }' )
 			
 		except Exception as ex:
+			log.error ( f"Error processing request { request.ereRequestId }: { ex }", exc_info = True )
 			ex_type = type ( ex )
 			ex_name = ex_type.__name__
 			
@@ -138,78 +118,74 @@ class MockResolver ( AbstractResolver ):
 			ex_fqn_name += ex_name
 			
 			req_type = type ( request ).__name__
-			error_response = ErrorResponse (
-				requestId = request.requestId,
+
+			error_response = EREErrorResponse (
+				ereRequestId = request.ereRequestId,
 				errorTitle = f"Request processing error: { str ( ex ) }",
-				errorDetail = f"{ex_name} Error while processing request of type { req_type }: { str ( ex ) }",
+				errorDetail = f"{ex_name} Error while processing request of type { req_type }: { str ( ex ) }",
 				errorType = ex_fqn_name
 			)
 			return error_response
 
 
-	def resolve_entity ( self, request: EntityResolutionRequest ) -> EntityResolutionResponse:
+	def resolve_entity ( self, request: EntityMentionResolutionRequest ) -> EntityMentionResolutionResponse:
 		"""
 		Mocks up an entity resolution, that is:
 
-		- if the uri is a canonical entity, it returns itself with a confidence of 1.0
-		- else tries to find a cluster of which this entity is a member, and returns the canonical entity
-		  of that cluster with the confidence associated to that member
-		- else creates a new cluster with this entity as canonical entity and returns itself with confidence 1.0
+		TODO: rewrite this comment!
 		"""
 
-		can_entity = None
-		confidence = None
+		entity_id = request.entityMention.identifier
 
-		entity_uri = request.entity.id
+		# It's not useful here, but we need to test error responses.
+		entity_type = request.entityMention.identifier.entityType
+		if entity_type not in self.SUPPORTED_ENTITY_TYPES:
+			raise ValueError ( f"MockResolver, unsupported entity type: '{ entity_type }'" )
 
-		cluster = self.get_cluster_by_canonical_entity ( entity_uri )
-		if cluster:
-			confidence = 1.0 # The entity is the canonical entity of this cluster
-		else:
-			cluster = self.get_cluster_by_member ( entity_uri )
-			if cluster: 
-				confidence = cluster.members.get ( entity_uri ) # The entity is a member of this cluster
-			else:
-				# We don't have this entity, create a new cluster with it as canonical entity
-				canonical_rdf = request.entity.entityData
+		entity_uri = entity_id_2_uri ( entity_id )
 
-				if not canonical_rdf:
-					# TODO: manage error messages in the system channel
-					raise ValueError ( f"Cannot create new cluster for entity { entity_uri } without entity data/RDF" )
+		candidate_clusters = self.get_member_clusters ( entity_uri )
+		if not candidate_clusters:
+			# OK, this goes into a new singleton cluster.
+			new_cluster_uri = entity_id_2_cluster_uri ( entity_id )
+			self._create_new_cluster ( new_cluster_uri, members = { entity_uri: 1.0 } )
+			
+			# I know it's already here, but let's ensure the creation works
+			candidate_clusters = self.get_member_clusters ( entity_uri )
+		
+		# Sort them
+		candidate_clusters.sort ( key = lambda x: x [ 1 ], reverse = True )
 
-				cluster = self._create_new_cluster ( entity_uri, canonical_rdf, members = {} )
-				confidence = 1.0
+		# TODO: low-confidence filter
 
-		if not cluster:
-			raise RuntimeError ( f'Internal error during mockup entity resolution for entity { entity_uri }: cluster not found or created' )
-		if not confidence:
-			raise RuntimeError ( f'Internal error during mockup entity resolution for entity { entity_uri }: confidence score not found or not created' )
+		if not candidate_clusters:
+			raise RuntimeError ( f'Internal error during mock entity resolution for entity { entity_uri }: cluster not found or created' )
 
-		can_entity = CanonicalEntity (
-			type = cluster.get_canonical_entity_type (),
-			id = cluster.canonical_entity_uri
+		# Transform them into model objects
+		candidate_clusters = [
+			ClusterReference ( clusterId = clusterId, confidenceScore = score ) for clusterId, score in candidate_clusters 
+		]
+
+		result = EntityMentionResolutionResponse (
+			ereRequestId = request.ereRequestId,
+			entityMentionId = entity_id,
+			candidates = candidate_clusters,
+			timestamp = create_timestamp ()
 		)
-
-		can_entity.entityData = cluster.canonical_entity_rdf.serialize ( format = 'turtle' )
-		can_entity.entityDataFormat = 'text/turtle'
-
-		result = EntityResolutionResponse (
-			requestId = request.requestId,
-			canonicalEntity = can_entity,
-			sourceEntityId = entity_uri,
-		)
-		result.confidenceLevel = confidence
 		return result
 
 
-	def process_rebuild_request ( self, request ) -> RebuildResponse:
+	def process_full_rebuild_request ( self, request ) -> FullRebuildResponse:
 		"""
 		Mocks up the processing of a rebuild request by reloading the test data.
 		"""
-
+		# Reset to the initial test data, getting rid of new clusters created via requests after initialisation.
 		self.__init__ ()
-		response = RebuildResponse (
-			requestId = request.requestId
+
+		# And then we're done
+		response = FullRebuildResponse ( 
+			ereRequestId = request.ereRequestId,
+			timestamp = create_timestamp ()
 		)
 		return response
 
@@ -229,8 +205,6 @@ class MockResolver ( AbstractResolver ):
 
 	def _create_new_cluster (
 		self, 
-		canonical_entity_uri: str, 
-		canonical_entity_rdf: Graph | str,
 		cluster_uri: str = None,
 		members: Dict [ str, float ] = {}
 	) -> _ERECluster:
@@ -239,50 +213,39 @@ class MockResolver ( AbstractResolver ):
 
 		Returns: the created ERECluster instance, which can be used to add members.
 		"""
-		if canonical_entity_uri in self._canonical_entity_index:
-			raise ValueError ( f'Cluster for canonical entity { canonical_entity_uri } already exists' )
-		if not cluster_uri:
-			cluster_uri = f'{ERS_TEST_DATA_NS}cluster_' + hash_uri ( canonical_entity_uri )
-
-		cluster = _ERECluster ( cluster_uri, canonical_entity_uri, canonical_entity_rdf, members )
-		self._clusters [ cluster.uri ] = cluster
-		self._canonical_entity_index [ canonical_entity_uri ] = cluster
+		cluster = _ERECluster ( cluster_uri, members )
 		# We also need an index from member URIs to clusters
 		for member_uri in members.keys ():
-			self._member_index [ member_uri ] = cluster
+			if member_uri not in self._member_index:
+				self._member_index [ member_uri ] = []
+			self._member_index [ member_uri ].append ( cluster )
 
 		return cluster
 
 
-	def _extract_all_clusters ( self ) -> Dict [ str, _ERECluster ]:
+	def _extract_all_clusters ( self ) -> Dict[str, _ERECluster]:
 		"""
 		Extracts cluster info from test data like:
 
 		epd:id_2023-S-210-662860_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj_Cluster
 			a ers:Cluster;
-			ers:canonicalEntity epd:id_2023-S-210-662860_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj;
 			ers:membership [
 				ers:member epd:id_2023-S-210-661238_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj;
-				ers:confidence 0.98
-			]
+				ers:confidence 1.0 # Canonical entity
+			],
+			[...]
 		.
 
 		Returns: an index from member URIs to ERECluster instances.
 		"""
-		def extract_canonical_entity_uri ( cluster_uri: str ) -> str:
-			query = f"""
-			PREFIX ers:		<{ERS_SCHEMA_NS}>
 
-			SELECT ?canonicalEntity where {{
-				<{ cluster_uri }> ers:canonicalEntity ?canonicalEntity .
-			}}
+		def extract_members ( cluster_uri: str ) -> Dict[str, float]:
 			"""
-			for row in self.graph.query ( query ):
-				return str ( row['canonicalEntity'] )
-			raise ValueError ( f'No canonical entity found for cluster { cluster_uri }' )
-
-
-		def extract_members ( cluster_uri: str ) -> Dict:
+			Extracts the members of a cluster from the RDF graph, given the cluster URI.
+			
+			Returns: a dict of member URI to confidence score.
+			"""
+			
 			members = {}
 			query = f"""
 			PREFIX ers:		<{ERS_SCHEMA_NS}>
@@ -298,11 +261,8 @@ class MockResolver ( AbstractResolver ):
 				members [ member_uri ] = score
 
 			return members
-		
 
-		self._clusters: Dict [ str, _ERECluster ] = {}
-		self._canonical_entity_index: Dict [ str, _ERECluster ] = {}
-		self._member_index: Dict [ str, _ERECluster ] = {}
+		self._member_index: Dict[str, list[_ERECluster]] = {}
 
 		query = f"""
 		PREFIX ers:		<{ERS_SCHEMA_NS}>
@@ -315,21 +275,32 @@ class MockResolver ( AbstractResolver ):
 		for row in self.graph.query ( query ):
 			cluster_uri = str ( row [ 'cluster' ] )
 			print ( f"Loading cluster { cluster_uri }" )
-			canonical_entity_uri = extract_canonical_entity_uri ( cluster_uri )
-			canonical_entity_rdf = extract_resource_rdf ( self.graph, canonical_entity_uri )
 			members = extract_members ( cluster_uri )
 
-			self._create_new_cluster ( canonical_entity_uri, canonical_entity_rdf, cluster_uri, members	)
+			self._create_new_cluster ( cluster_uri, members	)
 
-		if not self._clusters:
+		if not self._member_index:
 			raise ValueError ( 'No clusters found in the test data' )
 		
 	# /end: _extract_all_clusters ()
 	
 
+def hash_uri ( uri: str ) -> str:
+	"""
+	Generates a simple hash for URIs to be used for tasks like generating a cluster URI
+
+	TODO: is it still needed?
+	TODO: utils module
+	"""
+	
+	return hashlib.md5 ( uri.encode ( 'utf-8' ) ).hexdigest ()
+
+
 def extract_resource_rdf ( graph: Graph, resource_uri: str ) -> Graph:
 	"""
 	Fetches subject-centric triples from the test data, up to a couple of levels deep.
+
+	TODO: do we still need it?
 	"""
 	
 	sparql = """
@@ -355,7 +326,10 @@ def extract_resource_rdf ( graph: Graph, resource_uri: str ) -> Graph:
 	return entity_graph
 # /end: _extract_entity_rdf ()
 
-def catch_response ( ere_cli: AbstractClient, request_id: str, type_to_check: type[Response] = None ) -> Response:
+
+def catch_response (
+	ere_cli: AbstractClient, request_id: str, type_to_check: type[EREResponse] = None 
+) -> EREResponse:
 	"""
 	Subscribes to to ERE responses and keeps getting responses until one with the given
 	request ID is found.
@@ -366,7 +340,7 @@ def catch_response ( ere_cli: AbstractClient, request_id: str, type_to_check: ty
 	"""
 
 	for response in ere_cli.subscribe_responses ():
-		if response.requestId == request_id:
+		if response.ereRequestId == request_id:
 			if type_to_check:
 				assert_that ( response, f"Response for request ID '{request_id}' is of the expected type" )\
 					.is_instance_of ( type_to_check )			
@@ -374,9 +348,45 @@ def catch_response ( ere_cli: AbstractClient, request_id: str, type_to_check: ty
 	raise RuntimeError ( f"No response found for request ID '{request_id}'" )
 
 
+def entity_id_2_uri ( entity_id: EntityMentionIdentifier ) -> str:
+	"""
+	Gets an entity URI from the entity mention ID. 
+
+	This works under the mock-up data conventions, ie, the entity mention ID has the entity URI as its
+	`requestId` field.
+
+	Later, we will complement this with a real implementation.
+	"""
+	return entity_id.requestId
+
+def entity_id_2_cluster_uri ( entity_id: EntityMentionIdentifier ) -> str:
+	"""
+	Gets a cluster URI from the entity mention ID. 
+
+	This works under the mock-up data conventions, ie, when a new singleton cluster is created,
+	its URI is :function:`entity_id_2_uri` plus a postfix, which means (by the same conventions), 
+	it's the requested entity's URI plus a postfix.
+
+	Later, we will complement this with a real implementation.
+	"""
+	entity_uri = entity_id_2_uri ( entity_id )
+	return f'{entity_uri}_Cluster'
+
+
+def create_timestamp () -> str:
+	"""
+	Factorises the timestamp generation for responses, yielding an ISO-formatted now.
+
+	TODO: to be moved to a utils module.
+	"""
+	return datetime.datetime.now( datetime.UTC ).isoformat()
+
+
 def prefix_common_namespaces ( rdf_or_sparql_body: str ) -> str:
 	"""
 	Simple helper to have your Turtle or SPARQL string prefixed with common namespace prefixes.
+
+	TODO: do we still need it?
 	"""
 	return """
 		PREFIX cccev: <http://data.europa.eu/m8g/>
@@ -398,3 +408,6 @@ def prefix_common_namespaces ( rdf_or_sparql_body: str ) -> str:
 		PREFIX xsd:   <http://www.w3.org/2001/XMLSchema#>
 
 	""" + rdf_or_sparql_body
+
+
+

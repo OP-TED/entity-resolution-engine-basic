@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Protocol
 
-from ere.models.ers_core import Request, Response
+from ere.models.core import ERERequest, EREResponse
 
 
 class AbstractResolver ( Protocol ):
@@ -9,7 +9,7 @@ class AbstractResolver ( Protocol ):
 	ERE resolver abstraction.
 
 	An ERE resolver deals with the core of the job, ie, it takes requests like 
-  :class:`ere.models.ers_core.Request` and computes results for them. 
+  :class:`ere.models.core.ERERequest` and computes results for them. 
 	
 	A resolver doesn't deal with aspects like networking or asynchronous processing, this
 	is are concerns for services and entrypoints, which wrap around resolvers.
@@ -19,7 +19,7 @@ class AbstractResolver ( Protocol ):
 	"""
 	
 	@abstractmethod
-	def process_request ( self, request: Request ) -> Response:
+	def process_request ( self, request: ERERequest ) -> EREResponse:
 		"""
 		Resolves an entity resolution request, returning the corresponding response.
 
@@ -29,5 +29,5 @@ class AbstractResolver ( Protocol ):
 		This should take care of wrapping exceptions into ErrorResponse results.
 		"""
 
-	def __call__ ( self, request: Request ) -> Response:
+	def __call__ ( self, request: ERERequest ) -> EREResponse:
 		return self.process_request ( request )

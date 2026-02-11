@@ -28,12 +28,20 @@ PREFIX ers:		<https://data.europa.eu/ers/schema/>
 
 epd:id_2023-S-211-665742_Procedure_faF7Q5dyoGpXu3Ru4RGg73_Cluster
   a ers:Cluster;
-	ers:canonicalEntity epd:id_2023-S-211-665742_Procedure_faF7Q5dyoGpXu3Ru4RGg73;
+	ers:membership 
+    [
+      ers:member epd:id_2023-S-211-665742_Procedure_faF7Q5dyoGpXu3Ru4RGg73;
+      ers:confidence 1.0
+    ]
 .
 
 epd:id_2023-S-211-665798_Procedure_faF7Q5dyoGpXu3Ru4RGg73_Cluster
   a ers:Cluster;
-	ers:canonicalEntity epd:id_2023-S-211-665798_Procedure_faF7Q5dyoGpXu3Ru4RGg73;
+  ers:membership 
+    [
+      ers:member epd:id_2023-S-211-665798_Procedure_faF7Q5dyoGpXu3Ru4RGg73;
+      ers:confidence 1.0
+    ]
 .
 
 

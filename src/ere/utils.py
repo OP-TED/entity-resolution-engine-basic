@@ -8,13 +8,13 @@ import json
 
 from linkml_runtime.loaders import JSONLoader
 
-from ere.models.ers_core import (EntityResolutionRequest,
-                                 EntityResolutionResponse, ErrorResponse,
-                                 RebuildRequest, RebuildResponse, Request,
-                                 RequestOrResponseMixin, Response)
+from ere.models.core import (EntityMentionResolutionRequest,
+                                 EntityMentionResolutionResponse, EREErrorResponse,
+                                 FullRebuildRequest, FullRebuildResponse, ERERequest,
+                                 EREMessage, EREResponse)
 
 SUPPORTED_REQUEST_CLASSES = {
-	cls.__name__: cls for cls in [ EntityResolutionRequest, RebuildRequest ]
+	cls.__name__: cls for cls in [ EntityMentionResolutionRequest, FullRebuildRequest ]
 }
 """
 Explicit list of supported Request classes, used in utilities like :meth:`get_request_from_message`.
@@ -24,7 +24,7 @@ types, so, we keep it simple.
 """
 
 SUPPORTED_RESPONSE_CLASSES = {
-	cls.__name__: cls for cls in [ EntityResolutionResponse, RebuildResponse, ErrorResponse ]
+	cls.__name__: cls for cls in [ EntityMentionResolutionResponse, FullRebuildResponse, EREErrorResponse ]
 }
 """
 Explicit list of supported Response classes, used in utilities like :meth:`get_response_from_message`.
@@ -37,9 +37,9 @@ _linkml_loader = JSONLoader () # Just to cache it
 
 def get_message_object (
 	raw_msg: bytes,
-	supported_classes: dict [str, RequestOrResponseMixin],
+	supported_classes: dict [str, EREMessage],
 	character_encoding: str = 'utf-8'
-) -> RequestOrResponseMixin:
+) -> EREMessage:
 	"""
 	Helper to parse a raw message (bytes) coming from places like a Redis queue into a Request/Response object.
 
@@ -67,7 +67,7 @@ def get_message_object (
 def get_response_from_message (
 	raw_msg: bytes,
 	character_encoding: str = 'utf-8'
-) -> Response :
+) -> EREResponse :
 	"""
 	Helper to parse a raw message (bytes) coming from places like a Redis queue into a Response object.
 
@@ -79,7 +79,7 @@ def get_response_from_message (
 def get_request_from_message (
 	raw_msg: bytes,
 	character_encoding: str = 'utf-8'
-) -> Request :
+) -> ERERequest :
 	"""
 	Helper to parse a raw message (bytes) coming from places like a Redis queue into a Request object.
 

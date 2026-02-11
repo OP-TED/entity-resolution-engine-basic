@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Generator, Iterable
 
-from ere.models.ers_core import Request, Response
+from ere.models.core import ERERequest, EREResponse
 
 
 class AbstractClient ( ABC ):
@@ -10,7 +10,7 @@ class AbstractClient ( ABC ):
 	"""
 
 	@abstractmethod
-	def push_request ( self, request: Request ):
+	def push_request ( self, request: ERERequest ):
 		"""
 		Pushes a request to the request channel of the ERE system.
 
@@ -18,7 +18,7 @@ class AbstractClient ( ABC ):
 		"""
 
 	@abstractmethod
-	def subscribe_responses ( self ) -> Iterable[ Response ]:
+	def subscribe_responses ( self ) -> Generator[EREResponse, None, None]:
 		"""
 		Subscribes to the response channel.
 

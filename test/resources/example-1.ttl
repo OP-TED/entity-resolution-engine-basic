@@ -21,17 +21,37 @@ PREFIX ers:		<https://data.europa.eu/ers/schema/>
 # Mock-up resolutions
 epd:id_2023-S-210-662860_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj_Cluster
   a ers:Cluster;
-	ers:canonicalEntity epd:id_2023-S-210-662860_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj;
-	ers:membership [
-	  ers:member epd:id_2023-S-210-661238_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj;
-		ers:confidence 0.98
-	]
+	ers:membership 
+    [
+      ers:member epd:id_2023-S-210-662860_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj;
+      ers:confidence 1.0 # Initial entity
+    ],
+    [ ers:member epd:id_2023-S-210-661238_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj;
+      ers:confidence 0.98
+    ]
+.
+
+# An alternative cluster, to simulate that 2023-S-210-661238 might be in multiple clusters, 
+# with different confidences.
+epd:id_2023-S-210-661238_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj_alt_Cluster
+  a ers:Cluster;
+	ers:membership 
+    [
+      ers:member epd:id_2023-S-210-661238_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj_alt;
+      ers:confidence 1.0 
+    ],
+    [ ers:member epd:id_2023-S-210-661238_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj;
+      ers:confidence 0.80
+    ]
 .
 
 
-# Canonical entity
-# 
 
+
+
+
+# Initial entity
+# 
 epd:id_2023-S-210-662860_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj
   rdf:type                    org:Organization;
   epo:hasLegalName            "Комисия за защита на конкуренцията"@bg;
@@ -56,7 +76,6 @@ epd:id_2023-S-210-662860_ReviewerOrganisationAddress_LLhJHMi9mby8ixbkfyGoWj
 
 # Entity used for the resolution request
 #
-
 epd:id_2023-S-210-661238_ReviewerOrganisation_LLhJHMi9mby8ixbkfyGoWj
   rdf:type                    org:Organization , epo:Procedure;
   epo:hasLegalName            "Комисия за защита на конкуренцията"@bg;

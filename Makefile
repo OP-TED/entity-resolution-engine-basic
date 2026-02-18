@@ -105,12 +105,10 @@ clean: ## Remove build artifacts and caches
 	@ rm -rf .pytest_cache
 	@ rm -rf .tox
 	@ rm -rf *.egg-info
-	@ rm -rf dist
-	@ rm -rf .ruff_cache
+	@ poetry run ruff clean
 	@ find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	@ find . -type f -name "*.pyc" -delete 2>/dev/null || true
 	@ find . -type f -name "*.pyo" -delete 2>/dev/null || true
-	@ rm -rf /tmp/pytest 2>/dev/null || true
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Clean complete$(END_BUILD_PRINT)"
 
 # Default target

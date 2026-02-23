@@ -209,3 +209,7 @@ __marimo__/
 # macOS garbage
 .DS_Store
 .project
+.gitnexus
+.claude
+AGENTS.md
+CLAUDE.md

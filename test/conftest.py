@@ -1,7 +1,8 @@
 import os
+import logging.config
 
 import pytest
-from brandizpyes.logging import logger_config
+import yaml
 
 """
 Pytest configuration file, which the framework picks up at startup.
@@ -21,6 +22,8 @@ def pytest_configure ( config: pytest.Config ):
 		"markers", "integration: Integration test marker."
 	)
 
-	# Utility to setup logging from YAML
-	cfg_path = os.path.dirname ( __file__ ) + "/resources/logging-test.yml"
-	logger_config ( __name__, cfg_path = cfg_path )
+	# Setup logging from YAML config file
+	cfg_path = os.path.join(os.path.dirname(__file__), "resources/logging-test.yml")
+	with open(cfg_path) as f:
+		config = yaml.safe_load(f)
+	logging.config.dictConfig(config)

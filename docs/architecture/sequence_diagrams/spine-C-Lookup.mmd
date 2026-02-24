@@ -1,0 +1,42 @@
+---
+config:
+  look: neo
+  theme: redux-color
+  mirrorActors: false
+  sequence:
+    bottomMarginAdj: 0.1
+---
+sequenceDiagram
+%% Maps to EA diagram: UML Sequence (Spine C)
+%% Purpose: Bulk Refresh by sourceId (UC1.3)
+%% Focus: bounded delta response with continuationCursor, no resolution triggering
+%% Excludes: ERE and messaging, curation, rebuild, consumer System of Records persistence
+
+participant DownstreamConsumer as "Downstream Consumer"
+
+box "Entity Resolution System (ERSys)"
+    participant CanonicalLookup as "Canonical Lookup Service"
+    participant ERS as "Entity Resolution Service (ERS)"
+    participant DecisionStore as "Resolution Decision Store"
+end
+
+%% Consumer obtains lastSeenTimestamp from its own System of Records (not shown)
+DownstreamConsumer ->> CanonicalLookup: Bulk refresh by sourceId<br/>(sourceId, lastSeenTimestamp, limit?)
+CanonicalLookup ->> ERS: Validate request and resolve bulk refresh
+
+ERS ->> DecisionStore: Read changed assignments<br/>(sourceId, lastSeenTimestamp, effectiveLimit)
+DecisionStore -->> ERS: Bulk refresh slice<br/>(updates, hasMore, continuationCursor?)
+
+ERS -->> CanonicalLookup: Bulk refresh slice<br/>(updates, hasMore, continuationCursor?)
+CanonicalLookup -->> DownstreamConsumer: 200 OK<br/>Bulk refresh slice + continuation
+
+alt hasMore is true
+    DownstreamConsumer ->> CanonicalLookup: Continue bulk refresh<br/>(continuationCursor)
+    CanonicalLookup ->> ERS: Resolve continuation
+    ERS ->> DecisionStore: Read next slice<br/>(continuationCursor)
+    DecisionStore -->> ERS: Bulk refresh slice<br/>(updates, hasMore, continuationCursor?)
+    ERS -->> CanonicalLookup: Bulk refresh slice<br/>(updates, hasMore, continuationCursor?)
+    CanonicalLookup -->> DownstreamConsumer: 200 OK<br/>Next bulk refresh slice
+end
+
+%%note right of CanonicalLookup: Bulk refresh is read only and does not trigger resolution\nContinuationCursor is server minted to keep responses bounded\nAssignments may evolve over time and clients should tolerate duplicates

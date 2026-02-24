@@ -42,6 +42,7 @@ redis = "^7.1.0"
 linkml-runtime = "^1.9.5"
 urllib3 = ">=2.0,<3.0"
 charset-normalizer = ">=3.0,<4.0"
+chardet = ">=3.0.2,<6.0.0"
 
 # TODO: should we have a registry?
 # TODO: fix when merged to develop or release (remember to switch OP-TED when stable)

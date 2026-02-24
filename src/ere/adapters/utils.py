@@ -8,35 +8,37 @@ import json
 
 from linkml_runtime.loaders import JSONLoader
 
-from ere.models.core import (
+from erspec.models.ere import (
     EntityMentionResolutionRequest,
     EntityMentionResolutionResponse,
     EREErrorResponse,
-    FullRebuildRequest,
-    FullRebuildResponse,
     ERERequest,
     EREMessage,
     EREResponse,
 )
 
 SUPPORTED_REQUEST_CLASSES = {
-    cls.__name__: cls for cls in [EntityMentionResolutionRequest, FullRebuildRequest]
+    cls.__name__: cls for cls in [EntityMentionResolutionRequest]
 }
 """
 Explicit list of supported Request classes, used in utilities like :meth:`get_request_from_message`.
 
 TODO: Refactor according to the open-closed principle. For now, we don't expect many extensions to these
 types, so, we keep it simple.
+
+Note: FullRebuildRequest not yet implemented in erspec; add when available.
 """
 
 SUPPORTED_RESPONSE_CLASSES = {
     cls.__name__: cls
-    for cls in [EntityMentionResolutionResponse, FullRebuildResponse, EREErrorResponse]
+    for cls in [EntityMentionResolutionResponse, EREErrorResponse]
 }
 """
 Explicit list of supported Response classes, used in utilities like :meth:`get_response_from_message`.
 
 TODO: open-closed principle, see above.
+
+Note: FullRebuildResponse not yet implemented in erspec; add when available.
 """
 
 _linkml_loader = JSONLoader()  # Just to cache it

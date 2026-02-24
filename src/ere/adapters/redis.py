@@ -1,16 +1,39 @@
-from collections.abc import Generator
-
 import redis
-from erspec.models.ere import ERERequest, EREResponse
 from linkml_runtime.dumpers import JSONDumper
 from redis.exceptions import ConnectionError, TimeoutError
 
-from ere.entrypoints import AbstractClient
+from ere.adapters.utils import get_response_from_message
 from ere.services.redis import RedisConnectionConfig, log
-from ere.utils import get_response_from_message
 
 _linkml_dumper = JSONDumper()  # Just to cache it
 
+from abc import ABC, abstractmethod
+from collections.abc import Generator
+
+from erspec.models.ere import ERERequest, EREResponse
+
+
+class AbstractClient(ABC):
+    """
+    Abstraction of a client to access with an ERE instance.
+    """
+
+    @abstractmethod
+    def push_request(self, request: ERERequest):
+        """
+        Pushes a request to the request channel of the ERE system.
+
+        See the ERE Contract document for details.
+        """
+
+    @abstractmethod
+    def subscribe_responses(self) -> Generator[EREResponse, None, None]:
+        """
+        Subscribes to the response channel.
+
+        This is a generator that yields responses as the implementation publishes them
+        to the response channel.
+        """
 
 class RedisEREClient(AbstractClient):
     """

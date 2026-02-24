@@ -3,29 +3,36 @@ name = "ere"
 version = "0.1.0"
 description = "A basic implementation of the Entity Resolution Engine (ERE)."
 authors = [
-    {name = "Marco Brandizi",email = "marco.brandizi@meaningfy.ws"}
+    {name = "Meaningfy",email = "hi@meaningfy.ws"}
 ]
 readme = "README.md"
-requires-python = "~=3.14.0"
+requires-python = "~=3.12.0"
 
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-# Needed when the root doesn't contain $project_name
+# Needed when the root doesn't contain $project_name
 packages = [
-  { include = "*", from = "src" }
+  { include = "ere", from = "src" }
 ]
 
 
 [dependency-groups]
 dev = [
     "pytest (>=9.0.1,<10.0.0)",
+    "pytest-bdd (>=8.0,<9.0)",
+    "pytest-cov (>=6.0,<7.0)",
     "assertpy (>=1.1,<2.0)",
     "rdflib (>=7.5.0,<8.0.0)",
     "pyyaml (>=6.0,<7.0)",
     "ruff (>=0.9.0,<1.0.0)",
+    "pylint (>=3.3.4,<4.0.0)",
+    "import-linter (>=2.3,<3.0)",
+    "tox (>=4.0,<5.0)",
+    "radon (>=6.0,<7.0)",
+    "xenon (>=0.9,<1.0)",
     "testcontainers[redis] (>=4.13.3,<5.0.0)",
 ]
 
@@ -33,17 +40,24 @@ dev = [
 pydantic = "^2.12.5"
 redis = "^7.1.0"
 linkml-runtime = "^1.9.5"
-# TODO: should we have a registry?
-# TODO: fix when merged to develop or release
-ers-core = { git = "https://github.com/OP-TED/entity-resolution-spec.git", branch = "develop" }
+urllib3 = ">=2.0,<3.0"
+charset-normalizer = ">=3.0,<4.0"
+
+# TODO: should we have a registry?
+# TODO: fix when merged to develop or release (remember to switch OP-TED when stable)
+ers-core = { git = "https://github.com/meaningfy-ws/entity-resolution-spec.git", branch = "develop" }
 
 
 [tool.pytest.ini_options]
 addopts = [
-  "-v", 
-  "--basetemp=/tmp/pytest" # pytest-redis doesn't like long paths in macOS
+  "-v",
+  "--basetemp=/tmp/pytest",
+  "--cov=src",
+  "--cov-report=term-missing",
+  "--cov-fail-under=80",
 ]
-# Skips warning from 3rd party libs, such as rdflib
+testpaths = ["test"]
+# Skips warning from 3rd party libs, such as rdflib
 filterwarnings = [
   "once",
   "ignore",
@@ -53,5 +67,25 @@ filterwarnings = [
 
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+select = ["E", "F", "I", "N", "C90"]
 ignore = ["E501"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_return_any = true
+
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/__init__.py"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true

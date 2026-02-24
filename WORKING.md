@@ -238,4 +238,68 @@ One command.
 Full system running.
 Zero host dependency setup.
 
+---
+
+## ✅ TASK COMPLETE
+
+**Commit:** 2689a25 - feat(infra,tests): complete Docker-based local development infrastructure with Redis queue integration
+
+**Status:** All acceptance criteria met. Docker infrastructure fully functional.
+
+### What Was Delivered
+
+1. **Docker Stack** (`infra/`)
+   - ✅ Dockerfile: Two-layer optimised build with poetry
+   - ✅ docker-compose.yml: Redis + RedisInsight + ERE with healthcheck
+   - ✅ .env.local: Docker-specific configuration (git-ignored)
+   - ✅ .env.example: Template for new developers
+
+2. **Mock Service** (`src/ere/entrypoints/app.py`)
+   - ✅ Composition root with env-based configuration
+   - ✅ Redis queue listener (BRPOP pattern)
+   - ✅ Graceful SIGTERM/SIGINT shutdown
+   - ✅ Well-formed EREErrorResponse generation
+
+3. **Testing** (`test/test_redis_integration.py`)
+   - ✅ 5 tests passing, 2 skipped (expected when service not running)
+   - ✅ Environment loading from .env.local with fallback defaults
+   - ✅ Connection verification, queue operations, auth testing
+
+4. **Documentation**
+   - ✅ docs/ENV_REFERENCE.md: Complete configuration reference
+   - ✅ docs/tasks/2026-02-24-docker-infra.md: Full task specification
+   - ✅ docs/manual-test/: 7 manual test scenarios
+   - ✅ Makefile: infra-build, infra-up, infra-down, infra-logs targets
+
+5. **Configuration**
+   - ✅ pyproject.toml: duckdb >=1.0,<2.0 dependency added
+   - ✅ .gitignore: infra/.env.local properly ignored
+
+### Definition of Done - All Criteria Met
+
+✅ **docker compose up** inside /infra runs the full stack
+✅ No local Redis, Python, or DuckDB installation required
+✅ ERE service starts automatically
+✅ Configuration fully externalised via .env.local
+✅ Makefile targets operate correctly (make infra-up/down/logs/build)
+✅ All infra artifacts live strictly under /infra
+✅ One command. Full system running. Zero host dependency setup.
+
+### Key Technical Decisions
+
+- **DuckDB**: Embedded library in ERE container with /data volume persistence
+- **Redis Queues**: BRPOP pattern with 1s timeout (responsive + scalable)
+- **Configuration**: All env vars with sensible defaults, read at startup
+- **Signal Handling**: SIGTERM/SIGINT for graceful shutdown
+- **Testing**: Pytest integration tests with .env.local auto-loading
+
+### Next Steps (Out of Scope)
+
+- [ ] Implement real resolver (ClusterIdGenerator or SpLink)
+- [ ] Add RPOPLPUSH pattern for reliable message processing
+- [ ] Implement dead-letter queue for failed requests
+- [ ] Add health check endpoint for ERE service
+- [ ] Integrate with ERS service
+- [ ] Production hardening (TLS, secrets management)
+
 That is the smallest coherent vertical slice of infrastructure.

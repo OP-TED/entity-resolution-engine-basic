@@ -8,19 +8,19 @@ import json
 
 from linkml_runtime.loaders import JSONLoader
 
-from ere.models.core import (
+from erspec.models.ere import (
     EntityMentionResolutionRequest,
     EntityMentionResolutionResponse,
     EREErrorResponse,
-    FullRebuildRequest,
-    FullRebuildResponse,
+    # FullRebuildRequest,  # TODO: Not yet implemented in erspec.models.ere
+    # FullRebuildResponse,  # TODO: Not yet implemented in erspec.models.ere
     ERERequest,
     EREMessage,
     EREResponse,
 )
 
 SUPPORTED_REQUEST_CLASSES = {
-    cls.__name__: cls for cls in [EntityMentionResolutionRequest, FullRebuildRequest]
+    cls.__name__: cls for cls in [EntityMentionResolutionRequest]  # , FullRebuildRequest]  # TODO: Add when available
 }
 """
 Explicit list of supported Request classes, used in utilities like :meth:`get_request_from_message`.
@@ -31,7 +31,7 @@ types, so, we keep it simple.
 
 SUPPORTED_RESPONSE_CLASSES = {
     cls.__name__: cls
-    for cls in [EntityMentionResolutionResponse, FullRebuildResponse, EREErrorResponse]
+    for cls in [EntityMentionResolutionResponse, EREErrorResponse]  # , FullRebuildResponse]  # TODO: Add when available
 }
 """
 Explicit list of supported Response classes, used in utilities like :meth:`get_response_from_message`.

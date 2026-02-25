@@ -1,0 +1,39 @@
+---
+config:
+  look: neo
+  theme: redux-color
+  mirrorActors: false
+  sequence:
+    bottomMarginAdj: 0.1
+---
+sequenceDiagram
+%% Maps to EA diagram: UML Sequence (Contract-level)
+%% Purpose: ERS–ERE asynchronous exchange of resolution proposals over brokered channels.
+%% Focus: contractual messages, correlation keys, admissible error handling, idempotent absorption.
+%% Excludes: engine internals, storage choreography, technology specifics, client-facing flows.
+
+
+participant ERS as "Entity Resolution Service (ERS)"
+participant Broker as "Messaging Middleware"
+participant ERE as "Entity Resolution Engine (ERE)"
+
+%% --- Contract: Request publication ---
+ERS ->> Broker: Publish Resolution Request (async)<br/>(sourceId, requestId, entityType,<br/>EntityMention, rejectionConstraints?)
+Broker ->> ERE: Deliver Resolution Request (async)
+
+%% --- Contract: Boundary validation outcome ---
+alt Contract violation (invalid schema / missing correlation triad)
+  ERE ->> Broker: Publish Error Response (async)<br/>(sourceId, requestId, entityType,<br/>errorCode, errorMessage)
+  Broker ->> ERS: Deliver Error Response (async)
+  ERS ->> ERS: Record contract violation (no governance update)
+else Accepted request (schema valid)
+  %% --- Contract: Advisory result publication ---
+  ERE ->> Broker: Publish Resolution Result (async)<br/>(sourceId, requestId, entityType,<br/>candidateClusters + confidence scores)
+  Broker ->> ERS: Deliver Resolution Result (async)
+
+  %% --- Contract: Governance-first integration (idempotent) ---
+  ERS ->> ERS: Correlate by (sourceId, requestId, entityType)<br/>and apply governance constraints<br/>(preserve curator locks, enforce rejections)
+  ERS ->> ERS: Update governed resolution decision<br/>and canonical projection (idempotent)
+end
+
+%% Note: ERE outputs are proposals only; ERS remains the sole authority for canonical status via decisions.

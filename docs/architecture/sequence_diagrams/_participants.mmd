@@ -1,0 +1,53 @@
+---
+config:
+  look: neo
+  theme: redux-color
+  mirrorActors: false
+  sequence:
+    bottomMarginAdj: 0.1
+---
+sequenceDiagram
+%% =====================================================================
+%% ERSys – Stable participant inventory for sequence diagrams
+%% Conventions:
+%% - Human roles use `actor`
+%% - Systems/services/components use `participant`
+%% - IDs are stable; labels are human-readable
+%% - Include stores only when the sequence is about persistence/authority
+%% - preserve the order and grouping in boxes for consistency
+%% =====================================================================
+
+%% External systems and client roles
+participant Curator as "Curator"
+participant SystemAdministrator as "System Administrator"
+participant Originator as "Originator"
+participant DownstreamConsumer as "Downstream Consumer"
+
+box "Link Curation Application"
+    participant LinkCurationApp as "Link Curation Web Application"
+    participant LinkCurationAPI as "Link Curation REST API"
+end
+
+box "Entity Resolution System (ERSys)"
+    %% Service-facing entry points (choose the one relevant for the spine)
+    participant ERIntake as "Entity Resolution Intake Service"
+    participant CanonicalLookup as "Canonical Lookup Service"
+    participant LinkCurationSvc as "Link Curation Service"
+    participant RebuildSvc as "Rebuild Service"
+
+    %% Authority and orchestration
+    participant ERS as "Entity Resolution Service (ERS)"
+
+    %% Authoritative state (include only if needed)
+    participant RequestRegistry as "Request Registry"
+    participant DecisionStore as "Resolution Decision Store"
+    participant UserActionLog as "User Action Log"
+end
+
+%% Contract and transport (explicit)
+participant MessagingMiddleware as "Messaging Middleware"
+
+box "Entity Resolution Engine (ERE)"
+    participant ERE as "Entity Resolution Engine (ERE)"
+end
+

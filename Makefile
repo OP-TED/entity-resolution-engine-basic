@@ -1,5 +1,25 @@
 SHELL=/bin/bash -o pipefail
 
+#
+# ERE Makefile: Developer-friendly interface for testing & quality assurance
+#
+# This Makefile provides quick, discoverable targets for common development tasks.
+# It uses your active Poetry environment for fast feedback during development.
+#
+# For CI/CD: Use `tox` (see tox.ini) for reproducible, isolated test environments.
+# tox is independent of Poetry and manages its own dependencies in CI.
+#
+# Three-environment model (Cosmic Python / Clean Code):
+#   make test-unit              → pytest + coverage (your venv, fast)
+#   make lint                   → pylint checks (your venv, fast)
+#   make check-clean-code       → tox isolated: pylint + radon + xenon
+#   make check-architecture     → tox isolated: import-linter
+#   make all-quality-checks     → full pipeline: lint + architecture + clean-code
+#
+# For CI/CD in GitHub Actions:
+#   tox -e py312,architecture,clean-code
+#
+
 BUILD_PRINT = \e[1;34m
 END_BUILD_PRINT = \e[0m
 
@@ -28,13 +48,20 @@ help: ## Display available targets
 	@ echo ""
 	@ echo -e "  $(BUILD_PRINT)Testing:$(END_BUILD_PRINT)"
 	@ echo "    test                 - Run all tests"
-	@ echo "    test-unit            - Run unit tests only (exclude integration)"
+	@ echo "    test-unit            - Run unit tests with coverage (fast, your venv)"
 	@ echo "    test-integration     - Run integration tests only"
+	@ echo "    test-coverage        - Generate HTML coverage report"
 	@ echo ""
-	@ echo -e "  $(BUILD_PRINT)Code Quality:$(END_BUILD_PRINT)"
+	@ echo -e "  $(BUILD_PRINT)Code Quality (Developer):$(END_BUILD_PRINT)"
 	@ echo "    format               - Format code with Ruff"
-	@ echo "    lint-check           - Run Ruff linting checks"
-	@ echo "    lint-fix             - Run Ruff checks with auto-fix"
+	@ echo "    lint                 - Run pylint checks (your venv, fast)"
+	@ echo "    lint-fix             - Auto-fix with Ruff"
+	@ echo ""
+	@ echo -e "  $(BUILD_PRINT)Code Quality (CI/Isolated):$(END_BUILD_PRINT)"
+	@ echo "    check-clean-code     - Clean-code checks: pylint + radon + xenon (tox)"
+	@ echo "    check-architecture   - Validate layer contracts (tox)"
+	@ echo "    all-quality-checks   - Run all quality checks"
+	@ echo "    ci                   - Full CI pipeline for GitHub Actions"
 	@ echo ""
 	@ echo -e "  $(BUILD_PRINT)Utilities:$(END_BUILD_PRINT)"
 	@ echo "    clean                - Remove build artifacts and caches"
@@ -44,7 +71,7 @@ help: ## Display available targets
 install-poetry: ## Install Poetry if not present
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Installing Poetry $(END_BUILD_PRINT)"
 	@ pip install "poetry>=2.0.0"
-	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Poetry  is installed$(END_BUILD_PRINT)"
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Poetry is installed$(END_BUILD_PRINT)"
 
 install: install-poetry ## Install project dependencies
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Installing ERE requirements$(END_BUILD_PRINT)"
@@ -60,40 +87,66 @@ build: ## Build the package distribution
 #-----------------------------------------------------------------------------
 # Testing commands
 #-----------------------------------------------------------------------------
-.PHONY: test test-unit test-integration
+.PHONY: test test-unit test-integration test-coverage
 test: ## Run all tests
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running all tests$(END_BUILD_PRINT)"
 	@ poetry run pytest $(TEST_PATH)
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) All tests passed$(END_BUILD_PRINT)"
 
-test-unit: ## Run unit tests only (exclude integration)
-	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running unit tests$(END_BUILD_PRINT)"
-	@ poetry run pytest $(TEST_PATH) -m "not integration"
-	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Unit tests passed$(END_BUILD_PRINT)"
+test-unit: ## Run unit tests with coverage (fast, uses your venv)
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running unit tests with coverage$(END_BUILD_PRINT)"
+	@ poetry run pytest $(TEST_PATH) -m "not integration" \
+	    --cov=src --cov-report=term-missing --cov-report=html
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Unit tests passed (coverage: htmlcov/index.html)$(END_BUILD_PRINT)"
 
 test-integration: ## Run integration tests only
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running integration tests$(END_BUILD_PRINT)"
 	@ poetry run pytest $(TEST_PATH) -m "integration"
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Integration tests passed$(END_BUILD_PRINT)"
 
+test-coverage: ## Generate detailed HTML coverage report
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Generating coverage report$(END_BUILD_PRINT)"
+	@ poetry run pytest $(TEST_PATH) -m "not integration" \
+	    --cov=src --cov-report=html --cov-report=term-missing
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Coverage report: htmlcov/index.html$(END_BUILD_PRINT)"
+
 #-----------------------------------------------------------------------------
 # Code quality commands
 #-----------------------------------------------------------------------------
-.PHONY: format lint-check lint-fix
+.PHONY: format lint lint-fix check-clean-code check-architecture all-quality-checks ci
+
 format: ## Format code with Ruff
-	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Formatting code with Ruff$(END_BUILD_PRINT)"
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Formatting code$(END_BUILD_PRINT)"
 	@ poetry run ruff format $(SRC_PATH) $(TEST_PATH)
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Format complete$(END_BUILD_PRINT)"
 
-lint-check: ## Run Ruff linting checks
-	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running Ruff checks $(END_BUILD_PRINT)"
-	@ poetry run ruff check $(SRC_PATH) $(TEST_PATH)
-	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Running Ruff checks done$(END_BUILD_PRINT)"
+lint: ## Run pylint checks (style, naming, SOLID principles) — uses your venv
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running pylint checks$(END_BUILD_PRINT)"
+	@ poetry run pylint --rcfile=.pylintrc ./src ./test
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Pylint checks passed$(END_BUILD_PRINT)"
 
-lint-fix: ## Run Ruff checks with auto-fix
-	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running Ruff checks with auto-fix$(END_BUILD_PRINT)"
+lint-fix: ## Auto-fix code style with Ruff
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Auto-fixing with Ruff$(END_BUILD_PRINT)"
 	@ poetry run ruff check --fix $(SRC_PATH) $(TEST_PATH)
-	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Running Ruff checks with auto-fix done$(END_BUILD_PRINT)"
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Auto-fix complete$(END_BUILD_PRINT)"
+
+check-clean-code: ## Clean-code checks: pylint + radon + xenon (isolated tox)
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running clean-code checks (tox isolated)$(END_BUILD_PRINT)"
+	@ tox -e clean-code
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Clean-code checks passed$(END_BUILD_PRINT)"
+
+check-architecture: ## Validate architectural boundaries (isolated tox)
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Checking architecture contracts (tox isolated)$(END_BUILD_PRINT)"
+	@ tox -e architecture
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Architecture checks passed$(END_BUILD_PRINT)"
+
+all-quality-checks: lint check-clean-code check-architecture ## Run all: lint + clean-code + architecture
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) All quality checks passed!$(END_BUILD_PRINT)"
+
+ci: ## Full CI pipeline for GitHub Actions (tox)
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running full CI pipeline$(END_BUILD_PRINT)"
+	@ tox -e py312,architecture,clean-code
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) CI pipeline complete$(END_BUILD_PRINT)"
 
 #-----------------------------------------------------------------------------
 # Utility commands
@@ -105,6 +158,7 @@ clean: ## Remove build artifacts and caches
 	@ rm -rf .pytest_cache
 	@ rm -rf .tox
 	@ rm -rf *.egg-info
+	@ rm -rf htmlcov coverage.xml
 	@ poetry run ruff clean
 	@ find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	@ find . -type f -name "*.pyc" -delete 2>/dev/null || true

@@ -39,10 +39,23 @@ from ere.adapters.repositories import (
     MentionRepository,
     SimilarityRepository,
 )
+from ere.adapters.duckdb_schema import init_schema
+from ere.adapters.duckdb_repositories import (
+    DuckDBMentionRepository,
+    DuckDBSimilarityRepository,
+    DuckDBClusterRepository,
+)
+from ere.adapters.splink_linker_impl import SpLinkSimilarityLinker, build_tf_df
 
 __all__ = [
     "AbstractResolver",
     "MentionRepository",
     "SimilarityRepository",
     "ClusterRepository",
+    "init_schema",
+    "DuckDBMentionRepository",
+    "DuckDBSimilarityRepository",
+    "DuckDBClusterRepository",
+    "SpLinkSimilarityLinker",
+    "build_tf_df",
 ]

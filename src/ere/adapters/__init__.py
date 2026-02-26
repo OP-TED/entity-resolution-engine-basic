@@ -31,3 +31,18 @@ class AbstractResolver(Protocol):
 
     def __call__(self, request: ERERequest) -> EREResponse:
         return self.process_request(request)
+
+
+# Resolver adapter exports
+from ere.adapters.repositories import (
+    ClusterRepository,
+    MentionRepository,
+    SimilarityRepository,
+)
+
+__all__ = [
+    "AbstractResolver",
+    "MentionRepository",
+    "SimilarityRepository",
+    "ClusterRepository",
+]

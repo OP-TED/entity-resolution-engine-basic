@@ -228,3 +228,41 @@ class AbstractPubSubResolutionService(AbstractService):
             f"Service: got response for request id: {request.ereRequestId} from the resolver, pushing it back"
         )
         self._push_response(response)
+
+
+# Resolver service exports
+from ere.services.linker import SimilarityLinker
+from ere.services.resolver_config import ResolverConfig
+from ere.services.entity_resolution_service import EntityResolutionService
+
+__all__ = [
+    "AbstractService",
+    "AbstractPubSubResolutionService",
+    "SimilarityLinker",
+    "ResolverConfig",
+    "EntityResolutionService",
+]
+
+
+# Resolver service exports
+from ere.services.linker import SimilarityLinker
+from ere.services.repositories import (
+    ClusterRepository,
+    MentionRepository,
+    SimilarityRepository,
+)
+from ere.services.resolver_config import ResolverConfig
+from ere.services.resolver_errors import InsufficientDataError
+from ere.services.entity_resolution_service import EntityResolutionService
+
+__all__ = [
+    "AbstractService",
+    "AbstractPubSubResolutionService",
+    "SimilarityLinker",
+    "MentionRepository",
+    "SimilarityRepository",
+    "ClusterRepository",
+    "ResolverConfig",
+    "InsufficientDataError",
+    "EntityResolutionService",
+]

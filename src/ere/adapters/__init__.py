@@ -3,6 +3,19 @@ from typing import Protocol
 
 from erspec.models.ere import ERERequest, EREResponse
 
+from ere.adapters.duckdb_repositories import (
+    DuckDBClusterRepository,
+    DuckDBMentionRepository,
+    DuckDBSimilarityRepository,
+)
+from ere.adapters.duckdb_schema import init_schema
+from ere.adapters.repositories import (
+    ClusterRepository,
+    MentionRepository,
+    SimilarityRepository,
+)
+from ere.adapters.splink_linker_impl import SpLinkSimilarityLinker, build_tf_df
+
 
 class AbstractResolver(Protocol):
     """
@@ -33,29 +46,15 @@ class AbstractResolver(Protocol):
         return self.process_request(request)
 
 
-# Resolver adapter exports
-from ere.adapters.repositories import (
-    ClusterRepository,
-    MentionRepository,
-    SimilarityRepository,
-)
-from ere.adapters.duckdb_schema import init_schema
-from ere.adapters.duckdb_repositories import (
-    DuckDBMentionRepository,
-    DuckDBSimilarityRepository,
-    DuckDBClusterRepository,
-)
-from ere.adapters.splink_linker_impl import SpLinkSimilarityLinker, build_tf_df
-
 __all__ = [
     "AbstractResolver",
-    "MentionRepository",
-    "SimilarityRepository",
+    "build_tf_df",
     "ClusterRepository",
-    "init_schema",
+    "DuckDBClusterRepository",
     "DuckDBMentionRepository",
     "DuckDBSimilarityRepository",
-    "DuckDBClusterRepository",
+    "init_schema",
+    "MentionRepository",
+    "SimilarityRepository",
     "SpLinkSimilarityLinker",
-    "build_tf_df",
 ]

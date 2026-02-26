@@ -1,0 +1,71 @@
+# Entity Resolver configuration
+# See TECHNICAL_DESIGN.md §5 for field descriptions.
+
+cache_strategy: tf_incremental
+
+# Pairwise similarity threshold. A mention is added to an existing cluster
+# only if match_probability >= threshold.
+#
+# NOTE ON CALIBRATION: match_probability is a composite score that depends on
+# trained m/u probabilities and the prior. The effective threshold must be
+# tuned to the model's output range after training. With a small training
+# dataset and probability_two_random_records_match=0.3, similar name pairs
+# score ~0.70 and dissimilar pairs ~0.01, so threshold=0.5 provides a clean
+# separation. For production, recalibrate against your own data.
+threshold: 0.5
+
+# Maximum cluster references returned per resolve_request() call.
+top_n: 100
+
+# Lower bound on match weight passed to find_matches_to_new_records().
+# Controls which scored pairs are stored in the similarities table.
+# -10 includes pairs with match_probability >= ~0.001, which captures
+# below-THR mention-links needed for full genCand output (bridge case).
+# Raise toward -4 to reduce storage costs on large datasets once
+# below-THR links are confirmed to be above that floor.
+match_weight_threshold: -10
+
+# Automatic training threshold: mention count at which to trigger non-blocking
+# background training. Set to 0 to disable auto-training.
+# Default: 50 mentions triggers training in a daemon thread.
+auto_train_threshold: 50
+
+splink:
+  # Prior probability that any two randomly selected records are a match.
+  # This is the Fellegi-Sunter prior λ. Tune for your dataset:
+  #   - High duplicate rate (deduplication): 0.1–0.3
+  #   - Low duplicate rate (linking two clean datasets): 0.001–0.01
+  # With too low a prior, EM converges to a local minimum where nothing matches.
+  probability_two_random_records_match: 0.3
+
+  # Identity Function: fields and similarity functions used for pairwise scoring.
+  # country_code is intentionally absent from comparisons — it is used only
+  # as a blocking rule. Adding it as a comparison would prevent EM from training
+  # its m-probabilities (since blocking only exposes same-country pairs).
+  comparisons:
+    - type: jaro_winkler
+      field: legal_name
+      thresholds: [0.9, 0.8]
+    - type: exact_match
+      field: country_code
+
+  # Blocking rules: a pair is compared only if at least one rule fires.
+  # Expressed as field names; multi-field rules use a list, e.g. [field1, field2].
+  blocking_rules:
+    - country_code
+
+  # Cold-start default m/u probabilities (used before EM training).
+  # Each field gets probability distributions for each comparison level.
+  # For JaroWinklerAtThresholds [0.9, 0.8]: high, medium, low similarity.
+  # For ExactMatch: match, no-match.
+  # Once EM training completes, trained parameters overwrite these.
+  cold_start:
+    comparisons:
+      legal_name:
+        # JaroWinkler [0.9, 0.8]: high / medium / else
+        m_probabilities: [0.80, 0.10, 0.10]
+        u_probabilities: [0.02, 0.05, 0.93]
+      country_code:
+        # ExactMatch: match / else
+        m_probabilities: [0.90, 0.10]
+        u_probabilities: [0.20, 0.80]

@@ -98,11 +98,15 @@ entrypoints → services → models
 - `services/` — orchestrate domain and adapters; never import from `entrypoints/`.
 - `entrypoints/` — parse input, call services, format output; no business logic.
 
+- use best practices for OpenTelemetry and logging, but do not instrument prematurely — wait until a clear need arises to understand execution flows or debug issues.
+
+
 Anti-patterns to refuse:
 - I/O or framework imports inside `models/`
 - Business rules inside `adapters/` or `entrypoints/`
 - Magic strings or raw dicts where constants/enums belong
 - Circular imports between layers or modules
+- imports are not groupped in teh header of the module but are scattered across the code
 
 ---
 
@@ -159,29 +163,62 @@ A task slice is done when:
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-GitNexus provides a code knowledge graph — call chains, blast radius, execution flows, and semantic search.
+This project is indexed by GitNexus as **entity-resolution-engine-basic** (200 symbols, 349 relationships, 4 execution flows).
 
-**Before any code task:** read `gitnexus://repo/{name}/context` to check index freshness.
-If stale, run `npx gitnexus analyze` first.
+GitNexus provides a knowledge graph over this codebase — call chains, blast radius, execution flows, and semantic search.
 
-| Task | Skill file |
-|---|---|
-| Understand architecture | `.claude/skills/gitnexus/exploring/SKILL.md` |
-| Blast radius analysis | `.claude/skills/gitnexus/impact-analysis/SKILL.md` |
-| Trace a bug | `.claude/skills/gitnexus/debugging/SKILL.md` |
-| Rename / refactor | `.claude/skills/gitnexus/refactoring/SKILL.md` |
+## Always Start Here
 
-| Tool | Use for |
-|---|---|
-| `query` | Execution flows related to a concept |
-| `context` | All callers, callees, and process membership for a symbol |
-| `impact` | Blast radius at depth 1 (breaks), 2 (likely), 3 (transitive) |
-| `detect_changes` | What your current git changes affect |
-| `rename` | Coordinated multi-file rename with confidence tags |
-| `cypher` | Raw graph queries — read `gitnexus://repo/{name}/schema` first |
+For any task involving code understanding, debugging, impact analysis, or refactoring, you must:
 
-Resources (lightweight navigation reads):
-`context` · `clusters` · `cluster/{name}` · `processes` · `process/{name}` · `schema`
-— all under `gitnexus://repo/{name}/`
+1. **Read `gitnexus://repo/{name}/context`** — codebase overview + check index freshness
+2. **Match your task to a skill below** and **read that skill file**
+3. **Follow the skill's workflow and checklist**
+
+> If step 1 warns the index is stale, run `npx gitnexus analyze` in the terminal first.
+
+## Skills
+
+| Task | Read this skill file |
+|------|---------------------|
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus/refactoring/SKILL.md` |
+
+## Tools Reference
+
+| Tool | What it gives you |
+|------|-------------------|
+| `query` | Process-grouped code intelligence — execution flows related to a concept |
+| `context` | 360-degree symbol view — categorized refs, processes it participates in |
+| `impact` | Symbol blast radius — what breaks at depth 1/2/3 with confidence |
+| `detect_changes` | Git-diff impact — what do your current changes affect |
+| `rename` | Multi-file coordinated rename with confidence-tagged edits |
+| `cypher` | Raw graph queries (read `gitnexus://repo/{name}/schema` first) |
+| `list_repos` | Discover indexed repos |
+
+## Resources Reference
+
+Lightweight reads (~100-500 tokens) for navigation:
+
+| Resource | Content |
+|----------|---------|
+| `gitnexus://repo/{name}/context` | Stats, staleness check |
+| `gitnexus://repo/{name}/clusters` | All functional areas with cohesion scores |
+| `gitnexus://repo/{name}/cluster/{clusterName}` | Area members |
+| `gitnexus://repo/{name}/processes` | All execution flows |
+| `gitnexus://repo/{name}/process/{processName}` | Step-by-step trace |
+| `gitnexus://repo/{name}/schema` | Graph schema for Cypher |
+
+## Graph Schema
+
+**Nodes:** File, Function, Class, Interface, Method, Community, Process
+**Edges (via CodeRelation.type):** CALLS, IMPORTS, EXTENDS, IMPLEMENTS, DEFINES, MEMBER_OF, STEP_IN_PROCESS
+
+```cypher
+MATCH (caller)-[:CodeRelation {type: 'CALLS'}]->(f:Function {name: "myFunc"})
+RETURN caller.name, caller.filePath
+```
 
 <!-- gitnexus:end -->

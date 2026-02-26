@@ -7,7 +7,7 @@ from linkml_runtime.dumpers import JSONDumper
 from ere.adapters import AbstractResolver
 from erspec.models.ere import ERERequest, EREResponse
 from ere.services import AbstractPubSubResolutionService
-from ere.utils import get_request_from_message
+from ere.adapters.utils import get_request_from_message
 
 log = logging.getLogger(__name__)
 

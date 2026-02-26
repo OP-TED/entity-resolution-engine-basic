@@ -27,6 +27,8 @@ Explicit list of supported Request classes, used in utilities like :meth:`get_re
 
 TODO: Refactor according to the open-closed principle. For now, we don't expect many extensions to these
 types, so, we keep it simple.
+
+Note: FullRebuildRequest not yet implemented in erspec; add when available.
 """
 
 SUPPORTED_RESPONSE_CLASSES = {
@@ -37,6 +39,8 @@ SUPPORTED_RESPONSE_CLASSES = {
 Explicit list of supported Response classes, used in utilities like :meth:`get_response_from_message`.
 
 TODO: open-closed principle, see above.
+
+Note: FullRebuildResponse not yet implemented in erspec; add when available.
 """
 
 _linkml_loader = JSONLoader()  # Just to cache it

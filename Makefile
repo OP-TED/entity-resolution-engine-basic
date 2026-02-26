@@ -27,6 +27,7 @@ PROJECT_PATH = $(shell pwd)
 SRC_PATH = ${PROJECT_PATH}/src
 TEST_PATH = ${PROJECT_PATH}/test
 BUILD_PATH = ${PROJECT_PATH}/dist
+INFRA_PATH = ${PROJECT_PATH}/infra
 PACKAGE_NAME = ere
 
 ICON_DONE = [✔]
@@ -62,6 +63,12 @@ help: ## Display available targets
 	@ echo "    check-architecture   - Validate layer contracts (tox)"
 	@ echo "    all-quality-checks   - Run all quality checks"
 	@ echo "    ci                   - Full CI pipeline for GitHub Actions"
+	@ echo ""
+	@ echo -e "  $(BUILD_PRINT)Infrastructure (Docker):$(END_BUILD_PRINT)"
+	@ echo "    infra-build          - Build the ERE Docker image"
+	@ echo "    infra-up             - Start full stack (Redis + ERE) in detached mode"
+	@ echo "    infra-down           - Stop and remove stack containers and networks"
+	@ echo "    infra-logs           - Tail ERE container logs"
 	@ echo ""
 	@ echo -e "  $(BUILD_PRINT)Utilities:$(END_BUILD_PRINT)"
 	@ echo "    clean                - Remove build artifacts and caches"
@@ -147,6 +154,29 @@ ci: ## Full CI pipeline for GitHub Actions (tox)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running full CI pipeline$(END_BUILD_PRINT)"
 	@ tox -e py312,architecture,clean-code
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) CI pipeline complete$(END_BUILD_PRINT)"
+
+#-----------------------------------------------------------------------------
+# Infrastructure commands (Docker)
+#-----------------------------------------------------------------------------
+.PHONY: infra-build infra-up infra-down infra-logs
+
+infra-build: ## Build the ERE Docker image
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Building ERE Docker image$(END_BUILD_PRINT)"
+	@ docker compose -f $(INFRA_PATH)/docker-compose.yml build
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) ERE image built$(END_BUILD_PRINT)"
+
+infra-up: ## Start full stack: Redis + ERE (docker compose up --build)
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Starting ERE stack$(END_BUILD_PRINT)"
+	@ docker compose -f $(INFRA_PATH)/docker-compose.yml up --build -d
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) ERE stack is running — use 'make infra-logs' to follow output$(END_BUILD_PRINT)"
+
+infra-down: ## Stop and remove ERE stack containers and networks
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Stopping ERE stack$(END_BUILD_PRINT)"
+	@ docker compose -f $(INFRA_PATH)/docker-compose.yml down
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) ERE stack stopped$(END_BUILD_PRINT)"
+
+infra-logs: ## Tail logs from the ERE container
+	@ docker compose -f $(INFRA_PATH)/docker-compose.yml logs -f ere
 
 #-----------------------------------------------------------------------------
 # Utility commands

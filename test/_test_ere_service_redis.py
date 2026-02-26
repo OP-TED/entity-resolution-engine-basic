@@ -16,11 +16,10 @@ from ere_test import (
     create_timestamp,
     prefix_common_namespaces,
 )
-from rdflib import Graph
 from testcontainers.redis import RedisContainer
 
 from ere.entrypoints import AbstractClient
-from ere.entrypoints.redis import RedisEREClient
+from ere.adapters.redis import RedisEREClient
 from ere.models.core import (
     EntityMentionResolutionRequest,
     EntityMentionResolutionResponse,

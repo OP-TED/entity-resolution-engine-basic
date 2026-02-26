@@ -115,7 +115,7 @@ make help               # List all targets with descriptions
 ### Starting the Redis entrypoint
 
 > **TODO:** CLI wrapper for launching the Redis consumer is not yet implemented.
-> See [`src/ere/entrypoints/redis.py`](src/ere/entrypoints/redis.py) for the current entrypoint.
+> See [`src/ere/entrypoints/redis.py`](src/ere/adapters/redis.py) for the current entrypoint.
 
 ---
 

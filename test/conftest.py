@@ -29,8 +29,8 @@ def pytest_configure(config: pytest.Config):
     # Setup logging from YAML config file
     cfg_path = os.path.join(os.path.dirname(__file__), "resources/logging-test.yml")
     with open(cfg_path) as f:
-        config = yaml.safe_load(f)
-    logging.config.dictConfig(config)
+        logging_cfg = yaml.safe_load(f)
+    logging.config.dictConfig(logging_cfg)
 
 
 # ============================================================================

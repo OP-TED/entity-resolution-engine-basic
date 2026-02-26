@@ -1,7 +1,7 @@
-# Entity Resolver configuration — Compound blocking rule (country + city AND)
-# For Group 2, Exp F: blocking on both country AND city.
-# This creates tight blocks (city-level granularity within a country).
-# Trade-off: fewer pairs per call, but risk of recall loss for cross-city variants.
+# Entity Resolver configuration — Compound blocking (country_code AND city)
+# Blocks pairs unless both country_code AND city match.
+# Creates tight, city-level blocks within countries.
+# Trade-off: fewer comparisons (faster) but may miss cross-city variants.
 
 cache_strategy: tf_incremental
 

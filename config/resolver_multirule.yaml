@@ -1,7 +1,7 @@
 # Entity Resolver configuration — Multi-rule blocking (country OR city OR name)
-# For Group 2, Exp G: three independent blocking rules evaluated as OR (union).
-# A pair is included if any rule fires: same country, OR same city, OR exact same legal name.
-# Trade-off: more pairs per call, higher recall for cross-country entities and exact-name duplicates.
+# Three independent blocking rules evaluated as OR (union).
+# A pair is included if any rule fires: same country, OR same city, OR exact name match.
+# Trade-off: more comparisons (slower) but higher recall for diverse datasets.
 
 cache_strategy: tf_incremental
 

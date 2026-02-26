@@ -1,17 +1,10 @@
-# Entity Resolver configuration
-# See TECHNICAL_DESIGN.md §5 for field descriptions.
+# Entity Resolver configuration — Standard blocking (single-field: country_code)
 
 cache_strategy: tf_incremental
 
-# Pairwise similarity threshold. A mention is added to an existing cluster
-# only if match_probability >= threshold.
-#
-# NOTE ON CALIBRATION: match_probability is a composite score that depends on
-# trained m/u probabilities and the prior. The effective threshold must be
-# tuned to the model's output range after training. With a small training
-# dataset and probability_two_random_records_match=0.3, similar name pairs
-# score ~0.70 and dissimilar pairs ~0.01, so threshold=0.5 provides a clean
-# separation. For production, recalibrate against your own data.
+# Cluster assignment threshold: a mention joins an existing cluster only if
+# match_probability >= threshold. Calibrate based on your trained model output.
+# Typical range: 0.4–0.7 depending on prior and dataset characteristics.
 threshold: 0.5
 
 # Maximum cluster references returned per resolve_request() call.

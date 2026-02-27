@@ -181,3 +181,20 @@ def entity_resolution_service():
     return EntityResolutionService(
         mention_repo, similarity_repo, cluster_repo, linker, resolver_config
     )
+
+
+# ============================================================================
+# RDF Mapper Fixture
+# ============================================================================
+
+
+@pytest.fixture
+def rdf_mapper():
+    """
+    Fresh RDFMapper instance per test.
+
+    Returns a concrete TurtleRDFMapper implementation for Turtle RDF parsing.
+    """
+    from ere.adapters.rdf_mapper_impl import TurtleRDFMapper
+
+    return TurtleRDFMapper()

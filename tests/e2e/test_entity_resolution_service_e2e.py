@@ -8,7 +8,7 @@ initialization, resolution, training, and state introspection.
 import pytest
 import duckdb
 
-from ere.adapters import (
+from ere.adapters.duckdb_repositories import (
     DuckDBClusterRepository,
     DuckDBMentionRepository,
     DuckDBSimilarityRepository,

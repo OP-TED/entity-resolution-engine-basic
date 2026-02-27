@@ -6,7 +6,8 @@ from erspec.models.core import ClusterReference, EntityMentionResolutionRequest
 from erspec.models.ere import AbstractResolver, ERERequest, EREResponse, EREErrorResponse
 from erspec.models.ere.entity_mention_resolution import EntityMentionResolutionResponse
 
-from ere.services.resolution import build_resolution_service, resolve_to_result
+from ere.adapters.factories import build_resolution_service, build_rdf_mapper
+from ere.services.resolution import resolve_to_result
 
 
 class EntityResolutionResolver(AbstractResolver):
@@ -44,7 +45,8 @@ class EntityResolutionResolver(AbstractResolver):
 
         try:
             service = build_resolution_service()
-            result = resolve_to_result(request.entity_mention, service)
+            mapper = build_rdf_mapper()
+            result = resolve_to_result(request.entity_mention, service, mapper)
             candidates = [
                 ClusterReference(
                     cluster_id=c.cluster_id.value,

@@ -216,3 +216,10 @@ poetry.toml
 .import_linter_cache
 .pycharm_plugin
 infra/.env.local
+
+# Planning and documentation artifacts (never add these to git)
+.claude/P8_*_PLAN.md
+.claude/P8_*_ANALYSIS.md
+.claude/P8_*_MIGRATION_*.md
+docs/architecture/IMPORT-CONTRACT-AUDIT.md
+docs/flow/entity-mention-resolution-flow.md

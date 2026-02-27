@@ -163,7 +163,7 @@ A task slice is done when:
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **entity-resolution-engine-basic** (200 symbols, 349 relationships, 4 execution flows).
+This project is indexed by GitNexus as **ere-basic** (344 symbols, 700 relationships, 16 execution flows).
 
 GitNexus provides a knowledge graph over this codebase — call chains, blast radius, execution flows, and semantic search.
 

@@ -8,9 +8,12 @@ import os
 from abc import ABC, abstractmethod
 from concurrent.futures import Executor, ThreadPoolExecutor
 from threading import Thread
+from typing import TYPE_CHECKING
 
-from ere.adapters import AbstractResolver
 from erspec.models.ere import ERERequest, EREResponse
+
+if TYPE_CHECKING:
+    from ere.adapters import AbstractResolver
 
 log = logging.getLogger(__name__)
 
@@ -146,7 +149,7 @@ class AbstractPubSubResolutionService(AbstractService):
             workers not starting).
     """
 
-    def __init__(self, resolver: AbstractResolver = None):
+    def __init__(self, resolver: "AbstractResolver" = None):
         super().__init__()
         self.resolver: AbstractResolver = resolver
         self.parallelism: int = os.cpu_count()

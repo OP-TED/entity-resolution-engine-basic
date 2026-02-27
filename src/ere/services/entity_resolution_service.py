@@ -150,6 +150,30 @@ class EntityResolutionService:
             cluster_membership=self._cluster_repo.get_all_memberships(),
         )
 
+    def find_cluster_for(self, mention_id: MentionId) -> ResolutionResult | None:
+        """
+        Return stored resolution candidates for a mention, or None if not yet resolved.
+
+        When a mention was already resolved, this re-runs _gen_cand() against the current
+        state of the similarity table. If new mentions have since been added to the cluster,
+        the returned scores reflect the updated state - which is the correct behavior for
+        an idempotent re-query (the cluster assignment is unchanged, only scores may update).
+
+        Used by resolution.py for idempotency: avoids re-running resolve() (which would add
+        duplicate rows) while still returning a valid, current ResolutionResult.
+
+        Args:
+            mention_id: The MentionId to look up.
+
+        Returns:
+            ResolutionResult if the mention was found, None otherwise.
+        """
+        try:
+            self._cluster_repo.find_cluster_of(mention_id)  # KeyError if not found
+            return self._gen_cand(mention_id)
+        except KeyError:
+            return None
+
     # -----------------------------------------------------------------------
     # Helpers
     # -----------------------------------------------------------------------

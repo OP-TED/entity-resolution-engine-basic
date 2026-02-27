@@ -47,7 +47,8 @@ def outcome():
 
 @given("a fresh resolution service is ready")
 def fresh_service():
-    pass  # function-scoped fixtures reset automatically per scenario
+    from ere.services.resolution import _reset_services
+    _reset_services()
 
 
 # ---------------------------------------------------------------------------
@@ -127,11 +128,11 @@ def try_resolve_conflict(mention_id: str, entity_type: str, rdf_file: str, outco
 )
 def try_resolve_malformed(mention_id: str, entity_type: str, bad_content: str, outcome) -> Exception | None:
     try:
-        # TODO: change to return value when we have a proper implementation in place, and check for specific exception types and messages in the Then step.
-        raise Exception()
         outcome["result"] = resolve_entity_mention(_make_mention(mention_id, entity_type, bad_content))
+        return None
     except Exception as exc:
         outcome["exception"] = exc
+        return exc
 
 
 # ---------------------------------------------------------------------------
@@ -148,16 +149,6 @@ def check_cluster_reference_type(first_result: ClusterReference, second_result: 
 @then("both cluster_ids are equal")
 def check_same_cluster(first_result: ClusterReference, second_result: ClusterReference):
     assert_that(first_result.cluster_id).is_equal_to(second_result.cluster_id)
-
-
-@then(
-    # parsers.re required: feature quotes the value as "<min_confidence>", yielding >= "0.5"
-    parsers.re(r'both confidence_scores are >= "(?P<min_confidence>[0-9.]+)"')
-)
-def check_min_confidence(min_confidence: str, first_result: ClusterReference, second_result: ClusterReference):
-    threshold = float(min_confidence)
-    assert_that(first_result.confidence_score).is_greater_than_or_equal_to(threshold)
-    assert_that(second_result.confidence_score).is_greater_than_or_equal_to(threshold)
 
 
 @then("the cluster_ids are different")

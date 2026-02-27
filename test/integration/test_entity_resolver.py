@@ -1,4 +1,4 @@
-"""End-to-end integration test: EntityResolver with all real adapters.
+"""Integration test: EntityResolver with all real adapters.
 
 This test wires EntityResolver with real DuckDB repositories and
 SpLinkSimilarityLinker to demonstrate the complete entity resolution flow:
@@ -15,7 +15,7 @@ from ere.adapters.duckdb_repositories import (
 )
 from ere.adapters.splink_linker_impl import SpLinkSimilarityLinker, build_tf_df
 from ere.adapters.duckdb_schema import init_schema
-from ere.models.resolver import Mention, ClusterId, MentionId
+from ere.models.resolver import Mention
 from ere.services.entity_resolution_service import EntityResolver
 from ere.services.resolver_config import ResolverConfig
 
@@ -33,7 +33,7 @@ def entity_fields():
 
 @pytest.fixture(scope="module")
 def resolver_config():
-    """Resolver configuration for end-to-end tests."""
+    """Resolver configuration for tests."""
     return ResolverConfig(
         threshold=0.5,
         match_weight_threshold=-10,
@@ -98,7 +98,7 @@ def service(con, entity_fields, resolver_config, splink_config):
 
 
 # ===============================================================================
-# End-to-end integration tests
+# integration tests
 # ===============================================================================
 
 

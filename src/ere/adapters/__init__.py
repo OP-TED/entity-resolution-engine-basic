@@ -8,7 +8,7 @@ from ere.adapters.repositories import (
     MentionRepository,
     SimilarityRepository,
 )
-from ere.services.rdf_mapper_port import RDFMapper
+from ere.adapters.rdf_mapper_port import RDFMapper
 
 
 class AbstractResolver(Protocol):

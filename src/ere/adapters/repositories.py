@@ -2,9 +2,9 @@
 
 These ABCs define what infrastructure the entity resolution algorithm needs
 for persisting mentions, similarities, and cluster assignments.
-The algorithm (EntityResolutionService) depends only on these ports, not on
+The resolver algorithm (EntityResolver) depends only on these ports, not on
 concrete implementations. This enables testing with in-memory stubs and
-swapping infrastructure without changing service logic.
+swapping infrastructure without changing resolver logic.
 """
 
 from abc import ABC, abstractmethod

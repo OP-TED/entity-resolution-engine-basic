@@ -8,7 +8,7 @@ from assertpy import assert_that
 from pytest_bdd import given, when, then, parsers, scenarios
 
 from ere.models.resolver import Mention, MentionId, ClusterId
-from ere.services.entity_resolution_service import EntityResolutionService
+from ere.services.entity_resolution_service import EntityResolver
 from ere.services.resolver_config import ResolverConfig
 from test.adapters.stubs import (
     InMemoryMentionRepository,
@@ -42,7 +42,7 @@ def algorithm_context():
 
 @given(parsers.parse("an entity resolution service with threshold {threshold}"))
 def create_service(threshold: str, algorithm_context):
-    """Create a fresh EntityResolutionService with specified threshold."""
+    """Create a fresh EntityResolver with specified threshold."""
     threshold_value = float(threshold)
     config = ResolverConfig(
         threshold=threshold_value,
@@ -56,7 +56,7 @@ def create_service(threshold: str, algorithm_context):
     cluster_repo = InMemoryClusterRepository()
     linker = FixedSimilarityLinker(similarity_map={})
 
-    algorithm_context["service"] = EntityResolutionService(
+    algorithm_context["service"] = EntityResolver(
         mention_repo=mention_repo,
         similarity_repo=similarity_repo,
         cluster_repo=cluster_repo,

@@ -1,4 +1,4 @@
-"""Unit tests for EntityResolutionService (no DuckDB, no Splink)."""
+"""Unit tests for EntityResolver (no DuckDB, no Splink)."""
 
 import pytest
 
@@ -8,7 +8,7 @@ from ere.models.resolver import (
     MentionId,
     MentionLink,
 )
-from ere.services.entity_resolution_service import EntityResolutionService
+from ere.services.entity_resolution_service import EntityResolver
 from ere.services.resolver_config import ResolverConfig
 from test.adapters.stubs import (
     FixedSimilarityLinker,
@@ -30,14 +30,14 @@ def config() -> ResolverConfig:
 
 
 @pytest.fixture
-def service(config: ResolverConfig) -> EntityResolutionService:
-    """Create a service with in-memory stubs."""
+def service(config: ResolverConfig) -> EntityResolver:
+    """Create a resolver with in-memory stubs."""
     mention_repo = InMemoryMentionRepository()
     similarity_repo = InMemorySimilarityRepository()
     cluster_repo = InMemoryClusterRepository()
     linker = FixedSimilarityLinker(similarity_map={})
 
-    return EntityResolutionService(
+    return EntityResolver(
         mention_repo=mention_repo,
         similarity_repo=similarity_repo,
         cluster_repo=cluster_repo,
@@ -294,7 +294,7 @@ def test_auto_training_triggers_at_threshold(service):
 
     base_linker.train = counting_train
 
-    service = EntityResolutionService(
+    service = EntityResolver(
         mention_repo=mention_repo,
         similarity_repo=similarity_repo,
         cluster_repo=cluster_repo,
@@ -419,7 +419,7 @@ def test_resolution_result_always_top_n_pruned(service):
         }
     )
 
-    service = EntityResolutionService(
+    service = EntityResolver(
         mention_repo=mention_repo,
         similarity_repo=similarity_repo,
         cluster_repo=cluster_repo,

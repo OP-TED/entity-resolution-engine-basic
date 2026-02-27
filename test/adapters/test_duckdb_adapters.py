@@ -1,4 +1,4 @@
-"""Integration tests for DuckDB adapters (service layer + DuckDB)."""
+"""Integration tests for DuckDB adapters (resolver layer + DuckDB)."""
 
 import pytest
 import duckdb
@@ -15,7 +15,7 @@ from ere.models.resolver import (
     Mention,
     MentionId,
 )
-from ere.services.entity_resolution_service import EntityResolutionService
+from ere.services.entity_resolution_service import EntityResolver
 from ere.services.resolver_config import ResolverConfig
 from .stubs import FixedSimilarityLinker
 
@@ -51,13 +51,13 @@ def config():
 
 @pytest.fixture
 def service(con, entity_fields, config):
-    """Create a service with DuckDB adapters."""
+    """Create a resolver with DuckDB adapters."""
     mention_repo = DuckDBMentionRepository(con, entity_fields)
     similarity_repo = DuckDBSimilarityRepository(con)
     cluster_repo = DuckDBClusterRepository(con)
     linker = FixedSimilarityLinker(similarity_map={})
 
-    return EntityResolutionService(
+    return EntityResolver(
         mention_repo=mention_repo,
         similarity_repo=similarity_repo,
         cluster_repo=cluster_repo,

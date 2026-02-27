@@ -1,6 +1,6 @@
-"""End-to-end integration test: EntityResolutionService with all real adapters.
+"""End-to-end integration test: EntityResolver with all real adapters.
 
-This test wires EntityResolutionService with real DuckDB repositories and
+This test wires EntityResolver with real DuckDB repositories and
 SpLinkSimilarityLinker to demonstrate the complete entity resolution flow:
 initialization, resolution, training, and state introspection.
 """
@@ -16,7 +16,7 @@ from ere.adapters.duckdb_repositories import (
 from ere.adapters.splink_linker_impl import SpLinkSimilarityLinker, build_tf_df
 from ere.adapters.duckdb_schema import init_schema
 from ere.models.resolver import Mention, ClusterId, MentionId
-from ere.services.entity_resolution_service import EntityResolutionService
+from ere.services.entity_resolution_service import EntityResolver
 from ere.services.resolver_config import ResolverConfig
 
 
@@ -75,7 +75,7 @@ def con(entity_fields):
 @pytest.fixture
 def service(con, entity_fields, resolver_config, splink_config):
     """
-    Create EntityResolutionService with all real adapters.
+    Create EntityResolver with all real adapters.
 
     Wiring:
     - DuckDBMentionRepository for persistence
@@ -88,7 +88,7 @@ def service(con, entity_fields, resolver_config, splink_config):
     cluster_repo = DuckDBClusterRepository(con)
     linker = SpLinkSimilarityLinker(entity_fields, splink_config)
 
-    return EntityResolutionService(
+    return EntityResolver(
         mention_repo=mention_repo,
         similarity_repo=similarity_repo,
         cluster_repo=cluster_repo,
@@ -278,7 +278,7 @@ def test_auto_training_nonblocking(con, entity_fields):
     cluster_repo = DuckDBClusterRepository(con)
     linker = SpLinkSimilarityLinker(entity_fields, splink_config)
 
-    test_service = EntityResolutionService(
+    test_service = EntityResolver(
         mention_repo=mention_repo,
         similarity_repo=similarity_repo,
         cluster_repo=cluster_repo,

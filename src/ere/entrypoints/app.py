@@ -1,8 +1,8 @@
 """
-ERE service launcher — mock entrypoint for local development & Docker.
+ERE service launcher — entrypoint for local development & Docker.
 
 Reads entity resolution requests from a Redis queue, logs them to stdout,
-and produces mock responses back to another Redis queue.
+and produces responses back to another Redis queue.
 
 All configuration is read from environment variables.
 
@@ -15,7 +15,6 @@ Environment variables:
     LOG_LEVEL       Python log level name (default: INFO)
 """
 
-import json
 import logging
 import os
 import signal
@@ -25,6 +24,12 @@ from datetime import datetime, timezone
 import redis
 from linkml_runtime.dumpers import JSONDumper
 
+from ere.adapters.factories import build_rdf_mapper
+from ere.adapters.utils import get_request_from_message
+from ere.services.factories import (
+    build_entity_resolver,
+    build_entity_resolution_service,
+)
 from erspec.models.ere import EREErrorResponse
 
 log = logging.getLogger(__name__)
@@ -82,6 +87,17 @@ def main() -> None:
         log.error(f"Failed to connect to Redis: {e}")
         sys.exit(1)
 
+    # Build resolver, mapper, and service once before the loop
+    try:
+        log.info("Building entity resolution components")
+        resolver = build_entity_resolver()
+        mapper = build_rdf_mapper()
+        service = build_entity_resolution_service(resolver, mapper)
+        log.info("Entity resolution service ready")
+    except Exception as e:
+        log.error(f"Failed to build entity resolution service: {e}")
+        sys.exit(1)
+
     # Set up signal handling for graceful shutdown
     running = True
 
@@ -94,7 +110,7 @@ def main() -> None:
     signal.signal(signal.SIGINT, _handle_shutdown)
 
     # Main service loop
-    log.info("ERE mock service ready, listening for requests")
+    log.info("ERE service ready, listening for requests")
     try:
         while running:
             # Wait for a request (1-second timeout allows checking running flag periodically)
@@ -108,21 +124,19 @@ def main() -> None:
             request_str = raw_msg.decode("utf-8")
             log.info(f"Received request: {request_str}")
 
-            # Parse request to extract request ID (best-effort)
+            # Parse and process the request
             try:
-                request_json = json.loads(request_str)
-                request_id = request_json.get("ere_request_id", "unknown")
-            except (json.JSONDecodeError, KeyError):
-                request_id = "unknown"
-
-            # Create and send a mock response
-            response = EREErrorResponse(
-                ere_request_id=request_id,
-                error_title="Mock resolver — not implemented",
-                error_detail="This is a placeholder response from the mock ERE service.",
-                error_type="NotImplementedError",
-                timestamp=datetime.now(timezone.utc).isoformat(),
-            )
+                request = get_request_from_message(raw_msg)
+                response = service.process_request(request)
+            except Exception as e:
+                log.error(f"Failed to parse or process request: {e}")
+                response = EREErrorResponse(
+                    ere_request_id="unknown",
+                    error_type=type(e).__name__,
+                    error_title="Request processing error",
+                    error_detail=str(e),
+                    timestamp=datetime.now(timezone.utc),
+                )
 
             # Serialize response using cached LinkML dumper
             response_str = _dumper.dumps(response)
@@ -130,9 +144,10 @@ def main() -> None:
             # Push to response queue
             try:
                 client.lpush(response_queue, response_str)
+                request_id = getattr(response, "ere_request_id", "unknown")
                 log.info(f"Sent response for request_id={request_id}")
             except Exception as e:
-                log.error(f"Failed to send response for request_id={request_id}: {e}")
+                log.error(f"Failed to send response: {e}")
 
     except KeyboardInterrupt:
         log.info("Service interrupted")

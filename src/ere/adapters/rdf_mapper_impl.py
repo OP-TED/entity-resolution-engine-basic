@@ -10,8 +10,8 @@ from pathlib import Path
 from erspec.models.core import EntityMention
 
 from ere.adapters.rdf_mapper import load_entity_mappings, extract_mention_attributes
+from ere.adapters.rdf_mapper_port import RDFMapper
 from ere.models.resolver import Mention, MentionId
-from ere.services.rdf_mapper_port import RDFMapper
 
 
 class TurtleRDFMapper(RDFMapper):

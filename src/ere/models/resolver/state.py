@@ -9,7 +9,7 @@ from .ids import ClusterId, MentionId
 
 class ResolverState(BaseModel):
     """
-    Introspection snapshot returned by EntityResolutionService.state().
+    Introspection snapshot returned by EntityResolver.state().
 
     Provides high-level counts and detailed cluster membership mapping.
     """

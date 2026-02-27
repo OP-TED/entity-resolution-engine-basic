@@ -8,7 +8,7 @@ from erspec.models.core import ClusterReference, EntityMention, EntityMentionIde
 from pytest_bdd import given, scenario, scenarios, then, when
 from pytest_bdd import parsers
 
-from ere.services.resolution import resolve_entity_mention
+from ere.services.entity_resolution_service import resolve_entity_mention
 from test.conftest import load_rdf
 
 scenarios("../features/direct_service_resolution.feature")

@@ -1,9 +1,9 @@
 """Similarity linker port interface (abstract base class).
 
 This ABC defines the external dependency for pairwise similarity scoring
-(e.g. Splink). The algorithm (EntityResolutionService) depends only on this
+(e.g. Splink). The resolver algorithm (EntityResolver) depends only on this
 port, not on concrete implementations. This enables testing with stub linkers
-and swapping the matching algorithm without changing service logic.
+and swapping the matching algorithm without changing resolver logic.
 """
 
 from abc import ABC, abstractmethod

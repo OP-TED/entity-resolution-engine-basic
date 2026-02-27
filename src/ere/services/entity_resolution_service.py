@@ -1,7 +1,25 @@
-"""Main service layer: algorithm orchestration using domain types and ports."""
+"""Main service layer: entity resolution resolver and public API service."""
 
 import threading
+from datetime import datetime, timezone
 
+from erspec.models.core import ClusterReference, EntityMention
+from erspec.models.ere import (
+    EntityMentionResolutionRequest,
+    EntityMentionResolutionResponse,
+    EREErrorResponse,
+    ERERequest,
+    EREResponse,
+)
+
+from ere.adapters import AbstractResolver
+
+from ere.adapters.rdf_mapper_port import RDFMapper
+from ere.adapters.repositories import (
+    ClusterRepository,
+    MentionRepository,
+    SimilarityRepository,
+)
 from ere.models.resolver import (
     CandidateCluster,
     ClusterId,
@@ -14,22 +32,17 @@ from ere.models.resolver import (
 )
 from ere.services.resolver_config import ResolverConfig
 from ere.services.linker import SimilarityLinker
-from ere.adapters.repositories import (
-    ClusterRepository,
-    MentionRepository,
-    SimilarityRepository,
-)
 
 
-class EntityResolutionService:
+class EntityResolver:
     """
-    Entity resolution service layer: orchestration of domain objects via ports.
+    Core entity resolution algorithm: orchestration of domain objects via ports.
 
-    Implements the entity resolution algorithm using only domain types and port interfaces.
-    This enables testing with in-memory stubs and swapping infrastructure
-    without changing service logic.
+    The resolver implements the entity resolution algorithm using only domain types
+    and port interfaces. This enables testing with in-memory stubs and swapping
+    infrastructure without changing algorithm logic.
 
-    The service is stateless - all state is held in repositories and the linker.
+    The resolver is stateless - all state is held in repositories and the linker.
     """
 
     def __init__(
@@ -241,3 +254,160 @@ class EntityResolutionService:
         )
 
         return ResolutionResult(candidates=candidates)
+
+
+# -----------------------------------------------------------------------
+# Public resolution API
+# -----------------------------------------------------------------------
+
+
+def resolve_to_result(
+    entity_mention: EntityMention,
+    resolver: EntityResolver,
+    mapper: RDFMapper,
+):
+    """
+    Core resolution pipeline: RDF parsing -> domain mapping -> resolver resolution.
+
+    Used by both public API and service paths.
+
+    Args:
+        entity_mention: EntityMention from erspec.
+        resolver: EntityResolver instance (core algorithm).
+        mapper: RDFMapper implementation for entity mention parsing.
+
+    Returns:
+        ResolutionResult: Domain object with (cluster_id, score) candidates.
+
+    Raises:
+        ValueError: If RDF parsing fails or entity type is unknown.
+    """
+    mention = mapper.map_entity_mention_to_domain(entity_mention)
+
+    # Idempotency: if already resolved, return current state
+    cached = resolver.find_cluster_for(mention.id)
+    if cached is not None:
+        return cached
+
+    return resolver.resolve(mention)
+
+
+def resolve_entity_mention(
+    entity_mention: EntityMention, resolver: EntityResolver = None, mapper: RDFMapper = None
+) -> ClusterReference:
+    """
+    Resolve an entity mention to a Cluster (public API - returns top candidate).
+
+    Args:
+        entity_mention: EntityMention with identifiedBy and content (Turtle RDF).
+        resolver: EntityResolver instance. If None, raises ValueError.
+                  (In tests, inject the fixture; in production, use build_entity_resolver() factory)
+        mapper: RDFMapper implementation. If None, raises ValueError.
+                (In tests, inject the fixture; in production, use build_rdf_mapper() factory)
+
+    Returns:
+        ClusterReference with cluster_id, confidence_score, similarity_score.
+
+    Raises:
+        ValueError: If RDF parsing fails, mapping fails, resolver/mapper is None, or entity type is unknown.
+    """
+    if resolver is None:
+        raise ValueError(
+            "resolver must be provided (inject EntityResolver fixture in tests, "
+            "or use build_entity_resolver() factory in production)"
+        )
+    if mapper is None:
+        raise ValueError(
+            "mapper must be provided (inject RDFMapper fixture in tests, "
+            "or use build_rdf_mapper() factory in production)"
+        )
+
+    result = resolve_to_result(entity_mention, resolver, mapper)
+    top = result.top
+
+    # For singleton founders (no prior mentions), top.score = 0.0.
+    # 0.0 reflects genuine uncertainty: the cluster is unconfirmed (single member).
+    return ClusterReference(
+        cluster_id=top.cluster_id.value,
+        confidence_score=top.score,
+        similarity_score=top.score,
+    )
+
+
+# -----------------------------------------------------------------------
+# Adapter resolver for pub/sub service
+# -----------------------------------------------------------------------
+
+
+class EntityResolutionService(AbstractResolver):
+    """
+    Public API service for entity resolution via pub/sub request/response.
+
+    Handles EntityMentionResolutionRequest -> EntityMentionResolutionResponse.
+    Returns EREErrorResponse for unknown request types or resolution errors.
+
+    This service receives a pre-constructed resolver and mapper at initialization
+    time, avoiding the cost of rebuilding them on every request.
+    """
+
+    def __init__(self, resolver: EntityResolver, mapper: RDFMapper):
+        """
+        Initialize the service with injected dependencies.
+
+        Args:
+            resolver: EntityResolver instance (pre-built core resolver).
+            mapper: RDFMapper implementation (pre-built).
+        """
+        self._resolver = resolver
+        self._mapper = mapper
+
+    def process_request(self, request: ERERequest) -> EREResponse:
+        """
+        Process a resolution request and return a response.
+
+        Args:
+            request: ERERequest (could be EntityMentionResolutionRequest or other type).
+
+        Returns:
+            EntityMentionResolutionResponse if request is EntityMentionResolutionRequest,
+            EREErrorResponse for unknown request types or resolution errors.
+        """
+        now = datetime.now(timezone.utc)
+
+        if not isinstance(request, EntityMentionResolutionRequest):
+            return EREErrorResponse(
+                ere_request_id=getattr(request, "ere_request_id", "unknown"),
+                error_type="UnsupportedRequestType",
+                error_title="Unsupported request type",
+                error_detail=f"EntityResolutionService does not handle {type(request).__name__}",
+                timestamp=now,
+            )
+
+        try:
+            result = resolve_to_result(request.entity_mention, self._resolver, self._mapper)
+            candidates = [
+                ClusterReference(
+                    cluster_id=c.cluster_id.value,
+                    confidence_score=c.score,
+                    similarity_score=c.score,
+                )
+                for c in result.candidates
+            ]
+            return EntityMentionResolutionResponse(
+                entity_mention_id=request.entity_mention.identifiedBy,
+                candidates=candidates,
+                ere_request_id=request.ere_request_id,
+                timestamp=now,
+            )
+        except Exception as exc:
+            return EREErrorResponse(
+                ere_request_id=request.ere_request_id,
+                error_type=type(exc).__name__,
+                error_title="Resolution error",
+                error_detail=str(exc),
+                timestamp=now,
+            )
+
+    def __call__(self, request: ERERequest) -> EREResponse:
+        """Make the service callable."""
+        return self.process_request(request)

@@ -135,9 +135,9 @@ def proc_group2_file2() -> str:
 @pytest.fixture
 def entity_resolution_service():
     """
-    Fresh EntityResolutionService instance per test.
+    Fresh EntityResolver instance per test (core resolver).
 
-    Creates isolated service with in-memory DuckDB for test scenario isolation.
+    Creates isolated resolver with in-memory DuckDB for test scenario isolation.
     Entity fields are derived from resolver.yaml config as the source of truth.
     """
     import duckdb
@@ -148,7 +148,7 @@ def entity_resolution_service():
     )
     from ere.adapters.duckdb_schema import init_schema
     from ere.adapters.splink_linker_impl import SpLinkSimilarityLinker
-    from ere.services.entity_resolution_service import EntityResolutionService
+    from ere.services.entity_resolution_service import EntityResolver
     from ere.services.resolver_config import ResolverConfig
 
     # Load resolver config
@@ -178,7 +178,7 @@ def entity_resolution_service():
     cluster_repo = DuckDBClusterRepository(con)
     linker = SpLinkSimilarityLinker(entity_fields, raw_config)
 
-    return EntityResolutionService(
+    return EntityResolver(
         mention_repo, similarity_repo, cluster_repo, linker, resolver_config
     )
 

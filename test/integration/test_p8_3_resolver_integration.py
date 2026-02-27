@@ -12,7 +12,7 @@ from ere.adapters.duckdb_repositories import (
     DuckDBClusterRepository,
 )
 from ere.adapters.splink_linker_impl import SpLinkSimilarityLinker, build_tf_df
-from ere.services.entity_resolution_service import EntityResolutionService
+from ere.services.entity_resolution_service import EntityResolver
 from ere.services.resolver_config import ResolverConfig
 
 
@@ -65,8 +65,8 @@ def test_resolver_full_integration():
     # Create linker
     linker = SpLinkSimilarityLinker(entity_fields, config)
 
-    # Create service
-    service = EntityResolutionService(
+    # Create resolver
+    service = EntityResolver(
         mention_repo, similarity_repo, cluster_repo, linker, resolver_config
     )
 

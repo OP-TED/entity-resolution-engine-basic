@@ -1,0 +1,78 @@
+"""Factory functions for service instantiation.
+
+This module is responsible for constructing entity resolution components with
+all their adapter dependencies. It lives in the services layer because it
+orchestrates service-level concerns. The service layer receives fully-constructed
+instances without knowing the concrete implementation details.
+"""
+
+from pathlib import Path
+
+import duckdb
+import yaml
+
+from ere.adapters.duckdb_repositories import (
+    DuckDBClusterRepository,
+    DuckDBMentionRepository,
+    DuckDBSimilarityRepository,
+)
+from ere.adapters.duckdb_schema import init_schema
+from ere.adapters.rdf_mapper_port import RDFMapper
+from ere.adapters.splink_linker_impl import SpLinkSimilarityLinker
+from ere.services.entity_resolution_service import EntityResolver, EntityResolutionService
+from ere.services.resolver_config import ResolverConfig
+
+
+def build_entity_resolver(entity_fields: list[str] = None) -> EntityResolver:
+    """
+    Factory: construct EntityResolver with all concrete adapter dependencies.
+
+    This factory instantiates DuckDB repositories and Splink linker, wiring them
+    together with configuration. The service layer never directly instantiates
+    these concrete types; it receives them pre-built via dependency injection.
+
+    Args:
+        entity_fields: Field names for entity attributes (e.g. ["legal_name", "country_code"]).
+                      If None, reads from resolver.yaml config.
+
+    Returns:
+        Fully-constructed EntityResolver with DuckDB backend and Splink linker.
+    """
+    if entity_fields is None:
+        entity_fields = ["legal_name", "country_code"]
+
+    config_path = Path(__file__).parent.parent.parent.parent / "config" / "resolver.yaml"
+    with open(config_path) as f:
+        raw_config = yaml.safe_load(f)
+
+    resolver_config = ResolverConfig.from_dict(raw_config)
+    con = duckdb.connect(":memory:")
+    init_schema(con, entity_fields)
+
+    mention_repo = DuckDBMentionRepository(con, entity_fields)
+    similarity_repo = DuckDBSimilarityRepository(con)
+    cluster_repo = DuckDBClusterRepository(con)
+    linker = SpLinkSimilarityLinker(entity_fields, raw_config)
+
+    return EntityResolver(
+        mention_repo, similarity_repo, cluster_repo, linker, resolver_config
+    )
+
+
+def build_entity_resolution_service(
+    resolver: EntityResolver, mapper: RDFMapper
+) -> EntityResolutionService:
+    """
+    Factory: construct EntityResolutionService with pre-built resolver and mapper.
+
+    This factory wires the core resolver and RDF mapper together into the public
+    API service, avoiding repeated instantiation on every request.
+
+    Args:
+        resolver: EntityResolver instance (pre-built core resolver).
+        mapper: RDFMapper implementation (pre-built).
+
+    Returns:
+        Fully-constructed EntityResolutionService ready for request processing.
+    """
+    return EntityResolutionService(resolver, mapper)

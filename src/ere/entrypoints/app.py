@@ -19,21 +19,17 @@ import logging
 import os
 import signal
 import sys
-from datetime import datetime, timezone
 
 import redis
-from linkml_runtime.dumpers import JSONDumper
 
 from ere.adapters.factories import build_rdf_mapper
-from ere.adapters.utils import get_request_from_message
+from ere.entrypoints.queue_worker import RedisQueueWorker
 from ere.services.factories import (
     build_entity_resolver,
     build_entity_resolution_service,
 )
-from erspec.models.ere import EREErrorResponse
 
 log = logging.getLogger(__name__)
-_dumper = JSONDumper()  # Cache for reuse
 
 
 def _configure_logging() -> None:
@@ -49,11 +45,9 @@ def _configure_logging() -> None:
 
 
 def main() -> None:
-    """
-    Main entry point: read requests from Redis queue, log them, produce mock responses.
-    """
+    """Main entry point: orchestrate service setup and run queue worker."""
     _configure_logging()
-    log.info("ERE mock service starting")
+    log.info("ERE service starting")
 
     # Read configuration from environment
     redis_host = os.environ.get("REDIS_HOST", "localhost")
@@ -98,6 +92,14 @@ def main() -> None:
         log.error(f"Failed to build entity resolution service: {e}")
         sys.exit(1)
 
+    # Create queue worker
+    worker = RedisQueueWorker(
+        redis_client=client,
+        entity_resolution_service=service,
+        request_queue=request_queue,
+        response_queue=response_queue,
+    )
+
     # Set up signal handling for graceful shutdown
     running = True
 
@@ -113,42 +115,7 @@ def main() -> None:
     log.info("ERE service ready, listening for requests")
     try:
         while running:
-            # Wait for a request (1-second timeout allows checking running flag periodically)
-            result = client.brpop(request_queue, timeout=1)
-            if not result:
-                continue  # Timeout, check running flag again
-
-            _, raw_msg = result
-
-            # Decode and log the request
-            request_str = raw_msg.decode("utf-8")
-            log.info(f"Received request: {request_str}")
-
-            # Parse and process the request
-            try:
-                request = get_request_from_message(raw_msg)
-                response = service.process_request(request)
-            except Exception as e:
-                log.error(f"Failed to parse or process request: {e}")
-                response = EREErrorResponse(
-                    ere_request_id="unknown",
-                    error_type=type(e).__name__,
-                    error_title="Request processing error",
-                    error_detail=str(e),
-                    timestamp=datetime.now(timezone.utc),
-                )
-
-            # Serialize response using cached LinkML dumper
-            response_str = _dumper.dumps(response)
-
-            # Push to response queue
-            try:
-                client.lpush(response_queue, response_str)
-                request_id = getattr(response, "ere_request_id", "unknown")
-                log.info(f"Sent response for request_id={request_id}")
-            except Exception as e:
-                log.error(f"Failed to send response: {e}")
-
+            worker.process_single_message()
     except KeyboardInterrupt:
         log.info("Service interrupted")
     except Exception as e:

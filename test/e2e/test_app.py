@@ -1,8 +1,8 @@
-"""End-to-end test: app.py processes entity resolution requests from Redis.
+"""End-to-end test: RedisQueueWorker processes entity resolution requests.
 
-This test simulates the complete flow:
+Tests the complete entrypoint flow:
 1. Push EntityMentionResolutionRequest to input queue
-2. App consumes, parses, and processes request
+2. RedisQueueWorker consumes, parses, and processes request
 3. Response is written to output queue
 4. Verify response structure and content
 """
@@ -13,10 +13,10 @@ from datetime import datetime, timezone
 
 import pytest
 import redis
-from linkml_runtime.dumpers import JSONDumper
 
 from ere.adapters.factories import build_rdf_mapper
 from ere.adapters.utils import get_request_from_message, get_response_from_message
+from ere.entrypoints.queue_worker import RedisQueueWorker
 from ere.services.factories import (
     build_entity_resolver,
     build_entity_resolution_service,
@@ -32,20 +32,40 @@ from ere.services.factories import (
 def redis_client():
     """
     Connect to Redis and verify it's available.
+    Tries configured host first, then fallback to localhost if configured host is "redis".
     Raises: RuntimeError if Redis is not accessible.
     """
-    try:
-        client = redis.Redis(
-            host=os.environ.get("REDIS_HOST", "localhost"),
-            port=int(os.environ.get("REDIS_PORT", "6379")),
-            db=int(os.environ.get("REDIS_DB", "0")),
-            password=os.environ.get("REDIS_PASSWORD", "changeme"),
-            decode_responses=False,
-        )
-        client.ping()
-        return client
-    except Exception as e:
-        raise RuntimeError("Redis test service cannot be detected.") from e
+    hosts_to_try = []
+
+    # Primary: configured host (from .env or environment)
+    configured_host = os.environ.get("REDIS_HOST", "localhost")
+    hosts_to_try.append(configured_host)
+
+    # Fallback: if configured host is "redis" (Docker), also try localhost
+    if configured_host == "redis":
+        hosts_to_try.append("localhost")
+
+    port = int(os.environ.get("REDIS_PORT", "6379"))
+    db = int(os.environ.get("REDIS_DB", "0"))
+    password = os.environ.get("REDIS_PASSWORD", "changeme")
+
+    last_error = None
+    for host in hosts_to_try:
+        try:
+            client = redis.Redis(
+                host=host,
+                port=port,
+                db=db,
+                password=password,
+                decode_responses=False,
+            )
+            client.ping()
+            return client
+        except Exception as e:
+            last_error = e
+            continue
+
+    raise RuntimeError("Redis test service cannot be detected.") from last_error
 
 
 @pytest.fixture
@@ -72,9 +92,15 @@ def e2e_entity_resolution_service():
 
 
 @pytest.fixture
-def dumper():
-    """Cached JSONDumper for serialization."""
-    return JSONDumper()
+def queue_worker(redis_client, e2e_entity_resolution_service, redis_queues):
+    """Create RedisQueueWorker with test queue names."""
+    request_queue, response_queue = redis_queues
+    return RedisQueueWorker(
+        redis_client=redis_client,
+        entity_resolution_service=e2e_entity_resolution_service,
+        request_queue=request_queue,
+        response_queue=response_queue,
+    )
 
 
 # ===============================================================================
@@ -130,16 +156,15 @@ epd:ent001 a org:Organization ;
 # ===============================================================================
 
 
-def test_single_request_resolution_flow(redis_client, redis_queues, e2e_entity_resolution_service, dumper):
+def test_single_request_resolution_flow(redis_client, redis_queues, queue_worker):
     """
     E2E test: single entity mention pushed to queue, resolved, response returned.
 
     Flow:
     1. Create and push EntityMentionResolutionRequest to input queue
-    2. Parse request from queue
-    3. Process through service
-    4. Push response to output queue
-    5. Verify response structure
+    2. RedisQueueWorker consumes and processes request
+    3. Response is written to output queue
+    4. Verify response structure
     """
     request_queue, response_queue = redis_queues
 
@@ -151,45 +176,31 @@ def test_single_request_resolution_flow(redis_client, redis_queues, e2e_entity_r
         legal_name="Acme Corporation",
         country_code="US",
     )
-    request_json = json.dumps(request_payload)
-    request_bytes = request_json.encode("utf-8")
+    request_bytes = json.dumps(request_payload).encode("utf-8")
     redis_client.rpush(request_queue, request_bytes)
 
-    # 2. Simulate app logic: get request from queue
-    result = redis_client.brpop(request_queue, timeout=1)
-    assert result is not None, "Request should be in queue"
-    _, raw_msg = result
+    # 2. Process message using worker
+    assert queue_worker.process_single_message() is True, "Worker should process message"
 
-    # 3. Parse and process request
-    request = get_request_from_message(raw_msg)
-    assert request.type == "EntityMentionResolutionRequest"
-    assert request.entity_mention.identifiedBy.request_id == "324fs3r345vx"
-
-    response = e2e_entity_resolution_service.process_request(request)
-
-    # 4. Push response to output queue
-    response_str = dumper.dumps(response)
-    response_bytes = response_str.encode("utf-8")
-    redis_client.lpush(response_queue, response_bytes)
-
-    # 5. Verify response structure
+    # 3. Verify response in queue
     result = redis_client.brpop(response_queue, timeout=1)
     assert result is not None, "Response should be in output queue"
     _, response_raw = result
 
+    # 4. Verify response structure
     response_obj = get_response_from_message(response_raw)
     assert response_obj.type == "EntityMentionResolutionResponse"
     assert response_obj.entity_mention_id.request_id == "324fs3r345vx"
     assert response_obj.candidates is not None
 
 
-def test_multiple_requests_accumulate(redis_client, redis_queues, e2e_entity_resolution_service, dumper):
+def test_multiple_requests_accumulate(redis_client, redis_queues, queue_worker):
     """
     E2E test: multiple entity mentions are resolved and responses queued.
 
     Verifies that:
     - Each request is processed independently
-    - Responses are returned in order
+    - Responses are queued correctly
     - Resolution benefits from accumulated state
     """
     request_queue, response_queue = redis_queues
@@ -208,23 +219,20 @@ def test_multiple_requests_accumulate(redis_client, redis_queues, e2e_entity_res
             legal_name=legal_name,
             country_code=country,
         )
-        request_json = json.dumps(request_payload)
-        redis_client.rpush(request_queue, request_json.encode("utf-8"))
+        redis_client.rpush(request_queue, json.dumps(request_payload).encode("utf-8"))
 
-    # Process both requests
+    # Process both requests using worker
+    for _ in range(2):
+        assert queue_worker.process_single_message() is True
+
+    # Verify both responses in queue
     responses = []
     for _ in range(2):
-        result = redis_client.brpop(request_queue, timeout=1)
+        result = redis_client.brpop(response_queue, timeout=1)
         assert result is not None
-        _, raw_msg = result
+        responses.append(get_response_from_message(result[1]))
 
-        request = get_request_from_message(raw_msg)
-        response = e2e_entity_resolution_service.process_request(request)
-        response_str = dumper.dumps(response)
-        redis_client.lpush(response_queue, response_str.encode("utf-8"))
-        responses.append(response)
-
-    # Verify both responses (order may vary due to LPUSH/BRPOP behavior)
+    # Verify responses (order may vary)
     assert len(responses) == 2
     request_ids = {r.entity_mention_id.request_id for r in responses}
     assert request_ids == {"m1_324fs3r345vx", "m2_324fs3r345vx"}
@@ -234,7 +242,7 @@ def test_multiple_requests_accumulate(redis_client, redis_queues, e2e_entity_res
         assert response.candidates is not None
 
 
-def test_request_response_payload_structure(redis_client, redis_queues, e2e_entity_resolution_service, dumper):
+def test_request_response_payload_structure(redis_client, redis_queues, queue_worker):
     """
     E2E test: verify request and response payload structures match spec.
 
@@ -261,13 +269,14 @@ def test_request_response_payload_structure(redis_client, redis_queues, e2e_enti
     assert "content_type" in request_payload["entity_mention"]
     assert request_payload["entity_mention"]["content_type"] == "text/turtle"
 
-    # Push, parse, process
-    request_bytes = json.dumps(request_payload).encode("utf-8")
-    redis_client.rpush(request_queue, request_bytes)
+    # Push and process
+    redis_client.rpush(request_queue, json.dumps(request_payload).encode("utf-8"))
+    assert queue_worker.process_single_message() is True
 
-    result = redis_client.brpop(request_queue, timeout=1)
-    request = get_request_from_message(result[1])
-    response = e2e_entity_resolution_service.process_request(request)
+    # Get response
+    result = redis_client.brpop(response_queue, timeout=1)
+    assert result is not None
+    response = get_response_from_message(result[1])
 
     # Verify response structure
     assert response.type == "EntityMentionResolutionResponse"
@@ -285,7 +294,7 @@ def test_request_response_payload_structure(redis_client, redis_queues, e2e_enti
         assert isinstance(candidate.similarity_score, (float, int))
 
 
-def test_organisation_with_different_country(redis_client, redis_queues, e2e_entity_resolution_service, dumper):
+def test_organisation_with_different_country(redis_client, redis_queues, queue_worker):
     """
     E2E test: organization entities with different country codes.
 
@@ -302,16 +311,13 @@ def test_organisation_with_different_country(redis_client, redis_queues, e2e_ent
         country_code="DE",
     )
 
-    request_bytes = json.dumps(request_payload).encode("utf-8")
-    redis_client.rpush(request_queue, request_bytes)
+    redis_client.rpush(request_queue, json.dumps(request_payload).encode("utf-8"))
 
-    result = redis_client.brpop(request_queue, timeout=1)
+    # Process message
+    assert queue_worker.process_single_message() is True
+
+    # Verify response
+    result = redis_client.brpop(response_queue, timeout=1)
     assert result is not None
-
-    request = get_request_from_message(result[1])
-    assert request.entity_mention.identifiedBy.entity_type == "ORGANISATION"
-
-    # Should process without error
-    response = e2e_entity_resolution_service.process_request(request)
-    assert response is not None
+    response = get_response_from_message(result[1])
     assert response.type == "EntityMentionResolutionResponse"

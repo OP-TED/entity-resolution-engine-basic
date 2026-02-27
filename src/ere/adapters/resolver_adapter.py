@@ -6,7 +6,7 @@ from erspec.models.core import ClusterReference, EntityMentionResolutionRequest
 from erspec.models.ere import AbstractResolver, ERERequest, EREResponse, EREErrorResponse
 from erspec.models.ere.entity_mention_resolution import EntityMentionResolutionResponse
 
-from ere.services.resolution import _resolve_to_result
+from ere.services.resolution import build_resolution_service, resolve_to_result
 
 
 class EntityResolutionResolver(AbstractResolver):
@@ -15,6 +15,9 @@ class EntityResolutionResolver(AbstractResolver):
 
     Handles EntityMentionResolutionRequest -> EntityMentionResolutionResponse.
     Returns EREErrorResponse for unknown request types or resolution errors.
+
+    Note: Builds fresh service instance per request. For production persistence,
+    consider storing service as instance attribute and managing lifecycle separately.
     """
 
     def process_request(self, request: ERERequest) -> EREResponse:
@@ -40,7 +43,8 @@ class EntityResolutionResolver(AbstractResolver):
             )
 
         try:
-            result = _resolve_to_result(request.entity_mention)
+            service = build_resolution_service()
+            result = resolve_to_result(request.entity_mention, service)
             candidates = [
                 ClusterReference(
                     cluster_id=c.cluster_id.value,

@@ -3,11 +3,53 @@
 import hashlib
 from pathlib import Path
 
+import duckdb
 import yaml
 from erspec.models.core import EntityMention, ClusterReference
 
 from ere.adapters.rdf_mapper import load_entity_mappings, extract_mention_attributes
+from ere.adapters.duckdb_repositories import (
+    DuckDBMentionRepository,
+    DuckDBSimilarityRepository,
+    DuckDBClusterRepository,
+)
+from ere.adapters.duckdb_schema import init_schema
+from ere.adapters.splink_linker_impl import SpLinkSimilarityLinker
 from ere.models.resolver import Mention, MentionId
+from ere.services.entity_resolution_service import EntityResolutionService
+from ere.services.resolver_config import ResolverConfig
+
+
+def build_resolution_service(entity_fields: list[str] = None) -> EntityResolutionService:
+    """
+    Factory: build EntityResolutionService with all dependencies.
+
+    Args:
+        entity_fields: Field names for entity attributes (e.g. ["legal_name", "country_code"]).
+                      If None, reads from resolver.yaml config.
+
+    Returns:
+        Configured EntityResolutionService instance.
+    """
+    if entity_fields is None:
+        entity_fields = ["legal_name", "country_code"]
+
+    config_path = Path(__file__).parent.parent.parent.parent / "config" / "resolver.yaml"
+    with open(config_path) as f:
+        raw_config = yaml.safe_load(f)
+
+    resolver_config = ResolverConfig.from_dict(raw_config)
+    con = duckdb.connect(":memory:")
+    init_schema(con, entity_fields)
+
+    mention_repo = DuckDBMentionRepository(con, entity_fields)
+    similarity_repo = DuckDBSimilarityRepository(con)
+    cluster_repo = DuckDBClusterRepository(con)
+    linker = SpLinkSimilarityLinker(entity_fields, raw_config)
+
+    return EntityResolutionService(
+        mention_repo, similarity_repo, cluster_repo, linker, resolver_config
+    )
 
 
 def _derive_mention_id(source_id: str, request_id: str, entity_type: str) -> str:
@@ -56,11 +98,39 @@ def map_entity_mention_to_domain(entity_mention: EntityMention) -> Mention:
     return Mention(id=mention_id, attributes=attributes)
 
 
+def resolve_to_result(
+    entity_mention: EntityMention, service: EntityResolutionService
+):
+    """
+    Core resolution pipeline: RDF parsing -> domain mapping -> service resolution.
+
+    Used by both public API and adapter paths.
+
+    Args:
+        entity_mention: EntityMention from erspec.
+        service: EntityResolutionService instance.
+
+    Returns:
+        ResolutionResult: Domain object with (cluster_id, score) candidates.
+
+    Raises:
+        ValueError: If RDF parsing fails or entity type is unknown.
+    """
+    mention = map_entity_mention_to_domain(entity_mention)
+
+    # Idempotency: if already resolved, return current state
+    cached = service.find_cluster_for(mention.id)
+    if cached is not None:
+        return cached
+
+    return service.resolve(mention)
+
+
 def resolve_entity_mention(
     entity_mention: EntityMention, service=None
 ) -> ClusterReference:
     """
-    Resolve an entity mention to a Cluster.
+    Resolve an entity mention to a Cluster (public API - returns top candidate).
 
     Args:
         entity_mention: EntityMention with identifiedBy and content (Turtle RDF).
@@ -79,8 +149,7 @@ def resolve_entity_mention(
             "or use EntityResolutionResolver adapter in production)"
         )
 
-    mention = map_entity_mention_to_domain(entity_mention)
-    result = service.resolve(mention)
+    result = resolve_to_result(entity_mention, service)
     top = result.top
 
     # For singleton founders (no prior mentions), top.score = 0.0.

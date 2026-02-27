@@ -10,7 +10,7 @@ from pytest_bdd import given, when, then, parsers, scenarios
 from ere.models.resolver import Mention, MentionId, ClusterId
 from ere.services.entity_resolution_service import EntityResolutionService
 from ere.services.resolver_config import ResolverConfig
-from tests.adapters.stubs import (
+from test.adapters.stubs import (
     InMemoryMentionRepository,
     InMemorySimilarityRepository,
     InMemoryClusterRepository,

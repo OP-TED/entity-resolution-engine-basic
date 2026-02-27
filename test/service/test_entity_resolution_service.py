@@ -10,7 +10,7 @@ from ere.models.resolver import (
 )
 from ere.services.entity_resolution_service import EntityResolutionService
 from ere.services.resolver_config import ResolverConfig
-from tests.adapters.stubs import (
+from test.adapters.stubs import (
     FixedSimilarityLinker,
     InMemoryClusterRepository,
     InMemoryMentionRepository,

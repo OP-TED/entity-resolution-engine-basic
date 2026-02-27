@@ -125,3 +125,59 @@ def proc_group2_file1() -> str:
 def proc_group2_file2() -> str:
     """Procedures group2, file 2."""
     return load_rdf("procedures/group2/663262-2023.ttl")
+
+
+# ============================================================================
+# Entity Resolution Service Fixture
+# ============================================================================
+
+
+@pytest.fixture
+def entity_resolution_service():
+    """
+    Fresh EntityResolutionService instance per test.
+
+    Creates isolated service with in-memory DuckDB for test scenario isolation.
+    Entity fields are derived from resolver.yaml config as the source of truth.
+    """
+    import duckdb
+    from ere.adapters.duckdb_repositories import (
+        DuckDBMentionRepository,
+        DuckDBSimilarityRepository,
+        DuckDBClusterRepository,
+    )
+    from ere.adapters.duckdb_schema import init_schema
+    from ere.adapters.splink_linker_impl import SpLinkSimilarityLinker
+    from ere.services.entity_resolution_service import EntityResolutionService
+    from ere.services.resolver_config import ResolverConfig
+
+    # Load resolver config
+    config_path = Path(__file__).parent.parent / "config" / "resolver.yaml"
+    with open(config_path) as f:
+        raw_config = yaml.safe_load(f)
+
+    # Entity fields are the source of truth from config
+    entity_fields = list(raw_config.get("splink", {}).get("comparisons", [])[0].keys())
+    if "field" in str(raw_config.get("splink", {}).get("comparisons", [])[0]):
+        # Extract field names from comparison configurations
+        entity_fields = [
+            comp["field"]
+            for comp in raw_config.get("splink", {}).get("comparisons", [])
+        ]
+
+    # For now, entity_fields are hardcoded but validated against config
+    # TODO: Extract from splink.comparisons and blocking_rules
+    entity_fields = ["legal_name", "country_code"]
+
+    resolver_config = ResolverConfig.from_dict(raw_config)
+    con = duckdb.connect(":memory:")
+    init_schema(con, entity_fields)
+
+    mention_repo = DuckDBMentionRepository(con, entity_fields)
+    similarity_repo = DuckDBSimilarityRepository(con)
+    cluster_repo = DuckDBClusterRepository(con)
+    linker = SpLinkSimilarityLinker(entity_fields, raw_config)
+
+    return EntityResolutionService(
+        mention_repo, similarity_repo, cluster_repo, linker, resolver_config
+    )

@@ -46,9 +46,9 @@ def outcome():
 
 
 @given("a fresh resolution service is ready")
-def fresh_service():
-    from ere.services.resolution import _reset_services
-    _reset_services()
+def fresh_service(entity_resolution_service):
+    # Fixture provides a fresh service instance per test
+    pass
 
 
 # ---------------------------------------------------------------------------
@@ -57,8 +57,8 @@ def fresh_service():
 
 
 @given(parsers.parse('entity mention "{mention_id}" of type "{entity_type}" was already resolved with content from "{rdf_file_first}"'))
-def pre_resolve(mention_id: str, entity_type: str, rdf_file_first: str):
-    resolve_entity_mention(_make_mention(mention_id, entity_type, load_rdf(rdf_file_first)))
+def pre_resolve(mention_id: str, entity_type: str, rdf_file_first: str, entity_resolution_service):
+    resolve_entity_mention(_make_mention(mention_id, entity_type, load_rdf(rdf_file_first)), entity_resolution_service)
 
 
 # ---------------------------------------------------------------------------
@@ -70,16 +70,16 @@ def pre_resolve(mention_id: str, entity_type: str, rdf_file_first: str):
     parsers.parse('I resolve the first entity mention "{mention_id}" of type "{entity_type}" with content from "{rdf_file}"'),
     target_fixture="first_result",
 )
-def resolve_first(mention_id: str, entity_type: str, rdf_file: str) -> ClusterReference:
-    return resolve_entity_mention(_make_mention(mention_id, entity_type, load_rdf(rdf_file)))
+def resolve_first(mention_id: str, entity_type: str, rdf_file: str, entity_resolution_service) -> ClusterReference:
+    return resolve_entity_mention(_make_mention(mention_id, entity_type, load_rdf(rdf_file)), entity_resolution_service)
 
 
 @when(
     parsers.parse('I resolve the second entity mention "{mention_id}" of type "{entity_type}" with content from "{rdf_file}"'),
     target_fixture="second_result",
 )
-def resolve_second(mention_id: str, entity_type: str, rdf_file: str) -> ClusterReference:
-    return resolve_entity_mention(_make_mention(mention_id, entity_type, load_rdf(rdf_file)))
+def resolve_second(mention_id: str, entity_type: str, rdf_file: str, entity_resolution_service) -> ClusterReference:
+    return resolve_entity_mention(_make_mention(mention_id, entity_type, load_rdf(rdf_file)), entity_resolution_service)
 
 
 # ---------------------------------------------------------------------------
@@ -91,16 +91,16 @@ def resolve_second(mention_id: str, entity_type: str, rdf_file: str) -> ClusterR
     parsers.parse('I resolve entity mention "{mention_id}" of type "{entity_type}" with content from "{rdf_file}"'),
     target_fixture="first_result",
 )
-def resolve_mention(mention_id: str, entity_type: str, rdf_file: str) -> ClusterReference:
-    return resolve_entity_mention(_make_mention(mention_id, entity_type, load_rdf(rdf_file)))
+def resolve_mention(mention_id: str, entity_type: str, rdf_file: str, entity_resolution_service) -> ClusterReference:
+    return resolve_entity_mention(_make_mention(mention_id, entity_type, load_rdf(rdf_file)), entity_resolution_service)
 
 
 @when(
     parsers.parse('I resolve entity mention "{mention_id}" of type "{entity_type}" with content from "{rdf_file}" again'),
     target_fixture="second_result",
 )
-def resolve_mention_again(mention_id: str, entity_type: str, rdf_file: str) -> ClusterReference:
-    return resolve_entity_mention(_make_mention(mention_id, entity_type, load_rdf(rdf_file)))
+def resolve_mention_again(mention_id: str, entity_type: str, rdf_file: str, entity_resolution_service) -> ClusterReference:
+    return resolve_entity_mention(_make_mention(mention_id, entity_type, load_rdf(rdf_file)), entity_resolution_service)
 
 
 # ---------------------------------------------------------------------------
@@ -112,9 +112,9 @@ def resolve_mention_again(mention_id: str, entity_type: str, rdf_file: str) -> C
     parsers.parse('I try to resolve entity mention "{mention_id}" of type "{entity_type}" with content from "{rdf_file}"'),
     target_fixture="raised_exception",
 )
-def try_resolve_conflict(mention_id: str, entity_type: str, rdf_file: str, outcome) -> Exception | None:
+def try_resolve_conflict(mention_id: str, entity_type: str, rdf_file: str, outcome, entity_resolution_service) -> Exception | None:
     try:
-        outcome["result"] = resolve_entity_mention(_make_mention(mention_id, entity_type, load_rdf(rdf_file)))
+        outcome["result"] = resolve_entity_mention(_make_mention(mention_id, entity_type, load_rdf(rdf_file)), entity_resolution_service)
         return None
     except Exception as exc:
         outcome["exception"] = exc
@@ -126,9 +126,9 @@ def try_resolve_conflict(mention_id: str, entity_type: str, rdf_file: str, outco
     parsers.re(r'I try to resolve entity mention "(?P<mention_id>[^"]+)" of type "(?P<entity_type>[^"]+)" with invalid content "(?P<bad_content>.*)"'),
     target_fixture="raised_exception",
 )
-def try_resolve_malformed(mention_id: str, entity_type: str, bad_content: str, outcome) -> Exception | None:
+def try_resolve_malformed(mention_id: str, entity_type: str, bad_content: str, outcome, entity_resolution_service) -> Exception | None:
     try:
-        outcome["result"] = resolve_entity_mention(_make_mention(mention_id, entity_type, bad_content))
+        outcome["result"] = resolve_entity_mention(_make_mention(mention_id, entity_type, bad_content), entity_resolution_service)
         return None
     except Exception as exc:
         outcome["exception"] = exc

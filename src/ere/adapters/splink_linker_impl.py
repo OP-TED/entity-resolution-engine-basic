@@ -194,13 +194,13 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                 country_match,
             )
 
-            # Log detailed row data for debugging
+            # Log detailed row data for debugging (including gamma comparison levels)
             if score < 0.3:  # Log extra detail for low-scoring pairs
                 log.trace(
                     "find_matches: LOW SCORE DETAILS for %s vs %s: %s",
                     left_id.value[:16],
                     right_id.value[:16],
-                    {k: v for k, v in row.items() if "level" in k or "prob" in k or k.startswith("jaro") or k.startswith("exact_match")},
+                    {k: v for k, v in row.items() if "gamma" in k or "prob" in k or k.startswith("jaro") or k.startswith("exact_match")},
                 )
 
             links.append(MentionLink(left_id=left_id, right_id=right_id, score=score))

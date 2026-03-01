@@ -98,6 +98,27 @@ make test-unit          # Unit tests only (no Docker required)
 make test-integration   # Integration tests (requires Docker)
 ```
 
+### Test Strategy
+
+ERE follows a layered testing approach aligned with Cosmic Python architecture:
+
+| Test Type | Location | Purpose | Coverage |
+|---|---|---|---|
+| **Unit Tests (adapters)** | `test/adapters/` | Verify individual adapter components (DuckDB repositories, RDF mapper, Splink linker) in isolation | 6+ tests |
+| **Unit Tests (services)** | `test/service/` | Validate service-layer use-case orchestration; entity resolution workflow | 15+ tests |
+| **Integration Tests** | `test/integration/` | Test EntityResolver with all real adapters (DuckDB, Splink); full entity mention flow with clustering | 8+ tests |
+| **BDD Scenarios** | `test/features/` + `test/steps/` | Gherkin feature files + pytest-bdd steps; document resolution algorithm behavior; verify clustering rules and thresholds | 15+ tests |
+| **End-to-End Tests** | `test/e2e/` | Full service startup; Redis queue integration; request/response payload structure validation | 4+ tests |
+| **Redis Integration** | `test/test_redis_integration.py` | Verify Redis queue operations, environment loading, authentication | 7 tests |
+
+**Total coverage:** 48+ tests across all layers; 53 passed in latest run.
+
+Key testing practices:
+- **TDD by default** — write failing tests before implementing features
+- **Layer isolation** — each layer tests its own responsibility only
+- **Fixture-driven setup** — reusable fixtures in `conftest.py` for service/mapper creation
+- **RDF test data** — Turtle fixtures in `test/test_data/` for realistic entity mention testing
+
 ### Code quality
 
 ```bash
@@ -116,6 +137,22 @@ make help               # List all targets with descriptions
 
 > **TODO:** CLI wrapper for launching the Redis consumer is not yet implemented.
 > See [`src/ere/entrypoints/redis.py`](src/ere/adapters/redis.py) for the current entrypoint.
+
+### Demo: Entity Resolution via Redis Queues
+
+A working demo is available that demonstrates ERE as a black-box service communicating through Redis queues.
+
+```bash
+# Prerequisites: Redis must be running, ERE service must be listening
+python demo/demo.py
+```
+
+The demo:
+- Sends 6 synthetic entity mentions to the request queue
+- Listens for resolution responses with cluster assignments
+- Logs all interactions with timestamps
+
+See [`demo/README.md`](demo/README.md) for detailed configuration, prerequisites, troubleshooting, and example output.
 
 ---
 

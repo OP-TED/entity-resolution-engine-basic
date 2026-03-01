@@ -1,7 +1,10 @@
 """Main service layer: entity resolution resolver and public API service."""
 
+import logging
 import threading
 from datetime import datetime, timezone
+
+log = logging.getLogger(__name__)
 
 from erspec.models.core import ClusterReference, EntityMention
 from erspec.models.ere import (
@@ -115,11 +118,29 @@ class EntityResolver:
         if best_id is not None and best_sim >= self._config.threshold:
             # ext: join the cluster of the best match
             cluster_id = self._cluster_repo.find_cluster_of(best_id)
+            log.trace(
+                "Mention %s assigned to cluster %s (similarity score=%.4f)",
+                mention.id.value,
+                cluster_id.value,
+                best_sim,
+            )
         else:
             # newCl: create a new singleton cluster with this mention's ID
             cluster_id = ClusterId(value=mention.id.value)
+            log.trace("New cluster generated for mention with id=%s", mention.id.value)
 
         self._cluster_repo.save(ClusterMembership(mention_id=mention.id, cluster_id=cluster_id))
+
+        # Log cluster contents after assignment
+        all_memberships = self._cluster_repo.get_all_memberships()
+        cluster_members = all_memberships.get(cluster_id, [])
+        member_ids = ", ".join([m.value for m in cluster_members])
+        log.trace(
+            "Cluster %s now contains %d mentions: %s",
+            cluster_id.value,
+            len(cluster_members),
+            member_ids,
+        )
 
         # Step 4: Persist mention and update the linker's search space.
         self._mention_repo.save(mention)
@@ -284,9 +305,17 @@ def resolve_to_result(
     """
     mention = mapper.map_entity_mention_to_domain(entity_mention)
 
+    # Log properties after RDF mapping
+    log.trace(
+        "Entity resolver will use the following properties of %s: %s",
+        entity_mention.identifiedBy.request_id,
+        mention.attributes,
+    )
+
     # Idempotency: if already resolved, return current state
     cached = resolver.find_cluster_for(mention.id)
     if cached is not None:
+        log.trace("Returning result for already resolved mention: %s", mention.id.value)
         return cached
 
     return resolver.resolve(mention)
@@ -384,7 +413,27 @@ class EntityResolutionService(AbstractResolver):
             )
 
         try:
-            result = resolve_to_result(request.entity_mention, self._resolver, self._mapper)
+            entity_mention = request.entity_mention
+            entity_type = entity_mention.identifiedBy.entity_type
+            log.trace(
+                "Mention of type %s submitted for resolution: %s",
+                entity_type,
+                entity_mention.identifiedBy.request_id,
+            )
+
+            result = resolve_to_result(entity_mention, self._resolver, self._mapper)
+
+            # Log resolution result with candidates
+            candidate_info = [
+                (c.cluster_id.value, c.score, c.score)
+                for c in result.candidates
+            ]
+            log.trace(
+                "Resolution result for mention %s: %s",
+                entity_mention.identifiedBy.request_id,
+                candidate_info,
+            )
+
             candidates = [
                 ClusterReference(
                     cluster_id=c.cluster_id.value,
@@ -394,7 +443,7 @@ class EntityResolutionService(AbstractResolver):
                 for c in result.candidates
             ]
             return EntityMentionResolutionResponse(
-                entity_mention_id=request.entity_mention.identifiedBy,
+                entity_mention_id=entity_mention.identifiedBy,
                 candidates=candidates,
                 ere_request_id=request.ere_request_id,
                 timestamp=now,

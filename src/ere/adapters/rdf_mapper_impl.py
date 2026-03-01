@@ -5,6 +5,7 @@ for Turtle RDF parsing and attribute extraction per YAML configuration.
 """
 
 import hashlib
+import logging
 from pathlib import Path
 
 from erspec.models.core import EntityMention
@@ -12,6 +13,8 @@ from erspec.models.core import EntityMention
 from ere.adapters.rdf_mapper import load_entity_mappings, extract_mention_attributes
 from ere.adapters.rdf_mapper_port import RDFMapper
 from ere.models.resolver import Mention, MentionId
+
+log = logging.getLogger(__name__)
 
 
 class TurtleRDFMapper(RDFMapper):
@@ -80,4 +83,12 @@ class TurtleRDFMapper(RDFMapper):
         Per ERE spec section 4, the mention ID is deterministic and reproducible.
         """
         raw = source_id + request_id + entity_type
-        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        mention_id = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        log.trace(
+            "Deterministic ID assigned: %s for triad (%s, %s, %s)",
+            mention_id,
+            source_id,
+            request_id,
+            entity_type,
+        )
+        return mention_id

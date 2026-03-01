@@ -12,18 +12,18 @@ Environment variables:
     REDIS_HOST            Redis hostname (default: localhost)
     REDIS_PORT            Redis port (default: 6379)
     REDIS_DB              Redis DB index (default: 0)
-    LOG_LEVEL             Python log level name (default: INFO)
+    LOG_LEVEL             Python log level name (default: INFO) — supports TRACE
     RDF_MAPPING_PATH      Path to rdf_mapping.yaml config file
     RESOLVER_CONFIG_PATH  Path to resolver.yaml config file
 
 CLI arguments:
+    --log-level           Python log level name (overrides LOG_LEVEL env var)
     --rdf-mapping-path    Path to rdf_mapping.yaml config file
     --resolver-config-path Path to resolver.yaml config file
 """
 
 import argparse
 import logging
-import os
 import signal
 import sys
 
@@ -35,20 +35,9 @@ from ere.services.factories import (
     build_entity_resolver,
     build_entity_resolution_service,
 )
+from ere.utils.logging import configure_logging
 
 log = logging.getLogger(__name__)
-
-
-def _configure_logging() -> None:
-    """Set up logging to stdout with ISO 8601 timestamps."""
-    level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
-    level = getattr(logging, level_name, logging.INFO)
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s %(levelname)-8s %(name)s %(message)s",
-        datefmt="%Y-%m-%dT%H:%M:%S",
-        stream=sys.stdout,
-    )
 
 
 def main() -> None:
@@ -56,6 +45,11 @@ def main() -> None:
     # Parse CLI arguments
     parser = argparse.ArgumentParser(
         description="ERE service: Entity Resolution Engine"
+    )
+    parser.add_argument(
+        "--log-level",
+        default=None,
+        help="Python log level name (DEBUG, INFO, WARNING, ERROR, CRITICAL, TRACE)",
     )
     parser.add_argument(
         "--rdf-mapping-path",
@@ -69,7 +63,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    _configure_logging()
+    configure_logging(log_level=args.log_level)
     log.info("ERE service starting")
 
     # Read configuration from environment or CLI
@@ -156,7 +150,7 @@ def main() -> None:
         log.exception(f"Unexpected error in service loop: {e}")
     finally:
         client.close()
-        log.info("ERE mock service stopped")
+        log.info("ERE service stopped")
 
 
 if __name__ == "__main__":

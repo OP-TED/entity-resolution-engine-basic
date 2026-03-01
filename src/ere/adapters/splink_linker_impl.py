@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import duckdb
 import pandas as pd
 import threading
@@ -11,6 +12,8 @@ from splink.backends.duckdb import DuckDBAPI
 
 from ere.models.resolver import Mention, MentionId, MentionLink
 from ere.services.linker import SimilarityLinker
+
+log = logging.getLogger(__name__)
 
 
 def build_tf_df(mentions: list[Mention], entity_fields: list[str]) -> pd.DataFrame:
@@ -126,15 +129,37 @@ class SpLinkSimilarityLinker(SimilarityLinker):
         with self._linker_swap_lock:
             linker = self._linker
 
+        # Log mention data being sent to Splink
+        mention_dict = mention.to_flat_dict()
+        log.trace(
+            "find_matches: Comparing mention %s with %d records in search space. "
+            "Mention data: %s, Blocking rules: %s, Match weight threshold: %.2f",
+            mention.id.value,
+            len(self._tf_df),
+            mention_dict,
+            [str(r) for r in self._get_blocking_rules()],
+            self._match_weight_threshold,
+        )
+
         # Splink's find_matches_to_new_records expects a list of dicts
         df = linker.inference.find_matches_to_new_records(
-            [mention.to_flat_dict()],
+            [mention_dict],
             blocking_rules=self._get_blocking_rules(),
             match_weight_threshold=self._match_weight_threshold,
         ).as_pandas_dataframe()
 
         if df.empty:
+            log.trace(
+                "find_matches: No matches found for mention %s (search space empty or no matches above threshold)",
+                mention.id.value,
+            )
             return []
+
+        log.trace(
+            "find_matches: Splink returned %d matches for mention %s",
+            len(df),
+            mention.id.value,
+        )
 
         # Build MentionLink objects, filtering self-links
         links = []
@@ -145,9 +170,29 @@ class SpLinkSimilarityLinker(SimilarityLinker):
 
             # Skip self-links (can occur in warm-start scenarios)
             if left_id == right_id:
+                log.trace(
+                    "find_matches: Skipping self-link for mention %s",
+                    mention.id.value,
+                )
                 continue
 
+            log.trace(
+                "find_matches: Mention %s vs %s: match_probability=%.6f, "
+                "match_weight=%s, jaro_winkler=%s",
+                left_id.value,
+                right_id.value,
+                score,
+                row.get("match_weight", "N/A"),
+                row.get("jaro_winkler_legal_name", "N/A"),
+            )
+
             links.append(MentionLink(left_id=left_id, right_id=right_id, score=score))
+
+        log.trace(
+            "find_matches: Returning %d links for mention %s",
+            len(links),
+            mention.id.value,
+        )
 
         return links
 
@@ -163,6 +208,14 @@ class SpLinkSimilarityLinker(SimilarityLinker):
         """
         flat_dict = mention.to_flat_dict()
 
+        log.trace(
+            "register_mention: Adding mention %s to search space. Data: %s. "
+            "Current search space size: %d",
+            mention.id.value,
+            flat_dict,
+            len(self._tf_df),
+        )
+
         # Build new row with same schema as _tf_df
         new_row = pd.DataFrame([{
             "mention_id": flat_dict["mention_id"],
@@ -177,6 +230,12 @@ class SpLinkSimilarityLinker(SimilarityLinker):
 
         # Append to search space
         self._tf_df = pd.concat([self._tf_df, new_row], ignore_index=True)
+
+        log.trace(
+            "register_mention: Mention %s registered. New search space size: %d",
+            mention.id.value,
+            len(self._tf_df),
+        )
 
         # Re-register with Splink
         self._linker.table_management.register_table_input_nodes_concat_with_tf(
@@ -222,25 +281,49 @@ class SpLinkSimilarityLinker(SimilarityLinker):
         """Translate the config dict into a Splink SettingsCreator."""
         splink_cfg = self._config["splink"]
 
+        log.trace(
+            "_build_settings: Building Splink settings. Entity fields: %s",
+            self._entity_fields,
+        )
+
         comparisons = []
         for comp in splink_cfg["comparisons"]:
             if comp["type"] == "jaro_winkler":
                 thresholds = comp.get("thresholds", [0.9, 0.8])
+                log.trace(
+                    "_build_settings: Adding JaroWinkler comparison on field '%s' with thresholds %s",
+                    comp["field"],
+                    thresholds,
+                )
                 comparisons.append(cl.JaroWinklerAtThresholds(comp["field"], thresholds))
             elif comp["type"] == "exact_match":
+                log.trace(
+                    "_build_settings: Adding ExactMatch comparison on field '%s'",
+                    comp["field"],
+                )
                 comparisons.append(cl.ExactMatch(comp["field"]))
             else:
                 raise ValueError(f"Unknown comparison type: {comp['type']!r}")
+
+        blocking_rules = self._get_blocking_rules()
+        log.trace(
+            "_build_settings: Blocking rules: %s",
+            [str(r) for r in blocking_rules],
+        )
 
         kwargs = dict(
             link_type="dedupe_only",
             unique_id_column_name="mention_id",
             comparisons=comparisons,
-            blocking_rules_to_generate_predictions=self._get_blocking_rules(),
+            blocking_rules_to_generate_predictions=blocking_rules,
         )
         prior = self._config["splink"].get("probability_two_random_records_match")
         if prior is not None:
             kwargs["probability_two_random_records_match"] = prior
+            log.trace(
+                "_build_settings: Prior probability (P(match)): %.4f",
+                prior,
+            )
 
         return SettingsCreator(**kwargs)
 
@@ -319,11 +402,18 @@ class SpLinkSimilarityLinker(SimilarityLinker):
         # Check if cold_start config exists
         cold_start_cfg = self._config.get("splink", {}).get("cold_start", {})
         if not cold_start_cfg:
+            log.trace("_apply_cold_start_params: No cold_start config found, using Splink defaults")
             return
 
         comparisons_cfg = cold_start_cfg.get("comparisons", {})
         if not comparisons_cfg:
+            log.trace("_apply_cold_start_params: No comparisons config in cold_start")
             return
+
+        log.trace(
+            "_apply_cold_start_params: Applying cold-start params. Fields: %s",
+            list(comparisons_cfg.keys()),
+        )
 
         # Iterate through comparison levels and apply m/u probabilities
         for idx, comparison in enumerate(self._linker._settings_obj.comparisons):
@@ -339,6 +429,12 @@ class SpLinkSimilarityLinker(SimilarityLinker):
 
             field_cfg = comparisons_cfg[field_name]
 
+            log.trace(
+                "_apply_cold_start_params: Field '%s' has %d comparison levels",
+                field_name,
+                len(comparison.comparison_levels),
+            )
+
             # Apply m-probabilities to non-null levels
             if 'm_probabilities' in field_cfg:
                 m_probs = field_cfg['m_probabilities']
@@ -350,9 +446,20 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                             continue
                         try:
                             level.m_probability = m_prob
-                        except (AttributeError, ValueError):
+                            log.trace(
+                                "_apply_cold_start_params: Set %s level %d m_prob=%.4f",
+                                field_name,
+                                level_idx,
+                                m_prob,
+                            )
+                        except (AttributeError, ValueError) as e:
                             # If setting fails, skip this level gracefully
-                            pass
+                            log.trace(
+                                "_apply_cold_start_params: Failed to set m_prob for %s level %d: %s",
+                                field_name,
+                                level_idx,
+                                e,
+                            )
 
             # Apply u-probabilities to non-null levels
             if 'u_probabilities' in field_cfg:
@@ -365,6 +472,17 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                             continue
                         try:
                             level.u_probability = u_prob
-                        except (AttributeError, ValueError):
+                            log.trace(
+                                "_apply_cold_start_params: Set %s level %d u_prob=%.4f",
+                                field_name,
+                                level_idx,
+                                u_prob,
+                            )
+                        except (AttributeError, ValueError) as e:
                             # If setting fails, skip this level gracefully
-                            pass
+                            log.trace(
+                                "_apply_cold_start_params: Failed to set u_prob for %s level %d: %s",
+                                field_name,
+                                level_idx,
+                                e,
+                            )

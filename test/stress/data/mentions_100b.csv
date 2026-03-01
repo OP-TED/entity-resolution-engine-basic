@@ -1,0 +1,101 @@
+mention_id,legal_name,country_code,city,cluster_id
+m00002717,"Jones, Compton and Day",AUT,New Colleen,m00002717
+m00003526,Schroeder-Kramer,AUT,Gutierrezmouth,m00003526
+m00000820,Blake Group,AUT,Port Margaret,m00000820
+m00001909,"Adkins, Wright and Murray Inc",AUT,New Sylvia,m00002717
+m00000619,Donovan-Perez,AUT,Smithbury,m00002717
+m00001950,"Huang, Cole and Pacheco",BEL,Schultzbury,m00001950
+m00002295,Reid-Poole,BEL,Amyberg,m00002295
+m00004686,"Turner, Ortiz and Taylor",BEL,Robertmouth,m00001950
+m00000963,"Woodard, Herrera and Little",BEL,Glassburgh,m00001950
+m00004453,Ferguson-Mclean,BEL,Guerreroport,m00002295
+m00000957,Gomez and Sons Inc,BGR,South Adam,m00000957
+m00000083,"Rodriguez, Brennan and Garrison",BGR,Hernandezstad,m00000957
+m00000001,"Porter, Schultz and Allen",BGR,Lake Nicole,m00000957
+m00001651,"Adams, Zuniga and Wong",BGR,Lake Jessicaport,m00000957
+m00000497,"Johnson, Miller and King",BGR,Jorgeport,m00000957
+m00004554,"Terrell, Byrd and Ross",HRV,West Mary,m00004554
+m00002654,Holt-Torres,HRV,East Morgan,m00004554
+m00001980,Martinez-Dudley,HRV,Michaelshire,m00001980
+m00004302,"Williams, Mccoy and Cook",HRV,South Diana,m00004554
+m00002115,Gray-Mayo,HRV,Chaseborough,m00002115
+m00001161,Brown-Hernandez Inc,CYP,Candiceport,m00001161
+m00003689,"Diaz, Gibbs and Smith",CYP,East Jenny,m00001161
+m00001014,"Miller, Davis and Anderson",CYP,Meganside,m00001161
+m00002770,Young-Martinez,CYP,New Amy,m00001161
+m00000043,Robinson-Lee,CYP,West Andrewview,m00000043
+m00001693,Ross LLC,CZE,Port Amandaville,m00001693
+m00001098,Gregory-Watkins,CZE,Youngport,m00001098
+m00004340,Walsh Ltd,CZE,Cookton,m00001693
+m00004076,"Tran, Jordan and Williams",CZE,Lake Jessica,m00001098
+m00003848,Johnson-Rogers,CZE,South Lisaville,m00003848
+m00000064,"Lee, Horton and Snyder",DNK,Jamieborough,m00000064
+m00001053,"Gray, Hall and Murray",DNK,Nataliechester,m00000064
+m00000321,Murphy-Tran Inc,DNK,East Antonioton,m00000064
+m00002104,Cole-Palmer,DNK,Michaelfurt,m00000064
+m00000953,Gomez and Sons,DNK,South Adam,m00000064
+m00004319,Reyes-Bradley,EST,Livingstonview,m00004319
+m00004905,"Fry, Myers and Gamble",EST,Port Julie,m00004319
+m00001708,Ryan PLC,EST,Port Erikachester,m00004319
+m00001425,"Walker, Cunningham and Zuniga",EST,Lindseychester,m00001425
+m00003738,"Walters, Davenport and Becker Inc",EST,North Susanside,m00001425
+m00004644,Thomas and Sons,FIN,South Kaylee,m00004644
+m00003092,Chapman and Sons,FIN,New Stacybury,m00004644
+m00000857,"Osborn, Gaines and Davis",FIN,Wallaceshire,m00004644
+m00004720,Edwards Ltd,FIN,East Sarah,m00004644
+m00001679,Gay Inc,FIN,South Paul,m00001679
+m00004463,Boone-Davis,FRA,Millermouth,m00004463
+m00000810,"Arnold, Smith and Moreno",FRA,South Dorothybury,m00000810
+m00003376,Hickman Ltd,FRA,Youngshire,m00003376
+m00000572,Novak and Sons Inc,FRA,Lake Nathan,m00000810
+m00003567,Jimenez Ltd Inc,FRA,Sandrafort,m00003376
+m00005046,Acosta Inc,DEU,New Kevin,m00005046
+m00003347,"Davis, George and Nguyen",DEU,Port Jennifer,m00003347
+m00002489,Wilson-Jones,DEU,West Timothyport,m00003347
+m00003393,"Beltran, Lozano and Mcgee",DEU,Christineside,m00003347
+m00001584,"Brooks, Lam and Hayes",DEU,Gomezstad,m00003347
+m00003711,Kane-Knox,GRC,New Katieport,m00003711
+m00000002,"Porter, Schultz and Allen",GRC,Lake Nicole,m00000002
+m00004116,Howell and Sons,GRC,New Brett,m00000002
+m00004187,"Diaz, Anderson and Browning",GRC,Brianview,m00000002
+m00000115,Bean LLC,GRC,Lake Amyburgh,m00000002
+m00002803,Moore-Ayala,HUN,Port Lynnview,m00002803
+m00000816,Lam LLC,HUN,Reedfurt,m00000816
+m00002983,Smith-Grimes Inc,HUN,Port Jesusstad,m00002983
+m00002307,Gomez-Jenkins,HUN,Reginafort,m00002983
+m00000243,Lam-Elliott Inc,HUN,Johnsonview,m00000816
+m00001188,Werner-Carter,IRL,Davisbury,m00001188
+m00000003,Green-Ewing,IRL,Port Jennamouth,m00000003
+m00000263,"Branch, Torres and Oliver",IRL,Lisaport,m00000263
+m00002562,"Arroyo, Miller and Tucker Inc",IRL,Jenniferview,m00000263
+m00001058,Burton Ltd,IRL,North Ellen,m00000263
+m00003768,"Miller, Hernandez and Reyes",ITA,North Patrickland,m00003768
+m00004435,"Hernandez, Lee and Fox",ITA,Brownland,m00003768
+m00004368,"Mckee, Gardner and Davenport",ITA,Baldwinville,m00003768
+m00001913,"Schmidt, Hansen and Stewart",ITA,West Gregoryhaven,m00003768
+m00000129,Rivera Inc,ITA,Marshallbury,m00003768
+m00003329,Smith-Lewis,LVA,South Andrea,m00003329
+m00002919,Aguirre LLC,LVA,Ayalaberg,m00002919
+m00003669,Cunningham-Barton,LVA,East Matthew,m00003669
+m00002800,"Morales, Williams and Williams",LVA,East Melissa,m00003329
+m00004051,Moody-Taylor,LVA,Bradfordbury,m00004051
+m00004589,"Turner, Schneider and Johnson",LTU,North Adrianland,m00004589
+m00002627,Weaver-Sherman,LTU,Jenniferside,m00004589
+m00004053,Mcneil Group,LTU,Robertside,m00004589
+m00002263,Peck-Anderson,LTU,Lake Sarahfurt,m00004589
+m00000020,Armstrong-Andrews,LTU,Kristintown,m00004589
+m00000062,"Lee, Horton and Snyder",LUX,Jamieborough,m00000062
+m00001819,Lee-Cooke,LUX,East Williammouth,m00000062
+m00002845,Cook and Sons,LUX,South Margaret,m00000062
+m00004362,Suarez LLC,LUX,Robinsonville,m00004362
+m00004027,Hoffman Ltd,LUX,East Dawnchester,m00000062
+m00003879,Moore and Sons,MLT,Amybury,m00003879
+m00003515,Henderson-Bernard,MLT,Port Christina,m00003879
+m00000047,Bell-Lewis,MLT,North Matthewfurt,m00000047
+m00003305,Blevins-Ballard,MLT,South Christopher,m00000047
+m00001505,"Robinson, Fox and Smith",MLT,South Michaeltown,m00003879
+m00002178,Jones-Young,NLD,West Michelleborough,m00002178
+m00001533,"Smith, Crawford and Reed Inc",NLD,Billyfort,m00001533
+m00000214,Bell-Lane,NLD,Rodriguezberg,m00000214
+m00002553,Atkins PLC,NLD,North Hannah,m00002553
+m00003138,"Bentley, Byrd and Orr",NLD,West Carlos,m00000214

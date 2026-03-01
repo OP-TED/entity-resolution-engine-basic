@@ -156,9 +156,10 @@ class SpLinkSimilarityLinker(SimilarityLinker):
             return []
 
         log.trace(
-            "find_matches: Splink returned %d matches for mention %s",
+            "find_matches: Splink returned %d matches for mention %s. Available columns: %s",
             len(df),
             mention.id.value,
+            list(df.columns),
         )
 
         # Build MentionLink objects, filtering self-links
@@ -176,15 +177,31 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                 )
                 continue
 
+            # Extract detailed comparison scores
+            jw_score = row.get("jaro_winkler_legal_name", None)
+            country_match = row.get("exact_match_country_code", None)
+            match_weight = row.get("match_weight", None)
+
             log.trace(
-                "find_matches: Mention %s vs %s: match_probability=%.6f, "
-                "match_weight=%s, jaro_winkler=%s",
-                left_id.value,
-                right_id.value,
+                "find_matches: Mention %s vs %s: "
+                "match_probability=%.6f, match_weight=%.4f, "
+                "jaro_winkler_legal_name=%s, exact_match_country_code=%s",
+                left_id.value[:16],
+                right_id.value[:16],
                 score,
-                row.get("match_weight", "N/A"),
-                row.get("jaro_winkler_legal_name", "N/A"),
+                float(match_weight) if match_weight else 0.0,
+                jw_score,
+                country_match,
             )
+
+            # Log detailed row data for debugging
+            if score < 0.3:  # Log extra detail for low-scoring pairs
+                log.trace(
+                    "find_matches: LOW SCORE DETAILS for %s vs %s: %s",
+                    left_id.value[:16],
+                    right_id.value[:16],
+                    {k: v for k, v in row.items() if "level" in k or "prob" in k or k.startswith("jaro") or k.startswith("exact_match")},
+                )
 
             links.append(MentionLink(left_id=left_id, right_id=right_id, score=score))
 

@@ -23,7 +23,9 @@ from ere.services.entity_resolution_service import EntityResolver, EntityResolut
 from ere.services.resolver_config import ResolverConfig
 
 
-def build_entity_resolver(entity_fields: list[str] = None) -> EntityResolver:
+def build_entity_resolver(
+    entity_fields: list[str] = None, resolver_config_path: str | Path = None
+) -> EntityResolver:
     """
     Factory: construct EntityResolver with all concrete adapter dependencies.
 
@@ -34,6 +36,8 @@ def build_entity_resolver(entity_fields: list[str] = None) -> EntityResolver:
     Args:
         entity_fields: Field names for entity attributes (e.g. ["legal_name", "country_code"]).
                       If None, reads from resolver.yaml config.
+        resolver_config_path: Path to resolver.yaml config file.
+                             If None, uses default path.
 
     Returns:
         Fully-constructed EntityResolver with DuckDB backend and Splink linker.
@@ -41,7 +45,11 @@ def build_entity_resolver(entity_fields: list[str] = None) -> EntityResolver:
     if entity_fields is None:
         entity_fields = ["legal_name", "country_code"]
 
-    config_path = Path(__file__).parent.parent.parent.parent / "config" / "resolver.yaml"
+    if resolver_config_path is None:
+        config_path = Path(__file__).parent.parent.parent.parent / "infra" / "config" / "resolver.yaml"
+    else:
+        config_path = Path(resolver_config_path)
+
     with open(config_path) as f:
         raw_config = yaml.safe_load(f)
 

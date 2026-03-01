@@ -151,8 +151,8 @@ def entity_resolution_service():
     from ere.services.entity_resolution_service import EntityResolver
     from ere.services.resolver_config import ResolverConfig
 
-    # Load resolver config
-    config_path = Path(__file__).parent.parent / "config" / "resolver.yaml"
+    # Load resolver config (from infra/config directory)
+    config_path = Path(__file__).parent.parent / "infra" / "config" / "resolver.yaml"
     with open(config_path) as f:
         raw_config = yaml.safe_load(f)
 

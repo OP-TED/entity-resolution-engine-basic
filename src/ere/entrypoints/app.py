@@ -4,17 +4,24 @@ ERE service launcher — entrypoint for local development & Docker.
 Reads entity resolution requests from a Redis queue, logs them to stdout,
 and produces responses back to another Redis queue.
 
-All configuration is read from environment variables.
+Configuration is read from environment variables or CLI arguments.
 
 Environment variables:
-    REQUEST_QUEUE   Redis queue for inbound requests (default: ere-requests)
-    RESPONSE_QUEUE  Redis queue for outbound responses (default: ere-responses)
-    REDIS_HOST      Redis hostname (default: localhost)
-    REDIS_PORT      Redis port (default: 6379)
-    REDIS_DB        Redis DB index (default: 0)
-    LOG_LEVEL       Python log level name (default: INFO)
+    REQUEST_QUEUE         Redis queue for inbound requests (default: ere-requests)
+    RESPONSE_QUEUE        Redis queue for outbound responses (default: ere-responses)
+    REDIS_HOST            Redis hostname (default: localhost)
+    REDIS_PORT            Redis port (default: 6379)
+    REDIS_DB              Redis DB index (default: 0)
+    LOG_LEVEL             Python log level name (default: INFO)
+    RDF_MAPPING_PATH      Path to rdf_mapping.yaml config file
+    RESOLVER_CONFIG_PATH  Path to resolver.yaml config file
+
+CLI arguments:
+    --rdf-mapping-path    Path to rdf_mapping.yaml config file
+    --resolver-config-path Path to resolver.yaml config file
 """
 
+import argparse
 import logging
 import os
 import signal
@@ -46,16 +53,36 @@ def _configure_logging() -> None:
 
 def main() -> None:
     """Main entry point: orchestrate service setup and run queue worker."""
+    # Parse CLI arguments
+    parser = argparse.ArgumentParser(
+        description="ERE service: Entity Resolution Engine"
+    )
+    parser.add_argument(
+        "--rdf-mapping-path",
+        default=None,
+        help="Path to rdf_mapping.yaml config file",
+    )
+    parser.add_argument(
+        "--resolver-config-path",
+        default=None,
+        help="Path to resolver.yaml config file",
+    )
+    args = parser.parse_args()
+
     _configure_logging()
     log.info("ERE service starting")
 
-    # Read configuration from environment
+    # Read configuration from environment or CLI
     redis_host = os.environ.get("REDIS_HOST", "localhost")
     redis_port = int(os.environ.get("REDIS_PORT", "6379"))
     redis_db = int(os.environ.get("REDIS_DB", "0"))
     redis_password = os.environ.get("REDIS_PASSWORD", None)
     request_queue = os.environ.get("REQUEST_QUEUE", "ere-requests")
     response_queue = os.environ.get("RESPONSE_QUEUE", "ere-responses")
+
+    # Config file paths: CLI takes precedence over environment
+    rdf_mapping_path = args.rdf_mapping_path or os.environ.get("RDF_MAPPING_PATH")
+    resolver_config_path = args.resolver_config_path or os.environ.get("RESOLVER_CONFIG_PATH")
 
     log.info(
         "Configuration: redis=%s:%d/%d, request_queue=%s, response_queue=%s",
@@ -64,6 +91,11 @@ def main() -> None:
         redis_db,
         request_queue,
         response_queue,
+    )
+    log.info(
+        "Config paths: rdf_mapping=%s, resolver_config=%s",
+        rdf_mapping_path or "(default)",
+        resolver_config_path or "(default)",
     )
 
     # Connect to Redis
@@ -84,8 +116,10 @@ def main() -> None:
     # Build resolver, mapper, and service once before the loop
     try:
         log.info("Building entity resolution components")
-        resolver = build_entity_resolver()
-        mapper = build_rdf_mapper()
+        resolver = build_entity_resolver(
+            resolver_config_path=resolver_config_path
+        )
+        mapper = build_rdf_mapper(rdf_mapping_path=rdf_mapping_path)
         service = build_entity_resolution_service(resolver, mapper)
         log.info("Entity resolution service ready")
     except Exception as e:

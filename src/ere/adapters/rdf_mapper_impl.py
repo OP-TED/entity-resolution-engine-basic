@@ -17,15 +17,32 @@ from ere.models.resolver import Mention, MentionId
 class TurtleRDFMapper(RDFMapper):
     """Concrete RDF mapper for Turtle RDF format."""
 
-    def __init__(self):
-        """Initialize the RDF mapper with configuration."""
-        self._mappings = self._load_mappings()
+    def __init__(self, rdf_mapping_path: str | Path = None):
+        """
+        Initialize the RDF mapper with configuration.
+
+        Args:
+            rdf_mapping_path: Path to rdf_mapping.yaml config file.
+                             If None, uses default relative path.
+        """
+        self._mappings = self._load_mappings(rdf_mapping_path)
 
     @staticmethod
-    def _load_mappings() -> dict:
-        """Load entity mappings from config/rdf_mapping.yaml."""
-        mapping_path = Path(__file__).parent.parent.parent.parent / "config" / "rdf_mapping.yaml"
-        return load_entity_mappings(mapping_path)
+    def _load_mappings(rdf_mapping_path: str | Path = None) -> dict:
+        """
+        Load entity mappings from rdf_mapping.yaml.
+
+        Args:
+            rdf_mapping_path: Path to rdf_mapping.yaml. If None, uses default.
+
+        Returns:
+            dict: Entity type mappings from config.
+        """
+        if rdf_mapping_path is None:
+            rdf_mapping_path = Path(__file__).parent.parent.parent.parent / "infra" / "config" / "rdf_mapping.yaml"
+        else:
+            rdf_mapping_path = Path(rdf_mapping_path)
+        return load_entity_mappings(rdf_mapping_path)
 
     def map_entity_mention_to_domain(self, entity_mention: EntityMention) -> Mention:
         """

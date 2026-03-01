@@ -435,21 +435,30 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                 len(comparison.comparison_levels),
             )
 
-            # Apply m-probabilities to non-null levels
+            # Collect non-null levels to properly map cold-start probabilities
+            non_null_levels = [
+                (i, level) for i, level in enumerate(comparison.comparison_levels)
+                if not (hasattr(level, 'is_null_level') and level.is_null_level)
+            ]
+            log.trace(
+                "_apply_cold_start_params: Field '%s' has %d non-null levels: %s",
+                field_name,
+                len(non_null_levels),
+                [i for i, _ in non_null_levels],
+            )
+
+            # Apply m-probabilities to non-null levels in order
             if 'm_probabilities' in field_cfg:
                 m_probs = field_cfg['m_probabilities']
-                for level_idx, m_prob in enumerate(m_probs):
-                    if level_idx < len(comparison.comparison_levels):
-                        level = comparison.comparison_levels[level_idx]
-                        # Skip null levels (Splink's internal null-value handling)
-                        if hasattr(level, 'is_null_level') and level.is_null_level:
-                            continue
+                for config_idx, m_prob in enumerate(m_probs):
+                    if config_idx < len(non_null_levels):
+                        actual_level_idx, level = non_null_levels[config_idx]
                         try:
                             level.m_probability = m_prob
                             log.trace(
-                                "_apply_cold_start_params: Set %s level %d m_prob=%.4f",
+                                "_apply_cold_start_params: Set %s (actual level %d) m_prob=%.4f",
                                 field_name,
-                                level_idx,
+                                actual_level_idx,
                                 m_prob,
                             )
                         except (AttributeError, ValueError) as e:
@@ -457,25 +466,22 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                             log.trace(
                                 "_apply_cold_start_params: Failed to set m_prob for %s level %d: %s",
                                 field_name,
-                                level_idx,
+                                actual_level_idx,
                                 e,
                             )
 
-            # Apply u-probabilities to non-null levels
+            # Apply u-probabilities to non-null levels in order
             if 'u_probabilities' in field_cfg:
                 u_probs = field_cfg['u_probabilities']
-                for level_idx, u_prob in enumerate(u_probs):
-                    if level_idx < len(comparison.comparison_levels):
-                        level = comparison.comparison_levels[level_idx]
-                        # Skip null levels
-                        if hasattr(level, 'is_null_level') and level.is_null_level:
-                            continue
+                for config_idx, u_prob in enumerate(u_probs):
+                    if config_idx < len(non_null_levels):
+                        actual_level_idx, level = non_null_levels[config_idx]
                         try:
                             level.u_probability = u_prob
                             log.trace(
-                                "_apply_cold_start_params: Set %s level %d u_prob=%.4f",
+                                "_apply_cold_start_params: Set %s (actual level %d) u_prob=%.4f",
                                 field_name,
-                                level_idx,
+                                actual_level_idx,
                                 u_prob,
                             )
                         except (AttributeError, ValueError) as e:
@@ -483,6 +489,6 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                             log.trace(
                                 "_apply_cold_start_params: Failed to set u_prob for %s level %d: %s",
                                 field_name,
-                                level_idx,
+                                actual_level_idx,
                                 e,
                             )

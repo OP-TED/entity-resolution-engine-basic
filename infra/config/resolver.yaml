@@ -5,7 +5,9 @@ cache_strategy: tf_incremental
 # Cluster assignment threshold: a mention joins an existing cluster only if
 # match_probability >= threshold. Calibrate based on your trained model output.
 # Typical range: 0.4–0.7 depending on prior and dataset characteristics.
-threshold: 0.5
+# NOTE: With cold-start parameters and moderate JW similarity (0.8-0.9),
+# scores around 0.17 are expected. Lower threshold to 0.15 to accept these matches.
+threshold: 0.15
 
 # Maximum cluster references returned per resolve_request() call.
 top_n: 100

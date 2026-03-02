@@ -15,6 +15,7 @@ Environment variables:
     LOG_LEVEL             Python log level name (default: INFO) — supports TRACE
     RDF_MAPPING_PATH      Path to rdf_mapping.yaml config file
     RESOLVER_CONFIG_PATH  Path to resolver.yaml config file
+    DUCKDB_PATH           Path to persistent DuckDB file (overrides resolver.yaml)
 
 CLI arguments:
     --log-level           Python log level name (overrides LOG_LEVEL env var)
@@ -78,6 +79,7 @@ def main() -> None:
     # Config file paths: CLI takes precedence over environment
     rdf_mapping_path = args.rdf_mapping_path or os.environ.get("RDF_MAPPING_PATH")
     resolver_config_path = args.resolver_config_path or os.environ.get("RESOLVER_CONFIG_PATH")
+    duckdb_path = os.environ.get("DUCKDB_PATH")
 
     log.info(
         "Configuration: redis=%s:%d/%d, request_queue=%s, response_queue=%s",
@@ -109,10 +111,12 @@ def main() -> None:
         sys.exit(1)
 
     # Build resolver, mapper, and service once before the loop
+    resolver = None
     try:
         log.info("Building entity resolution components")
         resolver = build_entity_resolver(
-            resolver_config_path=resolver_config_path
+            resolver_config_path=resolver_config_path,
+            duckdb_path=duckdb_path,
         )
         mapper = build_rdf_mapper(rdf_mapping_path=rdf_mapping_path)
         service = build_entity_resolution_service(resolver, mapper)
@@ -150,6 +154,13 @@ def main() -> None:
     except Exception as e:
         log.exception(f"Unexpected error in service loop: {e}")
     finally:
+        # Close DuckDB connection if it was created
+        if resolver is not None:
+            # Access the underlying connection through the repositories
+            mention_repo = resolver._mention_repo
+            if hasattr(mention_repo, "_con"):
+                mention_repo._con.close()
+                log.info("DuckDB connection closed")
         client.close()
         log.info("ERE service stopped")
 

@@ -12,6 +12,14 @@ It demonstrates:
 The example uses 6 synthetic mentions from ALGORITHM.md that cluster into 2 groups:
   - Cluster 1: {1, 2, 5}  (organizations with high similarity)
   - Cluster 2: {3, 4, 6}  (different organizations, also highly similar)
+
+⚠️  IMPORTANT: The ERE resolver persists state in a DuckDB database volume.
+    Before running a fresh demo with different data, clear the old database:
+
+    docker volume rm ere-local_ere-data
+    docker-compose -f infra/docker-compose.yml up -d
+
+    Failure to do so will mix old mentions with new ones, corrupting demo results.
 """
 
 import json
@@ -23,6 +31,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import redis
+
+# Default data file path
+DEFAULT_DATA_FILE = Path(__file__).parent / "data" / "mentions_mixed_countries.json"
 
 # ===============================================================================
 # Configuration
@@ -60,14 +71,30 @@ def load_env_file(env_path: str = None) -> dict:
 # Logging Setup
 # ===============================================================================
 
+TRACE = 5
+
 def setup_logging():
     """Configure logging with timestamps."""
+    log_level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
+
+    # Handle custom TRACE level
+    if log_level_name == "TRACE":
+        log_level = TRACE
+        logging.addLevelName(TRACE, "TRACE")
+    else:
+        log_level = getattr(logging, log_level_name, logging.INFO)
+
     logging.basicConfig(
-        level=logging.INFO,
+        level=log_level,
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    return logging.getLogger(__name__)
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(log_level)
+    logger.info(f"Logging configured at level {log_level_name}")
+
+    return logger
 
 
 # ===============================================================================
@@ -93,6 +120,7 @@ def check_redis_connectivity(host: str, port: int, db: int, password: str) -> re
     last_error = None
     for try_host in hosts_to_try:
         try:
+            logging.getLogger(__name__).info(f"Attempting Redis connection to {try_host}:{port}...")
             client = redis.Redis(
                 host=try_host,
                 port=port,
@@ -161,67 +189,52 @@ def parse_response(response_bytes: bytes) -> dict:
 
 
 # ===============================================================================
-# Demo Data (from ALGORITHM.md)
+# Demo Data Loading
 # ===============================================================================
 
-DEMO_MENTIONS = [
-    {
-        "request_id": "m1",
-        "source_id": "DEMO",
-        "entity_type": "ORGANISATION",
-        "legal_name": "Acme Corp",
-        "country_code": "US",
-        "description": "Mention 1 - initial mention",
-    },
-    {
-        "request_id": "m2",
-        "source_id": "DEMO",
-        "entity_type": "ORGANISATION",
-        "legal_name": "Acme Corporation",
-        "country_code": "US",
-        "description": "Mention 2 - high similarity to m1 (sim=0.8)",
-    },
-    {
-        "request_id": "m3",
-        "source_id": "DEMO",
-        "entity_type": "ORGANISATION",
-        "legal_name": "Global Industries Ltd",
-        "country_code": "GB",
-        "description": "Mention 3 - different entity, new cluster",
-    },
-    {
-        "request_id": "m4",
-        "source_id": "DEMO",
-        "entity_type": "ORGANISATION",
-        "legal_name": "Global Industries",
-        "country_code": "GB",
-        "description": "Mention 4 - high similarity to m3 (sim=0.99)",
-    },
-    {
-        "request_id": "m5",
-        "source_id": "DEMO",
-        "entity_type": "ORGANISATION",
-        "legal_name": "Acme Inc",
-        "country_code": "US",
-        "description": "Mention 5 - similar to m2 (sim=0.81), extends cluster 1",
-    },
-    {
-        "request_id": "m6",
-        "source_id": "DEMO",
-        "entity_type": "ORGANISATION",
-        "legal_name": "Global Ltd",
-        "country_code": "GB",
-        "description": "Mention 6 - similar to m3/m4 (sim=0.9), extends cluster 2",
-    },
-]
+def load_demo_mentions(data_file: str | None = None) -> list[dict]:
+    """
+    Load demo mentions from a JSON file.
+
+    Args:
+        data_file: Path to JSON file containing mentions. If None, uses default.
+
+    Returns:
+        List of mention dicts with keys: request_id, source_id, entity_type,
+                                         legal_name, country_code, description.
+
+    Raises:
+        FileNotFoundError: If data file does not exist.
+        ValueError: If JSON is invalid or missing 'mentions' key.
+    """
+    if data_file is None:
+        data_file = DEFAULT_DATA_FILE
+
+    data_path = Path(data_file)
+    if not data_path.exists():
+        raise FileNotFoundError(f"Data file not found: {data_path}")
+
+    with open(data_path) as f:
+        data = json.load(f)
+
+    if "mentions" not in data:
+        raise ValueError(f"JSON must contain 'mentions' key")
+
+    return data["mentions"]
 
 
 # ===============================================================================
 # Main Demo
 # ===============================================================================
 
-def main():
-    """Run the Redis-based ERE demo."""
+def main(data_file: str | None = None):
+    """
+    Run the Redis-based ERE demo.
+
+    Args:
+        data_file: Path to JSON file containing demo mentions.
+                   If None, uses default (mentions_mixed_countries.json).
+    """
     logger = setup_logging()
 
     # Load configuration
@@ -235,6 +248,14 @@ def main():
         f"Queue names: request={config['REQUEST_QUEUE']}, "
         f"response={config['RESPONSE_QUEUE']}"
     )
+
+    # Load demo mentions from JSON
+    try:
+        demo_mentions = load_demo_mentions(data_file)
+        logger.info(f"Loaded {len(demo_mentions)} mentions from {data_file or DEFAULT_DATA_FILE}")
+    except (FileNotFoundError, ValueError) as e:
+        logger.error(f"Failed to load demo mentions: {e}")
+        return 1
 
     # Check Redis connectivity
     logger.info("Checking Redis connectivity...")
@@ -254,11 +275,25 @@ def main():
     logger.info("Clearing request and response queues...")
     redis_client.delete(config["REQUEST_QUEUE"], config["RESPONSE_QUEUE"])
 
+    # ⚠️  Check if DuckDB database is non-empty (stale from prior runs)
+    # This guards against corrupting demo results by mixing old and new mentions
+    duckdb_path = Path(os.environ.get("DUCKDB_PATH", "/data/app.duckdb"))
+    if duckdb_path.exists() and duckdb_path.stat().st_size > 0:
+        logger.warning(
+            f"⚠️  WARNING: DuckDB database file exists and is non-empty!\n"
+            f"      This may contain mentions from a prior run.\n"
+            f"      This will CORRUPT demo results by mixing old and new data.\n"
+            f"      \n"
+            f"      To reset the database:\n"
+            f"      1. docker volume rm ere-local_ere-data\n"
+            f"      2. docker-compose -f infra/docker-compose.yml up -d\n"
+        )
+
     # Send demo requests
-    logger.info(f"Sending {len(DEMO_MENTIONS)} entity mentions...")
+    logger.info(f"Sending {len(demo_mentions)} entity mentions...")
     request_ids = []
 
-    for mention in DEMO_MENTIONS:
+    for mention in demo_mentions:
         request = create_entity_mention_request(
             request_id=mention["request_id"],
             source_id=mention["source_id"],
@@ -267,7 +302,11 @@ def main():
             country_code=mention["country_code"],
         )
 
-        message_bytes = json.dumps(request).encode("utf-8")
+        message_json = json.dumps(request)
+        if logger.isEnabledFor(TRACE):
+            logger.log(TRACE, f"Full request message:\n{json.dumps(request, indent=2)}")
+
+        message_bytes = message_json.encode("utf-8")
         redis_client.rpush(config["REQUEST_QUEUE"], message_bytes)
         request_ids.append(mention["request_id"])
 
@@ -286,7 +325,7 @@ def main():
 
     # Listen for responses
     responses_received = {}
-    timeout = 30  # seconds
+    timeout = 40  # seconds
     start_time = time.time()
 
     while len(responses_received) < len(request_ids):
@@ -304,6 +343,9 @@ def main():
 
             req_id = response["entity_mention_id"]["request_id"]
             responses_received[req_id] = response
+
+            if logger.isEnabledFor(TRACE):
+                logger.log(TRACE, f"Full response message for {req_id}:\n{json.dumps(response, indent=2)}")
 
             logger.info(f"\n✓ Response received for {req_id}:")
             logger.info(f"  Type: {response['type']}")
@@ -335,4 +377,17 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Redis-based ERE demo with parametrized mentions data."
+    )
+    parser.add_argument(
+        "--data",
+        type=str,
+        default=None,
+        help=f"Path to JSON file with demo mentions (default: {DEFAULT_DATA_FILE})",
+    )
+    args = parser.parse_args()
+
+    sys.exit(main(data_file=args.data))

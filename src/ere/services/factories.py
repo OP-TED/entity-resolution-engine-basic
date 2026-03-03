@@ -24,7 +24,9 @@ from ere.services.resolver_config import ResolverConfig
 
 
 def build_entity_resolver(
-    entity_fields: list[str] = None, resolver_config_path: str | Path = None
+    entity_fields: list[str] = None,
+    resolver_config_path: str | Path = None,
+    duckdb_path: str = None,
 ) -> EntityResolver:
     """
     Factory: construct EntityResolver with all concrete adapter dependencies.
@@ -38,6 +40,8 @@ def build_entity_resolver(
                       If None, reads from resolver.yaml config.
         resolver_config_path: Path to resolver.yaml config file.
                              If None, uses default path.
+        duckdb_path: Path to DuckDB file (overrides resolver.yaml duckdb.path).
+                    If None, uses path from resolver.yaml config.
 
     Returns:
         Fully-constructed EntityResolver with DuckDB backend and Splink linker.
@@ -54,7 +58,20 @@ def build_entity_resolver(
         raw_config = yaml.safe_load(f)
 
     resolver_config = ResolverConfig.from_dict(raw_config)
-    con = duckdb.connect(":memory:")
+
+    # Create DuckDB connection based on configured type
+    if resolver_config.duckdb.type == "in-memory":
+        con = duckdb.connect(":memory:")
+    elif resolver_config.duckdb.type == "persistent":
+        # DUCKDB_PATH env var takes precedence over the passed argument
+        db_path = duckdb_path or resolver_config.duckdb.path
+        con = duckdb.connect(db_path)
+    else:
+        raise ValueError(
+            f"Invalid duckdb type: {resolver_config.duckdb.type}. "
+            f"Must be 'in-memory' or 'persistent'."
+        )
+
     init_schema(con, entity_fields)
 
     mention_repo = DuckDBMentionRepository(con, entity_fields)

@@ -1,5 +1,10 @@
 # Entity Resolver configuration — Standard blocking (single-field: country_code)
 
+# DuckDB database configuration
+duckdb:
+  type: in-memory  # Options: "in-memory" or "persistent"
+#  path: data/app.duckdb  # Default path for persistent mode (overridden by DUCKDB_PATH env var)
+
 cache_strategy: tf_incremental
 
 # Cluster assignment threshold: a mention joins an existing cluster only if
@@ -31,7 +36,8 @@ splink:
   #   - High duplicate rate (deduplication): 0.1–0.3
   #   - Low duplicate rate (linking two clean datasets): 0.001–0.01
   # With too low a prior, EM converges to a local minimum where nothing matches.
-  probability_two_random_records_match: 0.3
+  # probability_two_random_records_match: 0.0000022
+  probability_two_random_records_match: 0.0022
 
   # Identity Function: fields and similarity functions used for pairwise scoring.
   # country_code is intentionally absent from comparisons — it is used only
@@ -61,9 +67,9 @@ splink:
         # Adjusted: medium tier m_prob increased from 0.10 to 0.40
         # Rationale: moderate JW similarity (0.8-0.9) is meaningful for company names
         # Likelihood ratio for medium tier: 0.40 / 0.05 = 8.0 (vs 0.10 / 0.05 = 2.0)
-        m_probabilities: [0.80, 0.40, 0.10]
-        u_probabilities: [0.02, 0.05, 0.93]
+        m_probabilities: [0.9, 0.6, 0.025, 0.005]
+        u_probabilities: [0.00001, 0.0004, 0.004, 0.99559]
       country_code:
         # ExactMatch: match / else
-        m_probabilities: [0.90, 0.10]
-        u_probabilities: [0.20, 0.80]
+        m_probabilities: [0.99, 0.01]
+        u_probabilities: [0.10, 0.90]

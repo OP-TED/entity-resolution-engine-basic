@@ -1,6 +1,13 @@
 """Resolver configuration: typed extraction from YAML."""
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class DuckDBConfig(BaseModel):
+    """DuckDB database configuration."""
+
+    type: str = "in-memory"  # "in-memory" or "persistent"
+    path: str  # Path for persistent database
 
 
 class ResolverConfig(BaseModel):
@@ -18,6 +25,8 @@ class ResolverConfig(BaseModel):
                        Default: "tf_incremental" (incremental cache updates).
         auto_train_threshold: Number of mentions at which to trigger background training.
                              Default: 50 (0 = disabled).
+        duckdb: DuckDB database configuration (type and path).
+               Default: in-memory database.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -27,6 +36,7 @@ class ResolverConfig(BaseModel):
     top_n: int
     cache_strategy: str = "tf_incremental"
     auto_train_threshold: int = 50
+    duckdb: DuckDBConfig = Field(default_factory=DuckDBConfig)
 
     @classmethod
     def from_dict(cls, d: dict) -> "ResolverConfig":
@@ -35,7 +45,7 @@ class ResolverConfig(BaseModel):
 
         Args:
             d: Dict with keys: threshold, match_weight_threshold, top_n, cache_strategy (optional),
-                              auto_train_threshold (optional).
+                              auto_train_threshold (optional), duckdb (optional).
 
         Returns:
             ResolverConfig instance.
@@ -43,10 +53,17 @@ class ResolverConfig(BaseModel):
         Raises:
             ValidationError: If required keys are missing or values are invalid.
         """
+        duckdb_config_dict = d.get("duckdb", {})
+        duckdb_config = DuckDBConfig(
+            type=duckdb_config_dict.get("type", "in-memory"),
+            path=duckdb_config_dict.get("path"),
+        )
+
         return cls(
             threshold=d["threshold"],
             match_weight_threshold=d["match_weight_threshold"],
             top_n=d["top_n"],
             cache_strategy=d.get("cache_strategy", "tf_incremental"),
             auto_train_threshold=d.get("auto_train_threshold", 50),
+            duckdb=duckdb_config,
         )

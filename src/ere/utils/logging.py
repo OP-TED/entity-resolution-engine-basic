@@ -1,5 +1,8 @@
 """Logging utilities for ERE."""
 
+import os
+import sys
+
 import logging
 
 # Add TRACE level (below DEBUG)
@@ -25,9 +28,6 @@ def configure_logging(log_level: str = None) -> None:
         log_level: Log level name (e.g., 'DEBUG', 'INFO', 'TRACE').
                   If None, reads from LOG_LEVEL environment variable (default: INFO).
     """
-    import os
-    import sys
-
     if log_level is None:
         log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
     else:
@@ -45,3 +45,4 @@ def configure_logging(log_level: str = None) -> None:
         datefmt="%Y-%m-%dT%H:%M:%S",
         stream=sys.stdout,
     )
+    logging.getLogger(__name__).info(f"Logging configured at level {log_level}")

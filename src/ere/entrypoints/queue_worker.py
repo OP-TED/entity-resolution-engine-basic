@@ -81,6 +81,7 @@ class RedisQueueWorker:
     @staticmethod
     def _build_error_response(error_detail: str) -> EREErrorResponse:
         """Build error response for request processing failures."""
+        log.error(f"Building error response: {error_detail}")
         return EREErrorResponse(
             ere_request_id="unknown",
             error_type="ProcessingError",

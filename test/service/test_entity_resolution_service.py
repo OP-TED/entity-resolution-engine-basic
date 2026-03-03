@@ -9,7 +9,7 @@ from ere.models.resolver import (
     MentionLink,
 )
 from ere.services.entity_resolution_service import EntityResolver
-from ere.services.resolver_config import ResolverConfig
+from ere.services.resolver_config import DuckDBConfig, ResolverConfig
 from test.adapters.stubs import (
     FixedSimilarityLinker,
     InMemoryClusterRepository,
@@ -26,6 +26,8 @@ def config() -> ResolverConfig:
         match_weight_threshold=-10,
         top_n=100,
         cache_strategy="tf_incremental",
+        entity_fields=["legal_name", "country_code"],
+        duckdb=DuckDBConfig(type="in-memory", path=":memory:"),
     )
 
 
@@ -277,6 +279,8 @@ def test_auto_training_triggers_at_threshold(service):
         top_n=100,
         cache_strategy="tf_incremental",
         auto_train_threshold=3,
+        entity_fields=["legal_name", "country_code"],
+        duckdb=DuckDBConfig(type="in-memory", path=":memory:"),
     )
 
     mention_repo = InMemoryMentionRepository()
@@ -402,6 +406,8 @@ def test_resolution_result_always_top_n_pruned(service):
         threshold=0.5,
         match_weight_threshold=-10,
         top_n=2,  # Small limit
+        entity_fields=["legal_name", "country_code"],
+        duckdb=DuckDBConfig(type="in-memory", path=":memory:"),
     )
 
     mention_repo = InMemoryMentionRepository()

@@ -17,7 +17,7 @@ from ere.adapters.splink_linker_impl import SpLinkSimilarityLinker, build_tf_df
 from ere.adapters.duckdb_schema import init_schema
 from ere.models.resolver import Mention
 from ere.services.entity_resolution_service import EntityResolver
-from ere.services.resolver_config import ResolverConfig
+from ere.services.resolver_config import DuckDBConfig, ResolverConfig
 
 
 # ===============================================================================
@@ -39,6 +39,8 @@ def resolver_config():
         match_weight_threshold=-10,
         top_n=100,
         cache_strategy="tf_incremental",
+        entity_fields=["legal_name", "country_code"],
+        duckdb=DuckDBConfig(type="in-memory", path=":memory:"),
     )
 
 
@@ -271,6 +273,8 @@ def test_auto_training_nonblocking(con, entity_fields):
         top_n=100,
         cache_strategy="tf_incremental",
         auto_train_threshold=5,  # Trigger at 5 mentions
+        entity_fields=["legal_name", "country_code"],
+        duckdb=DuckDBConfig(type="in-memory", path=":memory:"),
     )
 
     mention_repo = DuckDBMentionRepository(con, entity_fields)

@@ -9,7 +9,7 @@ from pytest_bdd import given, when, then, parsers, scenarios
 
 from ere.models.resolver import Mention, MentionId, ClusterId
 from ere.services.entity_resolution_service import EntityResolver
-from ere.services.resolver_config import ResolverConfig
+from ere.services.resolver_config import DuckDBConfig, ResolverConfig
 from test.adapters.stubs import (
     InMemoryMentionRepository,
     InMemorySimilarityRepository,
@@ -49,6 +49,8 @@ def create_service(threshold: str, algorithm_context):
         match_weight_threshold=-10,
         top_n=100,
         cache_strategy="tf_incremental",
+        entity_fields=["legal_name", "country_code"],
+        duckdb=DuckDBConfig(type="in-memory", path=":memory:"),
     )
 
     mention_repo = InMemoryMentionRepository()

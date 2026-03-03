@@ -16,7 +16,7 @@ from ere.models.resolver import (
     MentionId,
 )
 from ere.services.entity_resolution_service import EntityResolver
-from ere.services.resolver_config import ResolverConfig
+from ere.services.resolver_config import DuckDBConfig, ResolverConfig
 from .stubs import FixedSimilarityLinker
 
 # Avoid importing from ere.services.__init__ which has circular import
@@ -46,6 +46,8 @@ def config():
         top_n=100,
         cache_strategy="tf_incremental",
         auto_train_threshold=0,
+        entity_fields=["legal_name", "country_code"],
+        duckdb=DuckDBConfig(type="in-memory", path=":memory:"),
     )
 
 

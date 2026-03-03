@@ -8,24 +8,11 @@ from ere.adapters import AbstractResolver
 from erspec.models.ere import ERERequest, EREResponse
 from ere.services import AbstractPubSubResolutionService
 from ere.adapters.utils import get_request_from_message
+from ere.adapters.redis import RedisConnectionConfig
 
 log = logging.getLogger(__name__)
 
 _linkml_dumper = JSONDumper()  # Just to cache it
-
-
-class RedisConnectionConfig:
-    """
-    Simple data class to hold Redis connection configuration.
-    """
-
-    def __init__(self, host: str = "localhost", port: int = 6379, db: int = 0):
-        self.host = host
-        self.port = port
-        self.db = db
-
-    def __str__(self) -> str:
-        return f'RedisConnectionConfig ( host: "{self.host}", port: "{self.port}", db: "{self.db}" )'
 
 
 class RedisResolutionService(AbstractPubSubResolutionService):

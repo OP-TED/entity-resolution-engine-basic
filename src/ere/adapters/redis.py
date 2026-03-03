@@ -1,16 +1,30 @@
 import redis
 from linkml_runtime.dumpers import JSONDumper
 from redis.exceptions import ConnectionError, TimeoutError
-
-from ere.adapters.utils import get_response_from_message
-from ere.services.redis import RedisConnectionConfig, log
-
-_linkml_dumper = JSONDumper()  # Just to cache it
-
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 
+from ere.adapters.utils import get_response_from_message
 from erspec.models.ere import ERERequest, EREResponse
+
+log = logging.getLogger(__name__)
+
+_linkml_dumper = JSONDumper()  # Just to cache it
+
+
+class RedisConnectionConfig:
+    """
+    Simple data class to hold Redis connection configuration.
+    """
+
+    def __init__(self, host: str = "localhost", port: int = 6379, db: int = 0):
+        self.host = host
+        self.port = port
+        self.db = db
+
+    def __str__(self) -> str:
+        return f'RedisConnectionConfig ( host: "{self.host}", port: "{self.port}", db: "{self.db}" )'
 
 
 class AbstractClient(ABC):

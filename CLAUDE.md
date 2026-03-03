@@ -131,6 +131,10 @@ Examples:
 
 **Never include** co-author lines, tool names, agent names, or internal implementation details in commit messages. Focus on the *what* and *why* of the code change.
 
+## Git hygiene rules
+
+- **Never stage or commit files you haven't modified** — use `git add <file>` to stage only your changes, or `git add -p` to review hunks before staging.
+- **Never revert or reset files outside your current task scope**.
 ---
 
 ## Autonomy rules

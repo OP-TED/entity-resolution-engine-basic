@@ -35,6 +35,10 @@ import redis
 # Default data file path
 DEFAULT_DATA_FILE = Path(__file__).parent / "data" / "mentions_mixed_countries.json"
 
+DELAY_BETWEEN_MESSAGES = 0  # seconds to wait between sending messages (set to >0 for sequential processing)
+GLOBAL_TIMEOUT = 0  # seconds to wait for responses before giving up (0 = no timeout)
+
+
 # ===============================================================================
 # Configuration
 # ===============================================================================
@@ -149,21 +153,50 @@ def create_entity_mention_request(
     entity_type: str,
     legal_name: str,
     country_code: str,
+    nuts_code: str | None = None,
+    post_code: str | None = None,
+    post_name: str | None = None,
+    thoroughfare: str | None = None,
 ) -> dict:
     """
     Create an EntityMentionResolutionRequest payload.
 
-    Uses simplified RDF/Turtle format with entity metadata.
+    Uses RDF/Turtle format with entity metadata including extended address fields.
+
+    Args:
+        request_id: Unique request identifier
+        source_id: Source system identifier
+        entity_type: Entity type (e.g., ORGANISATION)
+        legal_name: Legal name of the entity
+        country_code: ISO 2-letter country code
+        nuts_code: Optional NUTS regional code
+        post_code: Optional postal code
+        post_name: Optional city/locality name
+        thoroughfare: Optional street address
     """
+    # Build address properties dynamically
+    address_props = [f'epo:hasCountryCode "{country_code}"']
+    if nuts_code:
+        address_props.append(f'epo:hasNutsCode "{nuts_code}"')
+    if post_code:
+        address_props.append(f'locn:postCode "{post_code}"')
+    if post_name:
+        address_props.append(f'locn:postName "{post_name}"')
+    if thoroughfare:
+        address_props.append(f'locn:thoroughfare "{thoroughfare}"')
+
+    address_content = ' ;\n        '.join(address_props)
+
     content = f"""@prefix org: <http://www.w3.org/ns/org#> .
 @prefix cccev: <http://data.europa.eu/m8g/> .
 @prefix epo: <http://data.europa.eu/a4g/ontology#> .
+@prefix locn: <http://www.w3.org/ns/locn#> .
 @prefix epd: <http://data.europa.eu/a4g/resource/> .
 
 epd:ent{request_id} a org:Organization ;
     epo:hasLegalName "{legal_name}" ;
     cccev:registeredAddress [
-        epo:hasCountryCode "{country_code}"
+        {address_content}
     ] .
 """
 
@@ -300,6 +333,10 @@ def main(data_file: str | None = None):
             entity_type=mention["entity_type"],
             legal_name=mention["legal_name"],
             country_code=mention["country_code"],
+            nuts_code=mention.get("nuts_code"),
+            post_code=mention.get("post_code"),
+            post_name=mention.get("post_name"),
+            thoroughfare=mention.get("thoroughfare"),
         )
 
         message_json = json.dumps(request)
@@ -313,11 +350,12 @@ def main(data_file: str | None = None):
         logger.info(
             f"  → Sent request {mention['request_id']}: "
             f"{mention['legal_name']} ({mention['country_code']}) "
-            f"[{mention['description']}]"
+            f"[{mention.get('description', '')}]"
         )
 
         # Wait 1 second between messages to ensure sequential processing
-        time.sleep(1)
+        if DELAY_BETWEEN_MESSAGES:
+            time.sleep(1)
 
     logger.info("")
     logger.info("Listening for responses...")
@@ -325,13 +363,12 @@ def main(data_file: str | None = None):
 
     # Listen for responses
     responses_received = {}
-    timeout = 40  # seconds
     start_time = time.time()
 
     while len(responses_received) < len(request_ids):
         elapsed = time.time() - start_time
-        if elapsed > timeout:
-            logger.warning(f"Timeout after {timeout}s. Received {len(responses_received)}/{len(request_ids)} responses.")
+        if GLOBAL_TIMEOUT > 0 and elapsed > GLOBAL_TIMEOUT:
+            logger.warning(f"Timeout after {GLOBAL_TIMEOUT}s. Received {len(responses_received)}/{len(request_ids)} responses.")
             break
 
         # Try to get a response with short timeout
@@ -341,11 +378,11 @@ def main(data_file: str | None = None):
             _, response_bytes = result
             response = parse_response(response_bytes)
 
+            if logger.isEnabledFor(TRACE):
+                logger.log(TRACE, f"Full response message:\n{json.dumps(response, indent=2)}")
+            
             req_id = response["entity_mention_id"]["request_id"]
             responses_received[req_id] = response
-
-            if logger.isEnabledFor(TRACE):
-                logger.log(TRACE, f"Full response message for {req_id}:\n{json.dumps(response, indent=2)}")
 
             logger.info(f"\n✓ Response received for {req_id}:")
             logger.info(f"  Type: {response['type']}")

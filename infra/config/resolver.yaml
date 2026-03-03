@@ -1,75 +1,163 @@
-# Entity Resolver configuration — Standard blocking (single-field: country_code)
+# Entity Resolver configuration — Extended blocking (address fields)
+# Supports Jaro-Winkler similarity with geographic granularity via NUTS, PostCode, PostName, Thoroughfare.
+#
+# Entity fields: names must match fields in rdf_mapping.yaml entity_types.ORGANISATION.fields
+entity_fields:
+  - legal_name
+  - country_code
+  - nuts_code
+  - post_code
+  - post_name
+  - thoroughfare
 
 # DuckDB database configuration
 duckdb:
-  type: in-memory  # Options: "in-memory" or "persistent"
+  # type: in-memory  # Options: "in-memory" or "persistent"
+  type: persistent
 #  path: data/app.duckdb  # Default path for persistent mode (overridden by DUCKDB_PATH env var)
 
 cache_strategy: tf_incremental
 
-# Cluster assignment threshold: a mention joins an existing cluster only if
-# match_probability >= threshold. Calibrate based on your trained model output.
-# Typical range: 0.4–0.7 depending on prior and dataset characteristics.
-# NOTE: With cold-start parameters and moderate JW similarity (0.8-0.9),
-# scores around 0.17 are expected. Lower threshold to 0.15 to accept these matches.
-threshold: 0.15
+# Cluster assignment threshold: requires match_probability >= threshold for cluster join.
+# Address-enriched model is expected to be more confident; starting at 0.20.
+# Adjust downward if precision is too low; upward if recall is insufficient.
+threshold: 0.20
 
 # Maximum cluster references returned per resolve_request() call.
 top_n: 100
 
 # Lower bound on match weight passed to find_matches_to_new_records().
-# Controls which scored pairs are stored in the similarities table.
-# -10 includes pairs with match_probability >= ~0.001, which captures
-# below-THR mention-links needed for full genCand output (bridge case).
-# Raise toward -4 to reduce storage costs on large datasets once
-# below-THR links are confirmed to be above that floor.
+# -10 captures below-threshold links needed for full candidate output.
 match_weight_threshold: -10
 
-# Automatic training threshold: mention count at which to trigger non-blocking
-# background training. Set to 0 to disable auto-training.
-# Default: 50 mentions triggers training in a daemon thread.
+# Automatic training threshold: trigger non-blocking EM at N mentions.
 auto_train_threshold: 50
 
 splink:
-  # Prior probability that any two randomly selected records are a match.
-  # This is the Fellegi-Sunter prior λ. Tune for your dataset:
-  #   - High duplicate rate (deduplication): 0.1–0.3
-  #   - Low duplicate rate (linking two clean datasets): 0.001–0.01
-  # With too low a prior, EM converges to a local minimum where nothing matches.
-  # probability_two_random_records_match: 0.0000022
-  probability_two_random_records_match: 0.0022
+  # Prior: Fellegi-Sunter λ (probability any two records match).
+  # With address fields, expect slightly higher match rate (finer granularity helps).
+  # Using 0.003 (vs 0.0022 for name-only) to account for address signal.
+  probability_two_random_records_match: 0.003
 
-  # Identity Function: fields and similarity functions used for pairwise scoring.
-  # country_code is intentionally absent from comparisons — it is used only
-  # as a blocking rule. Adding it as a comparison would prevent EM from training
-  # its m-probabilities (since blocking only exposes same-country pairs).
+  # Comparisons: identity functions and similarity scoring for pairwise evaluation.
+  # NOTE: country_code used only in blocking rules, not comparisons (to preserve EM training).
+  # Address fields complement legal_name matching for disambiguation and confidence.
   comparisons:
+
+    # Primary identifier: legal name with Jaro-Winkler thresholds
+    # Unchanged from baseline: 0.9 (very high similarity), 0.8 (quite similar), else (low)
     - type: jaro_winkler
       field: legal_name
       thresholds: [0.9, 0.8]
+
+    # Supporting signals (lower confidence than legal name, but disambiguate)
+
+    # NUTS code (Nomenclature of Territorial Units for Statistics)
+    # Exact match only: same NUTS = same region, no NUTS = missing data.
+    # Most EU organizations in procurement have NUTS; non-EU lack it.
+    # Confidence: Match implies same country+region (but not unique identifier).
+    - type: exact_match
+      field: nuts_code
+
+    # Post Code (postal / ZIP code)
+    # Jaro-Winkler with high thresholds for typo tolerance
+    - type: jaro_winkler
+      field: post_code
+      thresholds: [0.95, 0.85]
+
+    # Post Name (city/locality name, e.g., "Frankfurt am Main")
+    # Jaro-Winkler at [0.90, 0.80]: captures abbreviations, accents, spelling variations
+    # 0.90: high confidence (e.g., "München" vs "Munich" should match, or with accents)
+    # 0.80: moderate confidence (e.g., "St. John's" vs "St Johns", abbreviation variations)
+    # Caveat: multiple companies in same city; not alone sufficient for match.
+    - type: jaro_winkler
+      field: post_name
+      thresholds: [0.90, 0.80]
+
+    # Thoroughfare (street address: road name + house number)
+    # Jaro-Winkler at [0.95, 0.85]: very high threshold due to specificity
+    # 0.95: near-identical streets (captures digit transpositions: "4 Main" vs "5 Main")
+    # 0.85: captures common abbreviations ("Street" vs "St.", "Avenue" vs "Ave")
+    # Rationale: Street addresses are highly specific; typos are unusual but possible.
+    #            Organizations may move offices, so don't rely on this alone.
+    - type: jaro_winkler
+      field: thoroughfare
+      thresholds: [0.95, 0.85]
+
+    # Country code: exact match only (baseline blocking rule support).
+    # NOTE: Used in blocking only; comparison is a no-op (all same-country pairs).
     - type: exact_match
       field: country_code
 
-  # Blocking rules: a pair is compared only if at least one rule fires.
-  # Expressed as field names; multi-field rules use a list, e.g. [field1, field2].
+  # Blocking rules: pairs are compared only if at least ONE rule fires.
+  # Expressed as field names; multi-field rules use a list.
+  #
+  # Design: country-level primary blocking, NUTS-level secondary for EU.
   blocking_rules:
+    # Primary: country code (strict rule: must match country)
     - country_code
 
+    # Secondary (EU-specific): country + NUTS code blocking for finer granularity
+    # Enables disambiguation of large countries (e.g., Germany's 290+ regions).
+    # Falls back gracefully: if NUTS missing, country-only rule fires.
+    # Only applies when both records have NUTS (common for EU procurement data).
+    - [country_code, nuts_code]
+
   # Cold-start default m/u probabilities (used before EM training).
-  # Each field gets probability distributions for each comparison level.
-  # For JaroWinklerAtThresholds [0.9, 0.8]: high, medium, low similarity.
-  # For ExactMatch: match, no-match.
+  # Each comparison field gets distributions for each similarity level.
   # Once EM training completes, trained parameters overwrite these.
   cold_start:
     comparisons:
+
       legal_name:
-        # JaroWinkler [0.9, 0.8]: high / medium / else
-        # Adjusted: medium tier m_prob increased from 0.10 to 0.40
-        # Rationale: moderate JW similarity (0.8-0.9) is meaningful for company names
-        # Likelihood ratio for medium tier: 0.40 / 0.05 = 8.0 (vs 0.10 / 0.05 = 2.0)
+        # JaroWinkler [0.9, 0.8]: high / medium / low similarity
+        # m_prob: likelihood of match at each similarity tier (empirically tuned)
+        # u_prob: likelihood in random records (opposite population)
         m_probabilities: [0.9, 0.6, 0.025, 0.005]
         u_probabilities: [0.00001, 0.0004, 0.004, 0.99559]
+
       country_code:
-        # ExactMatch: match / else
+        # ExactMatch: match / no-match
+        # Near-deterministic: matching country codes strongly imply same country.
         m_probabilities: [0.99, 0.01]
         u_probabilities: [0.10, 0.90]
+
+      nuts_code:
+        # ExactMatch: match / no-match
+        # Strong signal: same NUTS region = same EU administrative region.
+        # However, some organizations have operations across multiple NUTS (parent + branches).
+        # m_prob=0.92: "likely same location" but not identity.
+        # u_prob=0.08: in random records, small chance of NUTS collision across large geographic areas.
+        m_probabilities: [0.92, 0.08]
+        u_probabilities: [0.05, 0.95]
+
+      post_code:
+        # Jaro-Winkler [0.95, 0.85]: very high / high / low similarity
+        # m_prob: 0.85 (95% match), 0.40 (85% match), 0.02 (low)
+        #   - 0.95 JW: nearly identical postal codes
+        #   - 0.85 JW: postal codes with minor variations (digit transposition, typo)
+        #   - else: different postal zone or missing data
+        # u_prob: 0.02 (95% match - rare collision), 0.08 (85% match), 0.90 (low)
+        m_probabilities: [0.85, 0.40, 0.02, 0.005]
+        u_probabilities: [0.02, 0.08, 0.08, 0.82]
+
+      post_name:
+        # JaroWinkler [0.90, 0.80]: high / moderate / low similarity
+        # Moderate confidence: city names are less unique than addresses.
+        # Multiple organizations can be in same city.
+        # m_prob: 0.65 (90% match), 0.25 (80% match), 0.01 (low)
+        # u_prob: 0.05 (90% match), 0.15 (80% match), 0.80 (low)
+        m_probabilities: [0.65, 0.25, 0.01, 0.005]
+        u_probabilities: [0.05, 0.15, 0.15, 0.65]
+
+      thoroughfare:
+        # JaroWinkler [0.95, 0.85]: very high / high / low similarity
+        # Very strong signal: street addresses are highly specific.
+        # Same street + building = likely same organization (or landlord info).
+        # m_prob: 0.85 (95% match), 0.50 (85% match), 0.02 (low)
+        #   - 95% JW match: almost certainly same office location
+        #   - 85% JW match: likely same street but possibly different building/unit
+        #   - low: different address or missing data
+        # u_prob: 0.01 (95% match - street collision rare), 0.08 (85% match), 0.91 (low)
+        m_probabilities: [0.85, 0.50, 0.02, 0.005]
+        u_probabilities: [0.01, 0.08, 0.08, 0.83]

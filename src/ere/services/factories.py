@@ -46,9 +46,6 @@ def build_entity_resolver(
     Returns:
         Fully-constructed EntityResolver with DuckDB backend and Splink linker.
     """
-    if entity_fields is None:
-        entity_fields = ["legal_name", "country_code"]
-
     if resolver_config_path is None:
         config_path = Path(__file__).parent.parent.parent.parent / "infra" / "config" / "resolver.yaml"
     else:
@@ -58,6 +55,10 @@ def build_entity_resolver(
         raw_config = yaml.safe_load(f)
 
     resolver_config = ResolverConfig.from_dict(raw_config)
+
+    # Use entity_fields from config; parameter overrides config if provided
+    if entity_fields is None:
+        entity_fields = resolver_config.entity_fields
 
     # Create DuckDB connection based on configured type
     if resolver_config.duckdb.type == "in-memory":

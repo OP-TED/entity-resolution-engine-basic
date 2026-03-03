@@ -14,3 +14,7 @@ entity_types:
     fields:
       legal_name:   "epo:hasLegalName"
       country_code: "cccev:registeredAddress/epo:hasCountryCode"
+      nuts_code: "cccev:registeredAddress/epo:hasNutsCode"
+      post_code: "cccev:registeredAddress/locn:postCode"
+      post_name: "cccev:registeredAddress/locn:postName"
+      thoroughfare: "cccev:registeredAddress/locn:thoroughfare"

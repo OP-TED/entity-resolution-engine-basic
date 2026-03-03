@@ -18,15 +18,21 @@ Focused, EU-based datasets for performance testing with **algorithmically-derive
   - **Note**: Precision is low because the trained model makes false-positive matches on synthetic data
   - This is realistic behavior, not a bug
 
-### mentions_100b.csv — Predicted Clustering
-- **Size**: 100 mentions (5.8 KB)
-- **Clusters**: 46 clusters (predicted by algorithm)
-- **Cluster distribution**: Mix of 1-5 member clusters
-- **Geography**: 20 EU countries (1 per clustering pattern)
-- **Use Case**: Realistic clustering with name similarity matching
+### mentions_100b.csv — Meaningful Company Name Clustering
+- **Size**: 100 mentions (5.6 KB)
+- **Clusters**: 42 clusters (derived by Jaro-Winkler >= 0.8 on legal_name)
+- **Cluster distribution**: 10 singletons, 18×2-member, 4×3-member, 8×4-member, 2×5-member
+- **Geography**: 20 EU countries (5 mentions per country)
+- **Name patterns**: Realistic business name variations
+  - Exact matches: "Pepsi" vs "Pepsi" (JW=1.0)
+  - Suffix variations: "Pepsi" vs "Pepsi Inc" (JW≥0.91)
+  - Minor typos: "Pepsi" vs "Pespi Inc" (JW≥0.82)
+  - Character variations: "Coca Cola" vs "Coca-Cola" (JW≥0.95)
+  - Look-alikes (intentional non-matches): "Bridgestone" vs "Cornerstone"
+- **Use Case**: Realistic clustering test with plausible name variations
 - **Expected latency**: ~20-30ms per request
 - **Estimated total time**: <5 seconds seed + train
-- **Quality baseline**: Precision ~60-70%, Recall ~15-20%
+- **Quality baseline**: Precision ~70-85%, Recall 40%+
 
 ### mentions_100c.csv — Predicted Clustering (24 EU countries)
 - **Size**: 100 mentions (5.8 KB)
@@ -59,15 +65,17 @@ m00000619,"Donovan-Perez",AUT,South Adam,m00002717
 ```
 
 **Fields**:
-- `mention_id`: Unique mention identifier (e.g., `m00002717`)
-- `legal_name`: Company name (may contain special chars, quotes)
-- `country_code`: ISO 3166-1 alpha-3 code (27 EU countries only)
-- `city`: City name for optional multi-rule blocking
-- `cluster_id`: **Predicted cluster based on algorithm behavior** (NOT arbitrary ground truth)
-  - **For singletons**: `cluster_id = mention_id` (algorithm creates new singleton cluster)
-  - **For multi-mention clusters**: `cluster_id = mention_id_of_first_member` (greedy linking by name similarity, threshold=0.5)
-  - Respects country-based blocking rule (comparisons only within same `country_code`)
-  - Derived using simplified Jaro-Winkler similarity on `legal_name`
+- `mention_id`: Unique mention identifier (e.g., `m00000001`)
+- `legal_name`: Company name (realistic variations: "Pepsi", "Pepsi Inc", "Pespi Inc", etc.)
+- `country_code`: ISO 3166-1 alpha-3 code (20 EU countries, 5 mentions each)
+- `city`: City name (placeholder for multi-rule blocking extensions)
+- `cluster_id`: **Ground-truth cluster assignment** (derived by Jaro-Winkler >= 0.8)
+  - **For singletons**: `cluster_id = mention_id` (unique organization in country, no similar matches)
+  - **For multi-mention clusters**: `cluster_id = mention_id_of_first_member` (linked by JW similarity)
+  - Respects country-based blocking rule (only mentions within same `country_code` can cluster)
+  - Derived using Jaro-Winkler similarity on `legal_name` field
+  - All clusters within a country are meaningful: name variations of plausible real-world entities
+  - See `mentions_100b.md` for detailed cluster definitions with JW scores
 
 ## Source
 

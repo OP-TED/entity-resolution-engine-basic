@@ -340,12 +340,12 @@ class SpLinkSimilarityLinker(SimilarityLinker):
             [str(r) for r in blocking_rules],
         )
 
-        kwargs = dict(
-            link_type="dedupe_only",
-            unique_id_column_name="mention_id",
-            comparisons=comparisons,
-            blocking_rules_to_generate_predictions=blocking_rules,
-        )
+        kwargs = {
+            "link_type": "dedupe_only",
+            "unique_id_column_name": "mention_id",
+            "comparisons": comparisons,
+            "blocking_rules_to_generate_predictions": blocking_rules,
+        }
         prior = self._config["splink"].get("probability_two_random_records_match")
         if prior is not None:
             kwargs["probability_two_random_records_match"] = prior
@@ -471,7 +471,7 @@ class SpLinkSimilarityLinker(SimilarityLinker):
         )
 
         # Iterate through comparison levels and apply m/u probabilities
-        for idx, comparison in enumerate(self._linker._settings_obj.comparisons):
+        for _, comparison in enumerate(self._linker._settings_obj.comparisons):
             # Get the field name from the comparison
             field_name = None
             if hasattr(comparison, 'output_column_name'):
@@ -594,7 +594,7 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                 ]
 
                 # Log m and u probabilities for each level
-                for config_idx, (actual_idx, level) in enumerate(non_null_levels):
+                for config_idx, (_, level) in enumerate(non_null_levels):
                     m_prob = None
                     u_prob = None
                     trained_m = False

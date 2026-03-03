@@ -356,8 +356,8 @@ def resolve_entity_mention(
             "or use build_rdf_mapper() factory in production)"
         )
 
-    result = resolve_to_result(entity_mention, resolver, mapper)
-    top = result.top
+    cluster_ref = resolve_to_result(entity_mention, resolver, mapper)
+    top = cluster_ref.top
 
     # For singleton founders (no prior mentions), top.score = 0.0.
     # 0.0 reflects genuine uncertainty: the cluster is unconfirmed (single member).
@@ -430,12 +430,12 @@ class EntityResolutionService(AbstractResolver):
                 entity_mention.identifiedBy.request_id,
             )
 
-            result = resolve_to_result(entity_mention, self._resolver, self._mapper)
+            resolution_outcome = resolve_to_result(entity_mention, self._resolver, self._mapper)
 
             # Log resolution result with candidates
             candidate_info = [
                 (c.cluster_id.value, c.score, c.score)
-                for c in result.candidates
+                for c in resolution_outcome.candidates
             ]
             log.trace(
                 "Resolution result for mention %s: %s",
@@ -449,7 +449,7 @@ class EntityResolutionService(AbstractResolver):
                     confidence_score=c.score,
                     similarity_score=c.score,
                 )
-                for c in result.candidates
+                for c in resolution_outcome.candidates
             ]
             return EntityMentionResolutionResponse(
                 entity_mention_id=entity_mention.identifiedBy,
@@ -457,7 +457,7 @@ class EntityResolutionService(AbstractResolver):
                 ere_request_id=request.ere_request_id,
                 timestamp=now,
             )
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             log.error("Resolution error for mention %s: %s", request.ere_request_id, exc, exc_info=True)
             return EREErrorResponse(
                 ere_request_id=request.ere_request_id,

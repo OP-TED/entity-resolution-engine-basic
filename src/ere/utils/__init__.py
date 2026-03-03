@@ -1,4 +1,5 @@
 """Utilities for ERE."""
+# pylint: disable=C0104
 
 from ere.utils.logging import TRACE_LEVEL_NUM, configure_logging
 

@@ -46,11 +46,11 @@ class RedisQueueWorker:
             Exception: Propagates connection errors.
         """
         # Wait for a request
-        result = self.redis_client.brpop(self.request_queue, timeout=self.queue_timeout)
-        if not result:
+        queue_message = self.redis_client.brpop(self.request_queue, timeout=self.queue_timeout)
+        if not queue_message:
             return False  # Timeout
 
-        _, raw_msg = result
+        _, raw_msg = queue_message
 
         # Decode and log
         request_str = raw_msg.decode("utf-8")

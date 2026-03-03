@@ -1,16 +1,15 @@
+"""
+Pytest configuration file, which the framework picks up at startup.
+
+[Details here](https://docs.pytest.org/en/stable/reference/fixtures.html)
+"""
+
 import os
 import logging.config
 from pathlib import Path
 
 import pytest
 import yaml
-
-"""
-Pytest configuration file, which the framework picks up at startup.
-
-[Details here](https://docs.pytest.org/en/stable/reference/fixtures.html)
-
-"""
 
 # Locate local test data (copied from entity-resolution-spec)
 TEST_DATA_ROOT = Path(__file__).parent / "test_data"

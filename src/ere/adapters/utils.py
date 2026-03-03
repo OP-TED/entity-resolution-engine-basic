@@ -3,6 +3,7 @@
 #
 # TODO: open-closed principle. For now, we don't see much need to extend these
 # TODO: move to a utils module
+# pylint: disable=C0104
 #
 import json
 

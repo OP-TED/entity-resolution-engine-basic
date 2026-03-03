@@ -7,7 +7,7 @@ Unified stress test runner for the entity resolver. This document describes usag
 ### Basic smoke test (100 records, ~5 seconds)
 
 ```bash
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_100a.csv \
   --seed 20 \
   --records 30 \
@@ -17,7 +17,7 @@ poetry run python3 test/stress_test.py \
 ### Cold-start test (no training, ~4 seconds)
 
 ```bash
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_100a.csv \
   --no-train \
   --records 30 \
@@ -27,7 +27,7 @@ poetry run python3 test/stress_test.py \
 ### Standard baseline (1000 records, ~2-3 minutes)
 
 ```bash
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_1000.csv \
   --seed 200 \
   --records 500 \
@@ -37,17 +37,23 @@ poetry run python3 test/stress_test.py \
 ### Balanced clustering test
 
 ```bash
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_100b.csv \
   --seed 20 \
   --records 50 \
   --output /tmp/balanced.json
+
+poetry run python3 test/stress/stress_test.py \
+  --dataset /home/greg/PROJECTS/ERS/ere-basic/DEV/mdr-proj-data/mentions_100d.csv \
+  --seed 0 \
+  --records 100 \
+  --output /tmp/mentions_100d--stress_test.json
 ```
 
 ### High-diversity geography test
 
 ```bash
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_100c.csv \
   --seed 20 \
   --records 50 \
@@ -210,7 +216,7 @@ The JSON output has this structure:
 
 **Example**:
 ```bash
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_100a.csv \
   --seed 30 \
   --records 50
@@ -228,7 +234,7 @@ poetry run python3 test/stress_test.py \
 
 **Example**:
 ```bash
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_100b.csv \
   --seed 20 \
   --records 60
@@ -246,7 +252,7 @@ poetry run python3 test/stress_test.py \
 
 **Example**:
 ```bash
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_100c.csv \
   --seed 20 \
   --records 60
@@ -264,7 +270,7 @@ poetry run python3 test/stress_test.py \
 
 **Example**:
 ```bash
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_1000.csv \
   --seed 200 \
   --records 500
@@ -288,7 +294,7 @@ Useful for:
 
 ```bash
 # Pure cold-start: no seeding, no training
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_100a.csv \
   --no-train \
   --records 30
@@ -332,14 +338,14 @@ Latency (ms):
 
 ```bash
 # Warm-start baseline
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_100b.csv \
   --seed 50 \
   --records 50 \
   --output /tmp/warm.json
 
 # Cold-start equivalent
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_100b.csv \
   --no-train \
   --records 50 \
@@ -356,7 +362,7 @@ Process a fixed number of records:
 
 ```bash
 # Process exactly 100 records after seeding
-python3 test/stress_test.py \
+python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_1000.csv \
   --seed 200 \
   --records 100
@@ -376,7 +382,7 @@ Process records for a fixed duration:
 
 ```bash
 # Run for 60 seconds, process as many records as possible
-python3 test/stress_test.py \
+python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_1000.csv \
   --seed 200 \
   --time 60
@@ -422,7 +428,7 @@ python3 test/stress_test.py \
 Verify setup works:
 
 ```bash
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_100a.csv \
   --seed 10 \
   --records 20 \
@@ -436,7 +442,7 @@ poetry run python3 test/stress_test.py \
 Quick baseline with balanced clustering:
 
 ```bash
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_100b.csv \
   --seed 20 \
   --records 50 \
@@ -450,7 +456,7 @@ poetry run python3 test/stress_test.py \
 Test with realistic data volume:
 
 ```bash
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_1000.csv \
   --seed 200 \
   --records 300 \
@@ -464,7 +470,7 @@ poetry run python3 test/stress_test.py \
 Test geographic diversity:
 
 ```bash
-poetry run python3 test/stress_test.py \
+poetry run python3 test/stress/stress_test.py \
   --dataset test/data/stress/mentions_100c.csv \
   --seed 20 \
   --records 50 \
@@ -476,7 +482,7 @@ poetry run python3 test/stress_test.py \
 ## Troubleshooting
 
 **"ModuleNotFoundError: No module named 'ere'"**
-- Run with `poetry run`: `poetry run python3 test/stress_test.py`
+- Run with `poetry run`: `poetry run python3 test/stress/stress_test.py`
 
 **"No such file: test/data/stress/mentions_100a.csv"**
 - Check dataset path is correct

@@ -22,16 +22,16 @@ class Mention(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _from_flat_dict(cls, data: object) -> object:
+    def _from_flat_dict(cls, raw_input: object) -> object:
         """
         Accept the legacy flat-dict format used throughout the codebase:
             {"mention_id": "m1", "legal_name": "Acme", "country_code": "US"}
         and convert to the structured form expected by the model.
         """
-        if isinstance(data, dict) and "mention_id" in data and "id" not in data:
+        if isinstance(raw_input, dict) and "mention_id" in raw_input and "id" not in raw_input:
             return {
-                "id": MentionId(value=data["mention_id"]),
-                "attributes": {k: v for k, v in data.items() if k != "mention_id"},
+                "id": MentionId(value=raw_input["mention_id"]),
+                "attributes": {k: v for k, v in raw_input.items() if k != "mention_id"},
             }
         return data
 

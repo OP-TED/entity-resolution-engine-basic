@@ -97,7 +97,7 @@ class InMemorySimilarityRepository(SimilarityRepository):
         return [
             link
             for link in self._links
-            if link.left_id == mention_id or link.right_id == mention_id
+            if mention_id in (link.left_id, link.right_id)
         ]
 
 
@@ -128,8 +128,8 @@ class InMemoryClusterRepository(ClusterRepository):
             memberships[cluster_id].append(mention_id)
 
         # Sort member lists for determinism
-        for cluster_id in memberships:
-            memberships[cluster_id].sort(key=lambda m: m.value)
+        for cluster_id, members in memberships.items():
+            members.sort(key=lambda m: m.value)
 
         return memberships
 

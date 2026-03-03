@@ -62,8 +62,8 @@ class DuckDBMentionRepository(MentionRepository):
 
     def count(self) -> int:
         """Return the total number of mentions in storage."""
-        result = self._con.execute("SELECT COUNT(*) FROM mentions").fetchone()
-        return result[0]
+        row = self._con.execute("SELECT COUNT(*) FROM mentions").fetchone()
+        return row[0]
 
 
 class DuckDBSimilarityRepository(SimilarityRepository):
@@ -89,7 +89,7 @@ class DuckDBSimilarityRepository(SimilarityRepository):
             return
 
         # Build DataFrame with columns: mention_id_l, mention_id_r, match_probability
-        data = [
+        rows = [
             {
                 "mention_id_l": link.left_id.value,
                 "mention_id_r": link.right_id.value,
@@ -97,7 +97,7 @@ class DuckDBSimilarityRepository(SimilarityRepository):
             }
             for link in links
         ]
-        df = pd.DataFrame(data)
+        df = pd.DataFrame(rows)
 
         # Vectorized INSERT: INSERT INTO similarities SELECT * FROM df
         self._con.from_df(df)
@@ -107,8 +107,8 @@ class DuckDBSimilarityRepository(SimilarityRepository):
 
     def count(self) -> int:
         """Return the total number of mention-links in storage."""
-        result = self._con.execute("SELECT COUNT(*) FROM similarities").fetchone()
-        return result[0]
+        row = self._con.execute("SELECT COUNT(*) FROM similarities").fetchone()
+        return row[0]
 
     def find_for(self, mention_id: MentionId) -> list[MentionLink]:
         """
@@ -164,22 +164,22 @@ class DuckDBClusterRepository(ClusterRepository):
 
         Raises KeyError if the mention has no cluster assignment.
         """
-        result = self._con.execute(
+        row = self._con.execute(
             "SELECT cluster_id FROM clusters WHERE mention_id = ?",
             [mention_id.value],
         ).fetchone()
 
-        if result is None:
+        if row is None:
             raise KeyError(f"No cluster assignment for mention {mention_id}")
 
-        return ClusterId(value=result[0])
+        return ClusterId(value=row[0])
 
     def count(self) -> int:
         """Return the total number of distinct clusters in storage."""
-        result = self._con.execute(
+        row = self._con.execute(
             "SELECT COUNT(DISTINCT cluster_id) FROM clusters"
         ).fetchone()
-        return result[0]
+        return row[0]
 
     def get_all_memberships(self) -> dict[ClusterId, list[MentionId]]:
         """

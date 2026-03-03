@@ -147,6 +147,35 @@ def check_redis_connectivity(host: str, port: int, db: int, password: str) -> re
 # Request/Response Handling
 # ===============================================================================
 
+def escape_turtle_string(value: str) -> str:
+    """
+    Escape a string for safe inclusion in Turtle RDF format.
+
+    Handles special characters: backslash, double quotes, newlines, carriage returns, tabs.
+
+    Args:
+        value: String to escape
+
+    Returns:
+        Escaped string safe for use in Turtle string literals
+    """
+    if not value:
+        return value
+
+    # Escape backslash first (must be done before other escapes)
+    value = value.replace("\\", "\\\\")
+    # Escape double quotes
+    value = value.replace('"', '\\"')
+    # Escape newlines
+    value = value.replace("\n", "\\n")
+    # Escape carriage returns
+    value = value.replace("\r", "\\r")
+    # Escape tabs
+    value = value.replace("\t", "\\t")
+
+    return value
+
+
 def create_entity_mention_request(
     request_id: str,
     source_id: str,
@@ -162,6 +191,7 @@ def create_entity_mention_request(
     Create an EntityMentionResolutionRequest payload.
 
     Uses RDF/Turtle format with entity metadata including extended address fields.
+    All string values are properly escaped for Turtle compatibility.
 
     Args:
         request_id: Unique request identifier
@@ -174,16 +204,24 @@ def create_entity_mention_request(
         post_name: Optional city/locality name
         thoroughfare: Optional street address
     """
+    # Escape all string values for Turtle safety
+    legal_name_safe = escape_turtle_string(legal_name or "")
+    country_code_safe = escape_turtle_string(country_code or "")
+
     # Build address properties dynamically
-    address_props = [f'epo:hasCountryCode "{country_code}"']
+    address_props = [f'epo:hasCountryCode "{country_code_safe}"']
     if nuts_code:
-        address_props.append(f'epo:hasNutsCode "{nuts_code}"')
+        nuts_code_safe = escape_turtle_string(nuts_code)
+        address_props.append(f'epo:hasNutsCode "{nuts_code_safe}"')
     if post_code:
-        address_props.append(f'locn:postCode "{post_code}"')
+        post_code_safe = escape_turtle_string(post_code)
+        address_props.append(f'locn:postCode "{post_code_safe}"')
     if post_name:
-        address_props.append(f'locn:postName "{post_name}"')
+        post_name_safe = escape_turtle_string(post_name)
+        address_props.append(f'locn:postName "{post_name_safe}"')
     if thoroughfare:
-        address_props.append(f'locn:thoroughfare "{thoroughfare}"')
+        thoroughfare_safe = escape_turtle_string(thoroughfare)
+        address_props.append(f'locn:thoroughfare "{thoroughfare_safe}"')
 
     address_content = ' ;\n        '.join(address_props)
 
@@ -194,7 +232,7 @@ def create_entity_mention_request(
 @prefix epd: <http://data.europa.eu/a4g/resource/> .
 
 epd:ent{request_id} a org:Organization ;
-    epo:hasLegalName "{legal_name}" ;
+    epo:hasLegalName "{legal_name_safe}" ;
     cccev:registeredAddress [
         {address_content}
     ] .

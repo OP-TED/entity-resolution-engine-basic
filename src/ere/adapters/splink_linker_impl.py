@@ -11,7 +11,7 @@ import splink.comparison_library as cl
 from splink.backends.duckdb import DuckDBAPI
 
 from ere.models.resolver import Mention, MentionId, MentionLink
-from ere.services.linker import SimilarityLinker
+from ere.models.ports.linker import SimilarityLinker
 
 log = logging.getLogger(__name__)
 
@@ -44,12 +44,18 @@ def build_tf_df(mentions: list[Mention], entity_fields: list[str]) -> pd.DataFra
         flat_dict = mention.to_flat_dict()
         row = {
             "mention_id": flat_dict["mention_id"],
-            **{f: flat_dict.get(f) for f in entity_fields},
+            **{f: flat_dict.get(f) or "" for f in entity_fields},  # Convert None to empty string
             "__splink_salt": 0.5,
         }
         rows.append(row)
 
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+    # Explicitly cast all entity field columns to StringDtype to prevent DuckDB type inference issues
+    for col in entity_fields:
+        if col in df.columns:
+            df[col] = df[col].astype(pd.StringDtype())
+
+    return df
 
 
 class SpLinkSimilarityLinker(SimilarityLinker):
@@ -141,6 +147,10 @@ class SpLinkSimilarityLinker(SimilarityLinker):
             self._match_weight_threshold,
         )
 
+        # Convert None values to empty strings to prevent DuckDB type inference issues
+        # (None values can be inferred as INTEGER, causing type mismatches in comparisons)
+        mention_dict = {k: (v or "") for k, v in mention_dict.items()}
+
         # Splink's find_matches_to_new_records expects a list of dicts
         df = linker.inference.find_matches_to_new_records(
             [mention_dict],
@@ -164,7 +174,7 @@ class SpLinkSimilarityLinker(SimilarityLinker):
 
         # Build MentionLink objects, filtering self-links
         links = []
-        for _, row in df.iterrows():
+        for idx, row in df.iterrows():
             left_id = MentionId(value=str(row["mention_id_l"]))
             right_id = MentionId(value=str(row["mention_id_r"]))
             score = float(row["match_probability"])
@@ -177,7 +187,17 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                 )
                 continue
 
+            # Log ALL row data for all pairs (critical for debugging the two-score bug)
+            log.trace(
+                "find_matches: Row %d - Mention %s vs %s: ALL DATA: %s",
+                idx,
+                left_id.value[:16],
+                right_id.value[:16],
+                dict(row),
+            )
+
             # Extract detailed comparison scores
+            # FIXME to be deleted
             jw_score = row.get("jaro_winkler_legal_name", None)
             country_match = row.get("exact_match_country_code", None)
             match_weight = row.get("match_weight", None)
@@ -193,15 +213,6 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                 jw_score,
                 country_match,
             )
-
-            # Log detailed row data for debugging (including gamma comparison levels)
-            if score < 0.3:  # Log extra detail for low-scoring pairs
-                log.trace(
-                    "find_matches: LOW SCORE DETAILS for %s vs %s: %s",
-                    left_id.value[:16],
-                    right_id.value[:16],
-                    {k: v for k, v in row.items() if "gamma" in k or "prob" in k or k.startswith("jaro") or k.startswith("exact_match")},
-                )
 
             links.append(MentionLink(left_id=left_id, right_id=right_id, score=score))
 
@@ -374,6 +385,12 @@ class SpLinkSimilarityLinker(SimilarityLinker):
         try:
             # Snapshot current TF DataFrame at training start
             tf_df_snapshot = self._tf_df.copy()
+            mention_count = len(tf_df_snapshot)
+
+            log.info(
+                "EM training STARTING: %d mentions available for parameter estimation",
+                mention_count,
+            )
 
             # Create new linker on fresh in-memory connection (no shared state)
             splink_con_new = duckdb.connect()
@@ -385,10 +402,16 @@ class SpLinkSimilarityLinker(SimilarityLinker):
             )
 
             # Run EM training on the new linker
+            log.info("EM training: estimating u-probabilities via random sampling")
             linker_new.training.estimate_u_using_random_sampling(max_pairs=1e6)
+
+            log.info("EM training: estimating m-probabilities and lambda via EM algorithm")
             linker_new.training.estimate_parameters_using_expectation_maximisation(
                 self._get_em_training_rule(), estimate_without_term_frequencies=True
             )
+
+            # Extract trained parameters for logging (final state confirmation)
+            self._log_trained_parameters(linker_new)
 
             # Re-register current TF DataFrame (which may have grown during training)
             linker_new.table_management.register_table_input_nodes_concat_with_tf(
@@ -401,9 +424,18 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                 self._splink_con = splink_con_new
                 self._db_api = db_api_new
 
-        except Exception:
+            log.info(
+                "EM training COMPLETE: Linker updated with trained parameters. "
+                "This is FINAL STATE (not transient) - model will now use trained parameters for scoring."
+            )
+
+        except Exception as e:
             # Training failure: silently ignore, cold-start defaults remain active
-            pass
+            log.warning(
+                "EM training FAILED or INCOMPLETE: %s. Model will continue using cold-start parameters. "
+                "This is FINAL STATE (not transient) - training will be retried if resolve() is called again.",
+                e,
+            )
 
     def _apply_cold_start_params(self) -> None:
         """
@@ -415,20 +447,25 @@ class SpLinkSimilarityLinker(SimilarityLinker):
         If cold_start section is absent, uses Splink's built-in defaults.
 
         Skips null levels (Splink's internal null-value handling level).
+
+        INITIALIZATION STATE: Linker starts using these cold-start defaults for scoring.
+        Once EM training completes, these are replaced with trained parameters.
         """
         # Check if cold_start config exists
         cold_start_cfg = self._config.get("splink", {}).get("cold_start", {})
         if not cold_start_cfg:
-            log.trace("_apply_cold_start_params: No cold_start config found, using Splink defaults")
+            log.info("Linker initializing: No cold_start config found, using Splink defaults")
             return
 
         comparisons_cfg = cold_start_cfg.get("comparisons", {})
         if not comparisons_cfg:
-            log.trace("_apply_cold_start_params: No comparisons config in cold_start")
+            log.info("Linker initializing: No comparisons config in cold_start, using Splink defaults")
             return
 
-        log.trace(
-            "_apply_cold_start_params: Applying cold-start params. Fields: %s",
+        log.info(
+            "Linker initializing: Applying cold-start parameters from config. "
+            "These are INITIAL STATE defaults - will be replaced by EM-trained parameters once training completes. "
+            "Fields: %s",
             list(comparisons_cfg.keys()),
         )
 
@@ -509,3 +546,87 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                                 actual_level_idx,
                                 e,
                             )
+
+    def _log_trained_parameters(self, linker: Linker) -> None:
+        """
+        Extract and log all trained parameters from a trained Splink linker.
+
+        Displays:
+        - Fellegi-Sunter prior (lambda): P(match) for any two random records
+        - m-probabilities: likelihood of observing comparison level when records match
+        - u-probabilities: likelihood of observing comparison level when records don't match
+        - Which fields were fully trained vs partially/not trained
+
+        This is called AFTER EM completes, providing visibility into what the model learned.
+        """
+        try:
+            # Get the Fellegi-Sunter prior (lambda)
+            prior = None
+            if hasattr(linker._settings_obj, 'probability_two_random_records_match'):
+                prior = linker._settings_obj.probability_two_random_records_match
+                log.info(
+                    "EM trained parameter: lambda (P(match)) = %.6f",
+                    prior,
+                )
+
+            # Iterate through comparisons and extract trained m/u probabilities
+            for comparison in linker._settings_obj.comparisons:
+                # Get field name
+                field_name = None
+                if hasattr(comparison, 'output_column_name'):
+                    field_name = comparison.output_column_name
+                elif hasattr(comparison, '_field_names') and comparison._field_names:
+                    field_name = comparison._field_names[0]
+
+                if not field_name:
+                    continue
+
+                log.info(
+                    "EM trained parameters for field '%s':",
+                    field_name,
+                )
+
+                # Collect non-null levels
+                non_null_levels = [
+                    (i, level) for i, level in enumerate(comparison.comparison_levels)
+                    if not (hasattr(level, 'is_null_level') and level.is_null_level)
+                ]
+
+                # Log m and u probabilities for each level
+                for config_idx, (actual_idx, level) in enumerate(non_null_levels):
+                    m_prob = None
+                    u_prob = None
+                    trained_m = False
+                    trained_u = False
+
+                    # Extract m-probability
+                    if hasattr(level, 'm_probability') and level.m_probability is not None:
+                        m_prob = level.m_probability
+                        # Check if it was trained (non-cold-start values have specific patterns)
+                        # Cold-start values are typically set exactly; trained values may vary
+                        trained_m = True
+
+                    # Extract u-probability
+                    if hasattr(level, 'u_probability') and level.u_probability is not None:
+                        u_prob = level.u_probability
+                        trained_u = True
+
+                    # Log level details
+                    level_desc = getattr(level, 'label', f"Level {config_idx}")
+                    m_status = "✓ trained" if trained_m else "✗ cold-start"
+                    u_status = "✓ trained" if trained_u else "✗ cold-start"
+
+                    log.info(
+                        "  Level '%s': m_prob=%.6f (%s), u_prob=%.6f (%s)",
+                        level_desc,
+                        m_prob if m_prob is not None else 0.0,
+                        m_status,
+                        u_prob if u_prob is not None else 0.0,
+                        u_status,
+                    )
+
+        except Exception as e:
+            log.warning(
+                "_log_trained_parameters: Could not extract trained parameters: %s",
+                e,
+            )

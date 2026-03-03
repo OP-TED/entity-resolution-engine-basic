@@ -149,6 +149,12 @@ class EntityResolver:
         # Trigger auto-training if threshold is reached (non-blocking background thread).
         count = self._mention_repo.count()
         if self._config.auto_train_threshold > 0 and count == self._config.auto_train_threshold:
+            log.info(
+                "Auto-training triggered: %d mentions reached (threshold=%d). "
+                "Starting background EM training thread. Scoring continues with current parameters.",
+                count,
+                self._config.auto_train_threshold,
+            )
             threading.Thread(
                 target=self._linker.train,
                 daemon=True,
@@ -404,6 +410,10 @@ class EntityResolutionService(AbstractResolver):
         now = datetime.now(timezone.utc)
 
         if not isinstance(request, EntityMentionResolutionRequest):
+            log.error(
+                "Unsupported request type: %s",
+                type(request).__name__,
+            )
             return EREErrorResponse(
                 ere_request_id=getattr(request, "ere_request_id", "unknown"),
                 error_type="UnsupportedRequestType",
@@ -449,6 +459,7 @@ class EntityResolutionService(AbstractResolver):
                 timestamp=now,
             )
         except Exception as exc:
+            log.error("Resolution error for mention %s: %s", request.ere_request_id, exc, exc_info=True)
             return EREErrorResponse(
                 ere_request_id=request.ere_request_id,
                 error_type=type(exc).__name__,

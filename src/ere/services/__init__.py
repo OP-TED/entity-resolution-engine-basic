@@ -62,7 +62,7 @@ class AbstractService(ABC):
                 f"{self.__class__.__name__}.run(): service is already running"
             )
 
-        log.info(f"Entering {self.__class__.__name__}.run()")
+        log.info("Entering %s.run()", self.__class__.__name__)
         self._is_running = True
 
     def start(self):
@@ -84,37 +84,37 @@ class AbstractService(ABC):
             finally:
                 loop.close()
 
-        log.info(f"Starting {self.__class__.__name__} in the background")
+        log.info("Starting %s in the background", self.__class__.__name__)
         # Unfortunately, components like pytest seems to ignore daemon mode, but having it doesn't
         # hurt.
         #
         self._thread = Thread(target=runner, daemon=True)
         self._thread.start()
         # TODO: wait until the service is really started?
-        log.info(f"{self.__class__.__name__} started in the background")
+        log.info("%s started in the background", self.__class__.__name__)
 
     def stop(self):
         if not self._is_running:
             log.warning(
-                f"{self.__class__.__name__}.stop(): service is not running, ignoring stop request"
+                "%s.stop(): service is not running, ignoring stop request", self.__class__.__name__
             )
             return
 
-        log.info(f"Stopping {self.__class__.__name__}")
+        log.info("Stopping %s", self.__class__.__name__)
         self._is_running = False
 
         if not self._thread:
             # It was started in the foreground by calling run(), so we're done
-            log.info(f"{self.__class__.__name__} stopped")
+            log.info("%s stopped", self.__class__.__name__)
             return
 
         self._thread.join(timeout=self.async_timeout + 1.0)
         if self._thread.is_alive():
             log.warning(
-                f"{self.__class__.__name__}.stop(): background thread did not stop within the configured timeout"
+                "%s.stop(): background thread did not stop within the configured timeout", self.__class__.__name__
             )
         else:
-            log.info(f"{self.__class__.__name__} stopped")
+            log.info("%s stopped", self.__class__.__name__)
 
         self._thread = None
 
@@ -193,7 +193,8 @@ class AbstractPubSubResolutionService(AbstractService):
         try:
             with self.executor_type(max_workers=self.parallelism) as executor:
                 log.debug(
-                    f"PubSubResolutionService: starting service loop with parallelism: {self.parallelism}, executor type: {self.executor_type.__name__}"
+                    "PubSubResolutionService: starting service loop with parallelism: %s, executor type: %s",
+                    self.parallelism, self.executor_type.__name__
                 )
                 while self._is_running:
                     # We need this to allow for periodically checking if we were stopped
@@ -204,7 +205,7 @@ class AbstractPubSubResolutionService(AbstractService):
                         if request is None:
                             continue  # timeout or shutdown
                         log.debug(
-                            f"PubSubResolutionService: dispatching request id: {request.ereRequestId}"
+                            "PubSubResolutionService: dispatching request id: %s", request.ereRequestId
                         )
                         executor.submit(self._process_push_helper, request)
                     except asyncio.TimeoutError:
@@ -224,20 +225,20 @@ class AbstractPubSubResolutionService(AbstractService):
         """
 
         log.debug(
-            f"Service: sending request id: {request.ereRequestId} to the resolver"
+            "Service: sending request id: %s to the resolver", request.ereRequestId
         )
         response = self.resolver.process_request(request)
         log.debug(
-            f"Service: got response for request id: {request.ereRequestId} from the resolver, pushing it back"
+            "Service: got response for request id: %s from the resolver, pushing it back", request.ereRequestId
         )
         self._push_response(response)
 
 
 # Resolver service exports
-from ere.services.linker import SimilarityLinker
-from ere.services.resolver_config import ResolverConfig
-from ere.services.entity_resolution_service import EntityResolutionService
-from ere.adapters.repositories import (
+from ere.services.linker import SimilarityLinker  # pylint: disable=C0413
+from ere.services.resolver_config import ResolverConfig  # pylint: disable=C0413
+from ere.services.entity_resolution_service import EntityResolutionService  # pylint: disable=C0413
+from ere.adapters.repositories import (  # pylint: disable=C0413
     ClusterRepository,
     MentionRepository,
     SimilarityRepository,

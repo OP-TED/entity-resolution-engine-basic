@@ -106,8 +106,8 @@ def main() -> None:
         )
         client.ping()
         log.info("Connected to Redis")
-    except Exception as e:
-        log.error(f"Failed to connect to Redis: {e}")
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        log.error("Failed to connect to Redis: %s", e)
         sys.exit(1)
 
     # Build resolver, mapper, and service once before the loop
@@ -121,8 +121,8 @@ def main() -> None:
         mapper = build_rdf_mapper(rdf_mapping_path=rdf_mapping_path)
         service = build_entity_resolution_service(resolver, mapper)
         log.info("Entity resolution service ready")
-    except Exception as e:
-        log.error(f"Failed to build entity resolution service: {e}")
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        log.error("Failed to build entity resolution service: %s", e)
         sys.exit(1)
 
     # Create queue worker
@@ -151,15 +151,16 @@ def main() -> None:
             worker.process_single_message()
     except KeyboardInterrupt:
         log.info("Service interrupted")
-    except Exception as e:
-        log.exception(f"Unexpected error in service loop: {e}")
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        log.exception("Unexpected error in service loop: %s", e)
     finally:
         # Close DuckDB connection if it was created
         if resolver is not None:
             # Access the underlying connection through the repositories
-            mention_repo = resolver._mention_repo
+            # TODO: expose via public API
+            mention_repo = resolver._mention_repo  # pylint: disable=protected-access
             if hasattr(mention_repo, "_con"):
-                mention_repo._con.close()
+                mention_repo._con.close()  # pylint: disable=protected-access
                 log.info("DuckDB connection closed")
         client.close()
         log.info("ERE service stopped")

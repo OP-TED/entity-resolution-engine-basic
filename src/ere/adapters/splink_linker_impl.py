@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import logging
+import threading
+
 import duckdb
 import pandas as pd
-import threading
 from splink import Linker, SettingsCreator, block_on
 import splink.comparison_library as cl
 from splink.backends.duckdb import DuckDBAPI

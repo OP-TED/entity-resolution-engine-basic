@@ -4,10 +4,10 @@ import logging
 from datetime import datetime, timezone
 
 from linkml_runtime.dumpers import JSONDumper
+from erspec.models.ere import EREErrorResponse, EREResponse
 
 from ere.adapters.utils import get_request_from_message
 from ere.services.entity_resolution_service import EntityResolutionService
-from erspec.models.ere import EREErrorResponse, EREResponse
 
 log = logging.getLogger(__name__)
 
@@ -54,14 +54,14 @@ class RedisQueueWorker:
 
         # Decode and log
         request_str = raw_msg.decode("utf-8")
-        log.info(f"Received request: {request_str}")
+        log.info("Received request: %s", request_str)
 
         # Parse and process
         try:
             request = get_request_from_message(raw_msg)
             response = self.service.process_request(request)
-        except Exception as e:
-            log.error(f"Failed to parse or process request: {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            log.error("Failed to parse or process request: %s", e)
             response = self._build_error_response(str(e))
 
         # Send response
@@ -74,14 +74,14 @@ class RedisQueueWorker:
         try:
             self.redis_client.lpush(self.response_queue, response_str)
             request_id = getattr(response, "ere_request_id", "unknown")
-            log.info(f"Sent response for request_id={request_id}")
-        except Exception as e:
-            log.error(f"Failed to send response: {e}")
+            log.info("Sent response for request_id=%s", request_id)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            log.error("Failed to send response: %s", e)
 
     @staticmethod
     def _build_error_response(error_detail: str) -> EREErrorResponse:
         """Build error response for request processing failures."""
-        log.error(f"Building error response: {error_detail}")
+        log.error("Building error response: %s", error_detail)
         return EREErrorResponse(
             ere_request_id="unknown",
             error_type="ProcessingError",

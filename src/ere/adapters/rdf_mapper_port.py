@@ -39,4 +39,3 @@ class RDFMapper(ABC):
         Raises:
             ValueError: If RDF parsing fails or entity type is unknown.
         """
-        ...

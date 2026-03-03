@@ -1,9 +1,13 @@
-import redis
-from linkml_runtime.dumpers import JSONDumper
-from redis.exceptions import ConnectionError, TimeoutError
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Generator
+
+import redis
+from linkml_runtime.dumpers import JSONDumper
+from redis.exceptions import (
+    ConnectionError as RedisConnectionError,
+    TimeoutError as RedisTimeoutError,
+)
 
 from ere.adapters.utils import get_response_from_message
 from erspec.models.ere import ERERequest, EREResponse
@@ -61,17 +65,18 @@ class RedisEREClient(AbstractClient):
     ):
         if isinstance(config_or_client, RedisConnectionConfig):
             self.config = config_or_client
-            log.info(f"RedisEREClient: connecting to {self.config}")
+            log.info("RedisEREClient: connecting to %s", self.config)
             self._redis_client = redis.Redis(
                 host=self.config.host, port=self.config.port, db=self.config.db
             )
         else:
             log.info(
-                f"RedisEREClient: using existing redis client #{id(config_or_client)}"
+                "RedisEREClient: using existing redis client #%s", id(config_or_client)
             )
             conn_args = config_or_client.connection_pool.connection_kwargs
             log.debug(
-                f"Redis client config: host={conn_args.get('host')}, port={conn_args.get('port')}, db={conn_args.get('db')}, unix_socket_path={conn_args.get('unix_socket_path')}"
+                "Redis client config: host=%s, port=%s, db=%s, unix_socket_path=%s",
+                conn_args.get('host'), conn_args.get('port'), conn_args.get('db'), conn_args.get('unix_socket_path')
             )
             self._redis_client = config_or_client
 
@@ -82,26 +87,26 @@ class RedisEREClient(AbstractClient):
 
     def push_request(self, request: ERERequest):
         log.debug(
-            f"Redis ERE client, pushing request id: {request.ereRequestId} to channel: {self.request_channel_id}"
+            "Redis ERE client, pushing request id: %s to channel: %s", request.ereRequestId, self.request_channel_id
         )
         msg_json_str = _linkml_dumper.dumps(request)
         self._redis_client.lpush(self.request_channel_id, msg_json_str)
-        log.debug(f"Redis ERE client, request id: {request.ereRequestId} sent")
+        log.debug("Redis ERE client, request id: %s sent", request.ereRequestId)
 
     def subscribe_responses(self) -> Generator[EREResponse, None, None]:
         while True:
             try:
                 log.debug(
-                    f"Redis ERE client, waiting for response on channel: {self.response_channel_id}"
+                    "Redis ERE client, waiting for response on channel: %s", self.response_channel_id
                 )
                 _, raw_msg = self._redis_client.brpop(self.response_channel_id)
                 response = get_response_from_message(raw_msg, self.character_encoding)
                 log.debug(
-                    f"Redis ERE client, received response id: {response.ereRequestId}"
+                    "Redis ERE client, received response id: %s", response.ereRequestId
                 )
                 yield response
-            except (ConnectionError, TimeoutError) as ex:
+            except (RedisConnectionError, RedisTimeoutError) as ex:
                 log.error(
-                    f"Redis ERE client, ending subscribe_responses() due to connection issue: {ex}"
+                    "Redis ERE client, ending subscribe_responses() due to connection issue: %s", ex
                 )
                 raise

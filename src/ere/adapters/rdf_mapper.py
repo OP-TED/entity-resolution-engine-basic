@@ -17,7 +17,7 @@ def load_entity_mappings(yaml_path: str | Path) -> dict[str, dict[str, Any]]:
         where each value in "fields" is a list of resolved URIRefs (property path steps).
     """
     yaml_path = Path(yaml_path)
-    with open(yaml_path) as f:
+    with open(yaml_path, encoding="utf-8") as f:
         config = yaml.safe_load(f)
 
     # Build namespace prefix registry

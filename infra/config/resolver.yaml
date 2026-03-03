@@ -12,8 +12,8 @@ entity_fields:
 
 # DuckDB database configuration
 duckdb:
-  # type: in-memory  # Options: "in-memory" or "persistent"
-  type: persistent
+  type: in-memory  # Options: "in-memory" or "persistent"
+  # type: persistent
 #  path: data/app.duckdb  # Default path for persistent mode (overridden by DUCKDB_PATH env var)
 
 cache_strategy: tf_incremental

@@ -1,5 +1,7 @@
 """In-memory stub implementations of service ports for testing."""
 
+from typing import Protocol, runtime_checkable
+
 from ere.models.resolver import (
     ClusterId,
     ClusterMembership,
@@ -23,7 +25,6 @@ def _get_linker_type():
 
 
 # Define base classes as protocols to avoid circular import
-from typing import Protocol, runtime_checkable
 
 
 @runtime_checkable

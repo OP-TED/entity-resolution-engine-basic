@@ -51,7 +51,7 @@ def build_entity_resolver(
     else:
         config_path = Path(resolver_config_path)
 
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         raw_config = yaml.safe_load(f)
 
     resolver_config = ResolverConfig.from_dict(raw_config)

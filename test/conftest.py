@@ -28,7 +28,7 @@ def pytest_configure(config: pytest.Config):
 
     # Setup logging from YAML config file
     cfg_path = os.path.join(os.path.dirname(__file__), "resources/logging-test.yml")
-    with open(cfg_path) as f:
+    with open(cfg_path, encoding="utf-8") as f:
         config = yaml.safe_load(f)
     logging.config.dictConfig(config)
 
@@ -153,7 +153,7 @@ def entity_resolution_service():
 
     # Load resolver config (from infra/config directory)
     config_path = Path(__file__).parent.parent / "infra" / "config" / "resolver.yaml"
-    with open(config_path) as f:
+    with open(config_path, encoding="utf-8") as f:
         raw_config = yaml.safe_load(f)
 
     # Entity fields are the source of truth from config

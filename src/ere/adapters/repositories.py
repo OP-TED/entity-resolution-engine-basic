@@ -30,7 +30,6 @@ class MentionRepository(ABC):
         Args:
             mention: The Mention to persist.
         """
-        ...
 
     @abstractmethod
     def load_all(self) -> list[Mention]:
@@ -40,7 +39,6 @@ class MentionRepository(ABC):
         Returns:
             List of all Mention objects.
         """
-        ...
 
     @abstractmethod
     def count(self) -> int:
@@ -50,7 +48,6 @@ class MentionRepository(ABC):
         Returns:
             Non-negative integer count.
         """
-        ...
 
 
 class SimilarityRepository(ABC):
@@ -71,7 +68,6 @@ class SimilarityRepository(ABC):
         Args:
             links: List of MentionLink objects to save.
         """
-        ...
 
     @abstractmethod
     def count(self) -> int:
@@ -81,7 +77,6 @@ class SimilarityRepository(ABC):
         Returns:
             Non-negative integer count.
         """
-        ...
 
     @abstractmethod
     def find_for(self, mention_id: MentionId) -> list[MentionLink]:
@@ -100,7 +95,6 @@ class SimilarityRepository(ABC):
         Returns:
             List of MentionLink objects (may be empty).
         """
-        ...
 
 
 class ClusterRepository(ABC):
@@ -121,7 +115,6 @@ class ClusterRepository(ABC):
         Args:
             membership: ClusterMembership object (mention_id -> cluster_id).
         """
-        ...
 
     @abstractmethod
     def find_cluster_of(self, mention_id: MentionId) -> ClusterId:
@@ -137,7 +130,6 @@ class ClusterRepository(ABC):
         Raises:
             KeyError: If the mention has no cluster assignment.
         """
-        ...
 
     @abstractmethod
     def count(self) -> int:
@@ -147,7 +139,6 @@ class ClusterRepository(ABC):
         Returns:
             Non-negative integer count.
         """
-        ...
 
     @abstractmethod
     def get_all_memberships(self) -> dict[ClusterId, list[MentionId]]:
@@ -158,4 +149,3 @@ class ClusterRepository(ABC):
             Dict mapping ClusterId -> list of MentionIds in that cluster,
             sorted for determinism.
         """
-        ...

@@ -4,8 +4,6 @@ import logging
 import threading
 from datetime import datetime, timezone
 
-log = logging.getLogger(__name__)
-
 from erspec.models.core import ClusterReference, EntityMention
 from erspec.models.ere import (
     EntityMentionResolutionRequest,
@@ -16,7 +14,6 @@ from erspec.models.ere import (
 )
 
 from ere.adapters import AbstractResolver
-
 from ere.adapters.rdf_mapper_port import RDFMapper
 from ere.adapters.repositories import (
     ClusterRepository,
@@ -35,6 +32,8 @@ from ere.models.resolver import (
 )
 from ere.services.resolver_config import ResolverConfig
 from ere.services.linker import SimilarityLinker
+
+log = logging.getLogger(__name__)
 
 
 class EntityResolver:

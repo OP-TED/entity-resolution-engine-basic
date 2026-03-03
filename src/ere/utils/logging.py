@@ -13,7 +13,7 @@ logging.addLevelName(TRACE_LEVEL_NUM, "TRACE")
 def _trace(self, message, *args, **kwargs):
     """Log at TRACE level."""
     if self.isEnabledFor(TRACE_LEVEL_NUM):
-        self._log(TRACE_LEVEL_NUM, message, args, **kwargs)
+        self._log(TRACE_LEVEL_NUM, message, args, **kwargs)  # pylint: disable=protected-access
 
 
 # Add trace method to Logger class
@@ -45,4 +45,4 @@ def configure_logging(log_level: str = None) -> None:
         datefmt="%Y-%m-%dT%H:%M:%S",
         stream=sys.stdout,
     )
-    logging.getLogger(__name__).info(f"Logging configured at level {log_level}")
+    logging.getLogger(__name__).info("Logging configured at level %s", log_level)

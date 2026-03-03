@@ -37,7 +37,6 @@ class SimilarityLinker(ABC):
             List of MentionLink objects. Empty if no candidates exist or
             all pairs are below match_weight_threshold.
         """
-        ...
 
     @abstractmethod
     def register_mention(self, mention: Mention) -> None:
@@ -50,7 +49,6 @@ class SimilarityLinker(ABC):
         Args:
             mention: The Mention to add to the search space.
         """
-        ...
 
     @abstractmethod
     def train(self) -> None:
@@ -60,4 +58,3 @@ class SimilarityLinker(ABC):
         Safe to call multiple times (retraining is idempotent).
         Implementations handle insufficient data gracefully (e.g., via cold-start defaults).
         """
-        ...

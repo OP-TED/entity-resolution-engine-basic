@@ -361,6 +361,14 @@ def main(data_file: str | None = None):
     logger.info("Listening for responses...")
     logger.info("-" * 80)
 
+    # Track mentions for summary: map request_id → (legal_name, cluster_id)
+    mention_tracking = {}
+    for mention in demo_mentions:
+        mention_tracking[mention["request_id"]] = {
+            "legal_name": mention["legal_name"],
+            "cluster_id": None,  # Will be filled in from response
+        }
+
     # Listen for responses
     responses_received = {}
     start_time = time.time()
@@ -380,7 +388,7 @@ def main(data_file: str | None = None):
 
             if logger.isEnabledFor(TRACE):
                 logger.log(TRACE, f"Full response message:\n{json.dumps(response, indent=2)}")
-            
+
             req_id = response["entity_mention_id"]["request_id"]
             responses_received[req_id] = response
 
@@ -394,6 +402,13 @@ def main(data_file: str | None = None):
 
             logger.info(f"  Candidates:")
 
+            # Track the top cluster assignment (first candidate is the assignment)
+            if response.get("candidates"):
+                top_candidate = response["candidates"][0]
+                assigned_cluster = top_candidate["cluster_id"]
+                mention_tracking[req_id]["cluster_id"] = assigned_cluster
+                logger.info(f"  → Assigned to cluster: {assigned_cluster}")
+
             for i, candidate in enumerate(response.get("candidates", []), 1):
                 logger.info(
                     f"    {i}. Cluster {candidate['cluster_id']}: "
@@ -403,6 +418,54 @@ def main(data_file: str | None = None):
 
     logger.info("-" * 80)
     logger.info(f"\nDemo complete. Received {len(responses_received)}/{len(request_ids)} responses.")
+
+    # Build clustering summary as single block
+    summary_lines = []
+    summary_lines.append("=" * 80)
+    summary_lines.append("CLUSTERING SUMMARY")
+    summary_lines.append("=" * 80)
+
+    # Group mentions by assigned cluster
+    clusters = {}
+    unassigned = []
+
+    for req_id in request_ids:
+        tracking = mention_tracking.get(req_id)
+        if tracking:
+            cluster_id = tracking["cluster_id"]
+            legal_name = tracking["legal_name"]
+
+            if cluster_id is None:
+                unassigned.append((req_id, legal_name))
+            else:
+                if cluster_id not in clusters:
+                    clusters[cluster_id] = []
+                clusters[cluster_id].append((req_id, legal_name))
+
+    # Build cluster output
+    if clusters:
+        for cluster_id in sorted(clusters.keys()):
+            members = clusters[cluster_id]
+            summary_lines.append("")
+            summary_lines.append(f"{cluster_id} ({len(members)} members):")
+            for req_id, legal_name in members:
+                summary_lines.append(f"  {req_id:4s} | {legal_name}")
+    else:
+        summary_lines.append("")
+        summary_lines.append("(No clusters formed)")
+
+    # Add unassigned mentions
+    if unassigned:
+        summary_lines.append("")
+        summary_lines.append(f"Unassigned ({len(unassigned)} mentions):")
+        for req_id, legal_name in unassigned:
+            summary_lines.append(f"  {req_id:4s} | {legal_name}")
+
+    summary_lines.append("=" * 80)
+
+    # Print entire summary in one log call
+    summary_block = "\n".join(summary_lines)
+    logger.info(f"\n{summary_block}")
 
     # Summary
     if len(responses_received) == len(request_ids):

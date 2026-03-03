@@ -33,7 +33,7 @@ class Mention(BaseModel):
                 "id": MentionId(value=raw_input["mention_id"]),
                 "attributes": {k: v for k, v in raw_input.items() if k != "mention_id"},
             }
-        return data
+        return raw_input
 
     def get(self, key: str) -> str | None:
         """Get an attribute value by key, returning None if absent."""

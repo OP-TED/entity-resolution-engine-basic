@@ -151,7 +151,7 @@ def rdf_mapping_path():
 
 
 @pytest.fixture
-def entity_resolution_service(resolver_config_path, rdf_mapping_path):
+def entity_resolution_service(resolver_config_path, rdf_mapping_path):  # pylint: disable=redefined-outer-name  # pytest fixture params intentionally shadow outer scope names
     """
     Fresh EntityResolver instance per test (core resolver).
 
@@ -196,7 +196,7 @@ def entity_resolution_service(resolver_config_path, rdf_mapping_path):
 
 
 @pytest.fixture
-def rdf_mapper(rdf_mapping_path):
+def rdf_mapper(rdf_mapping_path):  # pylint: disable=redefined-outer-name  # pytest fixture params intentionally shadow outer scope names
     """
     Fresh RDFMapper instance per test.
 
@@ -233,7 +233,8 @@ def redis_client():
     db = int(os.environ.get("REDIS_DB", "0"))
     password = os.environ.get("REDIS_PASSWORD", "")
 
-    last_error = None
+    client = None
+    host = None
     for host in hosts_to_try:
         try:
             client = redis.Redis(
@@ -244,21 +245,21 @@ def redis_client():
                 decode_responses=False,
             )
             client.ping()
-        except Exception as e:
+        except redis.RedisError as e:
             raise RuntimeError("Redis test service cannot be detected.") from e
-    
+
     # Verify connection
     try:
-        response = client.ping()
+        client.ping()
         print(f"\n✓ Connected to Redis at {host}:{port}")
-    except Exception as e:
+    except redis.RedisError as e:
         pytest.skip(f"Redis not available at {host}:{port} — {e}")
 
     # Flush entire database to start clean
     try:
         client.flushdb()
         print(f"✓ Flushed Redis DB {db}")
-    except Exception as e:
+    except redis.RedisError as e:
         print(f"Warning: Could not flush database: {e}")
 
     yield client
@@ -266,7 +267,7 @@ def redis_client():
     # Cleanup after test
     try:
         client.flushdb()
-    except Exception as e:
+    except redis.RedisError as e:
         print(f"Warning: Could not cleanup after test: {e}")
 
     return client

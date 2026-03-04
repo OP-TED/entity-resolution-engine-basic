@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from rdflib import Graph, Literal, Namespace, RDF, URIRef
+from rdflib import Graph, Namespace, RDF, URIRef
 
 
 def load_entity_mappings(yaml_path: str | Path) -> dict[str, dict[str, Any]]:

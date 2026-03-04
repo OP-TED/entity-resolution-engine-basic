@@ -61,15 +61,15 @@ def build_entity_resolver(
         entity_fields = resolver_config.entity_fields
 
     # Create DuckDB connection based on configured type
-    if resolver_config.duckdb.type == "in-memory":
+    if resolver_config.duckdb.type == "in-memory":  # pylint: disable=no-member  # Pydantic model attribute; pylint cannot resolve dynamically
         con = duckdb.connect(":memory:")
-    elif resolver_config.duckdb.type == "persistent":
+    elif resolver_config.duckdb.type == "persistent":  # pylint: disable=no-member  # Pydantic model attribute; pylint cannot resolve dynamically
         # DUCKDB_PATH env var takes precedence over the passed argument
-        db_path = duckdb_path or resolver_config.duckdb.path
+        db_path = duckdb_path or resolver_config.duckdb.path  # pylint: disable=no-member  # Pydantic model attribute; pylint cannot resolve dynamically
         con = duckdb.connect(db_path)
     else:
         raise ValueError(
-            f"Invalid duckdb type: {resolver_config.duckdb.type}. "
+            f"Invalid duckdb type: {resolver_config.duckdb.type}. "  # pylint: disable=no-member  # Pydantic model attribute; pylint cannot resolve dynamically
             f"Must be 'in-memory' or 'persistent'."
         )
 

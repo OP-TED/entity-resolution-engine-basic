@@ -430,7 +430,7 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                 "This is FINAL STATE (not transient) - model will now use trained parameters for scoring."
             )
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught  # Splink may raise undocumented exception types
             # Training failure: silently ignore, cold-start defaults remain active
             log.warning(
                 "EM training FAILED or INCOMPLETE: %s. Model will continue using cold-start parameters. "
@@ -471,6 +471,7 @@ class SpLinkSimilarityLinker(SimilarityLinker):
         )
 
         # Iterate through comparison levels and apply m/u probabilities
+        # pylint: disable=protected-access  # Splink exposes no public API for settings introspection
         for _, comparison in enumerate(self._linker._settings_obj.comparisons):
             # Get the field name from the comparison
             field_name = None
@@ -478,6 +479,7 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                 field_name = comparison.output_column_name
             elif hasattr(comparison, '_field_names') and comparison._field_names:
                 field_name = comparison._field_names[0]
+        # pylint: enable=protected-access
 
             if field_name not in comparisons_cfg:
                 continue
@@ -563,6 +565,7 @@ class SpLinkSimilarityLinker(SimilarityLinker):
         try:
             # Get the Fellegi-Sunter prior (lambda)
             prior = None
+            # pylint: disable=protected-access  # Splink exposes no public API for settings introspection
             if hasattr(linker._settings_obj, 'probability_two_random_records_match'):
                 prior = linker._settings_obj.probability_two_random_records_match
                 log.info(
@@ -578,6 +581,7 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                     field_name = comparison.output_column_name
                 elif hasattr(comparison, '_field_names') and comparison._field_names:
                     field_name = comparison._field_names[0]
+            # pylint: enable=protected-access
 
                 if not field_name:
                     continue
@@ -626,7 +630,7 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                         u_status,
                     )
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught  # Splink may raise undocumented exception types
             log.warning(
                 "_log_trained_parameters: Could not extract trained parameters: %s",
                 e,

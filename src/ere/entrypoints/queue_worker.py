@@ -20,7 +20,7 @@ class RedisQueueWorker:
     Dependency injection enables testing with mock Redis and services.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-positional-arguments  # redis, service, 3 queue config params; no natural grouping
         self,
         redis_client,
         entity_resolution_service: EntityResolutionService,

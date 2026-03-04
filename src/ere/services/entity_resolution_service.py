@@ -47,7 +47,7 @@ class EntityResolver:
     The resolver is stateless - all state is held in repositories and the linker.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-positional-arguments  # 5 domain dependencies; extracting a container would obscure intent
         self,
         mention_repo: MentionRepository,
         similarity_repo: SimilarityRepository,

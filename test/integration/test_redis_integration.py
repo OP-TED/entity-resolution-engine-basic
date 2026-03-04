@@ -5,8 +5,8 @@ These tests verify end-to-end request/response flow through Redis.
 
 
 Run with:
-    pytest test/test_redis_integration.py -v
-    pytest test/test_redis_integration.py::test_send_dummy_request -v
+    pytest test/integration/test_redis_integration.py -v
+    pytest test/integration/test_redis_integration.py::TestRedisQueueIntegration::test_send_dummy_request -v
 """
 
 import json
@@ -139,5 +139,5 @@ class TestRedisQueueIntegration:
 
 
 if __name__ == "__main__":
-    """Allow running tests directly: python test/test_redis_integration.py"""
+    """Allow running tests directly: python test/integration/test_redis_integration.py"""
     pytest.main([__file__, "-v"])

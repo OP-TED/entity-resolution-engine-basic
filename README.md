@@ -13,6 +13,14 @@ The **Basic Entity Resolution Engine (Basic ERE)** is an asynchronous microservi
 
 Its primary purpose is to interact with the Entity Resolution System (ERSys). It adheres to the [ERS–ERE Technical Contract](docs/ERS-ERE-System-Technical-Contract.pdf), which establishes the communication protocol between ERE and ERS (part of ERSys) via a message queue (Redis). It also provides a foundation for other ERE implementations.
 
+### Dependencies
+
+ERE relies on **ers-core** (from [entity-resolution-spec](https://github.com/meaningfy-ws/entity-resolution-spec)), which provides:
+- **Shared domain models** — Common entity types and concepts across the ERSys ecosystem
+- **ERE contract message models** — Standardized request/response structures for ERE–ERS communication (`EntityMentionResolutionRequest`, `EntityMentionResolutionResponse`, `EREErrorResponse`)
+
+This ensures type-safe, versioned communication between ERE and other ERSys components.
+
 ### Capabilities
 
 * **Entity mention resolution**: Accepts a structured entity mention and returns one or more cluster candidates with similarity and confidence scores

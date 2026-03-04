@@ -2,7 +2,9 @@
 
 Focused, EU-based datasets for performance testing with **algorithmically-derived ground-truth clusters**.
 
-## Files
+## Committed Files
+
+This directory contains datasets committed to the repository for reproducible stress testing and quality evaluation.
 
 ### mentions_100a.csv — Sparsity Baseline (Cold-Start Behavior)
 - **Size**: 100 mentions (5.6 KB)
@@ -53,6 +55,21 @@ Focused, EU-based datasets for performance testing with **algorithmically-derive
 - **Expected latency**: ~100-200ms per request (scaling effects)
 - **Estimated total time**: ~2-3 minutes seed + train + stress
 - **Quality baseline**: Precision ~50-70%, Recall ~10-20%
+
+### mentions_100b.md — Detailed Cluster Analysis
+- **Content**: Ground-truth cluster definitions for mentions_100b.csv with Jaro-Winkler similarity scores
+- **Use Case**: Reference documentation for understanding expected clustering behavior
+- **Documentation**: Explains each cluster, member entities, and justification for similarity groupings
+
+### org-mid.csv — Organization Records (Mid-Size)
+- **Size**: Mid-size organization dataset for testing
+- **Use Case**: Additional scenario for entity resolution evaluation beyond synthetic mention datasets
+- **Format**: CSV with organization attributes and identifiers
+
+### org-small.csv — Organization Records (Small)
+- **Size**: Small organization dataset for quick testing and validation
+- **Use Case**: Lightweight scenario for rapid iteration and smoke testing
+- **Format**: CSV with organization attributes and identifiers
 
 ## CSV Schema
 
@@ -110,9 +127,9 @@ def load_mentions(csv_path):
     return mentions
 
 # Load desired variant
-mentions = load_mentions('test/data/stress/mentions_100b.csv')  # Balanced clustering
+mentions = load_mentions('test/stress/data/mentions_100b.csv')  # Balanced clustering
 # or
-mentions = load_mentions('test/data/stress/mentions_1000.csv')  # Scalability
+mentions = load_mentions('test/stress/data/mentions_1000.csv')  # Scalability
 ```
 
 ## Experiment Matrix

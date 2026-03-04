@@ -37,7 +37,7 @@ For detailed documentation, see:
 - [**Algorithm**](docs/algorithm.md) — incremental probabilistic entity linking (to be written)
 - [**Configuration**](docs/configuration.md) — field mapping, model tuning, Splink setup (to be written)
 
----
+
 
 ## Installation
 
@@ -63,7 +63,7 @@ make infra-up
 
 For detailed setup instructions, see `Make targets`.
 
----
+
 
 ## Usage
 
@@ -80,7 +80,7 @@ Entity resolution behaviour is configured via two YAML files:
 - **Resolver configuration** (`infra/.env.local`): Splink comparisons, cold-start parameters, similarity thresholds
 - **RDF mapping** (`test/resources/rdf_mapping.yaml`): RDF namespace bindings, field extraction rules, entity type definitions
 
-For detailed configuration options and tuning, see [docs/configuration.md](docs/configuration.md) (to be written).
+For detailed configuration options and tuning, see [docs/configuration.md](docs/configuration.md).
 
 ### Examples
 
@@ -98,7 +98,7 @@ The demo:
 
 See [`demo/README.md`](demo/README.md) for detailed configuration, prerequisites, troubleshooting, and example output.
 
----
+
 
 ## Project
 
@@ -147,7 +147,7 @@ infra/
 | Code quality | Ruff (formatting, linting), Pylint (style/SOLID) |
 | Architecture enforcement | importlinter (dependency validation) |
 
----
+
 
 ## Testing
 
@@ -161,6 +161,9 @@ ERE has several test layers aligned with its Cosmic Python architecture.
 | **BDD Scenarios** | `test/features/` + `test/features/steps/` | Gherkin feature files + pytest-bdd step definitions; document resolution algorithm behaviour; verify clustering rules and thresholds |
 | **End-to-End Tests** | `test/e2e/` | Full service startup; Redis queue integration; request/response payload structure validation |
 | **Stress Tests** | `test/stress/` | Load testing and performance profiling; throughput and latency benchmarks |
+
+**Stress Test Datasets**: Committed to `test/stress/data/` with ground-truth clustering for reproducible benchmarking.
+See [Stress Test Datasets README](test/stress/data/README.md) for dataset descriptions and usage.
 
 ### Running Tests
 
@@ -185,9 +188,7 @@ make lint-fix           # Lint with auto-fix
 - **TDD by default** — write failing tests before implementing features
 - **Layer isolation** — each layer tests its own responsibility only
 - **Fixture-driven setup** — reusable fixtures in `conftest.py` for service/mapper creation
-- **RDF test data** — Turtle fixtures in `test/test_data/` for realistic entity mention testing
 
----
 
 ## Related Documents
 
@@ -196,7 +197,7 @@ make lint-fix           # Lint with auto-fix
 - [ERE Cosmic Python Architecture Blueprint](docs/architecture/ERE-COSMIC-PYTHON-ARCHITECTURE.md)
 - [Resolution Tools](docs/resolution-tools.md)
 
----
+
 
 ## Contributing
 

@@ -3,25 +3,32 @@ from typing import Protocol
 
 from erspec.models.ere import ERERequest, EREResponse
 
+from ere.adapters.repositories import (
+    ClusterRepository,
+    MentionRepository,
+    SimilarityRepository,
+)
+from ere.adapters.rdf_mapper_port import RDFMapper
+
 
 class AbstractResolver(Protocol):
     """
-          ERE resolver abstraction.
+    ERE resolver abstraction.
 
-          An ERE resolver deals with the core of the job, ie, it takes requests like
-    :class:`ere.models.core.ERERequest` and computes results for them.
+    An ERE resolver deals with the core of the job, ie, it takes requests like
+    :class:`ere.models.ere.ERERequest` and computes results for them.
 
-          A resolver doesn't deal with aspects like networking or asynchronous processing, this
-          is are concerns for services and entrypoints, which wrap around resolvers.
+    A resolver doesn't deal with aspects like networking or asynchronous processing, these
+    are concerns for services and entrypoints, which wrap around resolvers.
 
-          As you can see, it makes sense to define resolvers as :class:`Protocol` classes, so that,
-          for instance, even a simple lambda could be uses as a resolver.
+    As you can see, it makes sense to define resolvers as :class:`Protocol` classes, so that,
+    for instance, even a simple lambda could be used as a resolver.
     """
 
     @abstractmethod
     def process_request(self, request: ERERequest) -> EREResponse:
         """
-        Resolves an entity resolution request, returning the corresponding response.
+        Resolve an entity resolution request, returning the corresponding response.
 
         This only concerns the resolution logic, leaving out aspects like transport or
         asynchronous processing.
@@ -31,3 +38,12 @@ class AbstractResolver(Protocol):
 
     def __call__(self, request: ERERequest) -> EREResponse:
         return self.process_request(request)
+
+
+__all__ = [
+    "AbstractResolver",
+    "ClusterRepository",
+    "MentionRepository",
+    "RDFMapper",
+    "SimilarityRepository",
+]

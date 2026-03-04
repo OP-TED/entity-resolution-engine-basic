@@ -1,0 +1,101 @@
+mention_id,legal_name,country_code,city,cluster_id
+m01000000,Northern Manufacturing SARL,AUT,Tallinn,m01000000
+m01000001,Horizon Finance LLC,BEL,Valletta,m01000001
+m01000002,Consulting-Northern LLC,BGR,Copenhagen,m01000002
+m01000003,Zenith Insurance Inc,HRV,Luxembourg,m01000003
+m01000004,Horizon Insurance OOO,CYP,Tallinn,m01000004
+m01000005,Distribution-Eastern Inc,CZE,Ljubljana,m01000005
+m01000006,Horizon Banking SpA,DNK,Helsinki,m01000006
+m01000007,Stellar Capital Corp,EST,Sofia,m01000007
+m01000008,Consulting-Eastern BV,FIN,Amsterdam,m01000008
+m01000009,Digital Transport Corp,FRA,Budapest,m01000009
+m01000010,Alpine Manufacturing BV,DEU,Valletta,m01000010
+m01000011,Horizon Finance Ltd,GRC,Lisbon,m01000011
+m01000012,Nexus Finance SARL,HUN,Zagreb,m01000012
+m01000013,Manufacturing-Western BV,IRL,Prague,m01000013
+m01000014,Advanced Energy GmbH,ITA,Bucharest,m01000014
+m01000015,Alpine Trading SARL,LVA,Prague,m01000015
+m01000016,Logistics-Eastern SARL,LTU,Lisbon,m01000016
+m01000017,Digital Energy Ltd,LUX,Madrid,m01000017
+m01000018,Strategic Healthcare LLC,MLT,Copenhagen,m01000018
+m01000019,Capital-Stellar Kft,NLD,Budapest,m01000019
+m01000020,Trading-Eastern Group,POL,Tallinn,m01000020
+m01000021,Insurance-Nexus OOO,PRT,Valletta,m01000021
+m01000022,Manufacturing-Southern Group,ROU,Vilnius,m01000022
+m01000023,Consulting-Northern Corp,SVK,Nicosia,m01000023
+m01000024,Horizon Banking LLC,SVN,Budapest,m01000024
+m01000025,Distribution-Western GmbH,ESP,Luxembourg,m01000025
+m01000026,Baltic Consulting GmbH,SWE,Ljubljana,m01000026
+m01000027,Digital Healthcare OOO,AUT,Prague,m01000027
+m01000028,Consulting-Baltic GmbH,BEL,Vilnius,m01000028
+m01000029,Zenith Finance AG,BGR,Stockholm,m01000029
+m01000030,Insurance-Stellar Group,HRV,Athens,m01000030
+m01000031,Capital-Apex Inc,CYP,Zagreb,m01000031
+m01000032,Advanced Energy Ltd,CZE,Tallinn,m01000032
+m01000033,Finance-Quantum Kft,DNK,Stockholm,m01000033
+m01000034,Alpine Trading Group,EST,Lisbon,m01000034
+m01000035,Distribution-Southern GmbH,FIN,Vilnius,m01000035
+m01000036,Banking-Stellar PLC,FRA,Bucharest,m01000036
+m01000037,Strategic Healthcare S.A.,DEU,Vilnius,m01000037
+m01000038,Consulting-Southern SARL,GRC,Sofia,m01000038
+m01000039,Digital Commerce SARL,HUN,Valletta,m01000039
+m01000040,Quantum Finance Ltd,IRL,Tallinn,m01000040
+m01000041,Northern Manufacturing LLC,ITA,Vilnius,m01000041
+m01000042,Nexus Banking PLC,LVA,Luxembourg,m01000042
+m01000043,Horizon Insurance Kft,LTU,Tallinn,m01000043
+m01000044,Logistics-Southern Corp,LUX,Zagreb,m01000044
+m01000045,Manufacturing-Western OOO,MLT,Rome,m01000045
+m01000046,Baltic Consulting Ltd,NLD,Budapest,m01000046
+m01000047,Digital Energy PLC,POL,Copenhagen,m01000047
+m01000048,Banking-Stellar OOO,PRT,Prague,m01000048
+m01000049,Strategic Energy LLC,ROU,Rome,m01000049
+m01000050,Finance-Quantum Inc,SVK,Sofia,m01000050
+m01000051,Stellar Banking Kft,SVN,Riga,m01000051
+m01000052,Apex Finance Co,ESP,Budapest,m01000052
+m01000053,Western Manufacturing S.A.,SWE,Paris,m01000053
+m01000054,Distribution-Baltic Kft,AUT,Nicosia,m01000054
+m01000055,Nexus Investment Ltd,BEL,Valletta,m01000055
+m01000056,Finance-Horizon SpA,BGR,Brussels,m01000056
+m01000057,Alpine Logistics Co,HRV,Brussels,m01000057
+m01000058,Finance-Stellar LLC,CYP,Amsterdam,m01000058
+m01000059,Baltic Trading SL,CZE,Zagreb,m01000059
+m01000060,Investment-Zenith Ltd,DNK,Amsterdam,m01000060
+m01000061,Western Distribution SpA,EST,Helsinki,m01000061
+m01000062,Horizon Capital SARL,FIN,Helsinki,m01000062
+m01000063,Trading-Baltic AG,FRA,Rome,m01000063
+m01000064,Digital Tech S.A.,DEU,Amsterdam,m01000064
+m01000065,Finance-Quantum PLC,GRC,Vilnius,m01000065
+m01000066,Smart Healthcare LLC,HUN,Tallinn,m01000066
+m01000067,Advanced Energy S.A.,IRL,Stockholm,m01000067
+m01000068,Capital-Zenith Inc,ITA,Lisbon,m01000068
+m01000069,Capital-Horizon Corp,LVA,Nicosia,m01000069
+m01000070,Digital Tech Group,LTU,Helsinki,m01000070
+m01000071,Horizon Capital Kft,LUX,Helsinki,m01000071
+m01000072,Northern Logistics GmbH,MLT,Brussels,m01000072
+m01000073,Eastern Trading GmbH,NLD,Prague,m01000073
+m01000074,Distribution-Baltic OOO,POL,Luxembourg,m01000074
+m01000075,Northern Consulting Group,PRT,Luxembourg,m01000075
+m01000076,Eastern Distribution Group,ROU,Dublin,m01000076
+m01000077,Quantum Capital BV,SVK,Madrid,m01000077
+m01000078,Eastern Trading SARL,SVN,Lisbon,m01000078
+m01000079,Eastern Distribution OOO,ESP,Amsterdam,m01000079
+m01000080,Stellar Investment Co,SWE,Dublin,m01000080
+m01000081,Nexus Investment Corp,AUT,Budapest,m01000081
+m01000082,Western Trading PLC,BEL,Stockholm,m01000082
+m01000083,Manufacturing-Eastern SARL,BGR,Tallinn,m01000083
+m01000084,Advanced Tech GmbH,HRV,Athens,m01000084
+m01000085,Banking-Horizon SpA,CYP,Vienna,m01000085
+m01000086,Northern Distribution OOO,CZE,Athens,m01000086
+m01000087,Strategic Commerce Corp,DNK,Budapest,m01000087
+m01000088,Investment-Nexus Ltd,EST,Bucharest,m01000088
+m01000089,Strategic Tech SpA,FIN,Amsterdam,m01000089
+m01000090,Premium Tech AG,FRA,Vilnius,m01000090
+m01000091,Premium Transport SpA,DEU,Budapest,m01000091
+m01000092,Dynamic Energy PLC,GRC,Dublin,m01000092
+m01000093,Trading-Alpine AG,HUN,Budapest,m01000093
+m01000094,Finance-Nexus AG,IRL,Copenhagen,m01000094
+m01000095,Distribution-Alpine SpA,ITA,Rome,m01000095
+m01000096,Logistics-Baltic PLC,LVA,Vilnius,m01000096
+m01000097,Trading-Baltic LLC,LTU,Paris,m01000097
+m01000098,Insurance-Nexus LLC,LUX,Stockholm,m01000098
+m01000099,Stellar Finance Ltd,MLT,Tallinn,m01000099

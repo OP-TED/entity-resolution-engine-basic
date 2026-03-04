@@ -131,6 +131,10 @@ Examples:
 
 **Never include** co-author lines, tool names, agent names, or internal implementation details in commit messages. Focus on the *what* and *why* of the code change.
 
+## Git hygiene rules
+
+- **Never stage or commit files you haven't modified** — use `git add <file>` to stage only your changes, or `git add -p` to review hunks before staging.
+- **Never revert or reset files outside your current task scope**.
 ---
 
 ## Autonomy rules
@@ -163,7 +167,7 @@ A task slice is done when:
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **entity-resolution-engine-basic** (200 symbols, 349 relationships, 4 execution flows).
+This project is indexed by GitNexus as **ere-basic** (344 symbols, 700 relationships, 16 execution flows).
 
 GitNexus provides a knowledge graph over this codebase — call chains, blast radius, execution flows, and semantic search.
 

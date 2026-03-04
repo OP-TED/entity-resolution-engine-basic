@@ -28,6 +28,7 @@ RUN poetry config virtualenvs.create false \
 # ── Application source ──────────────────────────────────────────────────────
 COPY README.md ./
 COPY src/ ./src/
+COPY infra/config/ ./config/
 
 # Install the ere package itself
 RUN poetry install --without dev --no-interaction

@@ -45,6 +45,9 @@ services:
     environment:
       # DuckDB embedded file location (volume-mounted at /data)
       - DUCKDB_PATH=${DUCKDB_PATH:-/data/app.duckdb}
+      # Config file paths in the container
+      - RDF_MAPPING_PATH=/app/config/rdf_mapping.yaml
+      - RESOLVER_CONFIG_PATH=/app/config/resolver.yaml
       # Inherit REQUEST_QUEUE, RESPONSE_QUEUE, REDIS_* from .env.local
     depends_on:
       redis:

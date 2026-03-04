@@ -48,8 +48,7 @@ pandas = ">=2.0,<3.0"
 splink = ">=4.0,<5.0"
 
 # TODO: should we have a registry?
-# TODO: fix when merged to develop or release (remember to switch OP-TED when stable)
-ers-core = { git = "https://github.com/meaningfy-ws/entity-resolution-spec.git", branch = "develop" }
+ers-core = { git = "https://github.com/OP-TED/entity-resolution-spec.git", branch = "0.3.0-rc.1" }
 
 
 [tool.pytest.ini_options]

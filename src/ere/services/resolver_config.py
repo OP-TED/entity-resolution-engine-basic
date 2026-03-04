@@ -7,7 +7,7 @@ class DuckDBConfig(BaseModel):
     """DuckDB database configuration."""
 
     type: str = "in-memory"  # "in-memory" or "persistent"
-    path: str  # Path for persistent database
+    path: str = ":memory:"  # Path for persistent database, defaults to in-memory
 
 
 class ResolverConfig(BaseModel):

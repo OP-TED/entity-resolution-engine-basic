@@ -1,5 +1,6 @@
 """Redis queue entrypoint driver for entity resolution requests."""
 
+import json
 import logging
 from datetime import datetime, timezone
 
@@ -56,13 +57,21 @@ class RedisQueueWorker:
         request_str = raw_msg.decode("utf-8")
         log.info("Received request: %s", request_str)
 
+        # Try to extract request ID from raw message for error responses
+        request_id = "unknown"
+        try:
+            msg_json = json.loads(request_str)
+            request_id = msg_json.get("ere_request_id", "unknown")
+        except Exception:  # pylint: disable=broad-exception-caught
+            pass  # If JSON parse fails, we'll use "unknown" in error response
+
         # Parse and process
         try:
             request = get_request_from_message(raw_msg)
             response = self.service.process_request(request)
         except Exception as e:  # pylint: disable=broad-exception-caught
             log.error("Failed to parse or process request: %s", e)
-            response = self._build_error_response(str(e))
+            response = self._build_error_response(str(e), request_id)
 
         # Send response
         self._send_response(response)
@@ -79,11 +88,11 @@ class RedisQueueWorker:
             log.error("Failed to send response: %s", e)
 
     @staticmethod
-    def _build_error_response(error_detail: str) -> EREErrorResponse:
+    def _build_error_response(error_detail: str, ere_request_id: str = "unknown") -> EREErrorResponse:
         """Build error response for request processing failures."""
         log.error("Building error response: %s", error_detail)
         return EREErrorResponse(
-            ere_request_id="unknown",
+            ere_request_id=ere_request_id,
             error_type="ProcessingError",
             error_title="Request processing error",
             error_detail=error_detail,

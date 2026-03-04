@@ -12,6 +12,16 @@ from typing import TYPE_CHECKING
 
 from erspec.models.ere import ERERequest, EREResponse
 
+# Resolver service exports
+from ere.services.linker import SimilarityLinker  # pylint: disable=C0413
+from ere.services.resolver_config import ResolverConfig  # pylint: disable=C0413
+from ere.services.entity_resolution_service import EntityResolutionService  # pylint: disable=C0413
+from ere.adapters.repositories import (  # pylint: disable=C0413
+    ClusterRepository,
+    MentionRepository,
+    SimilarityRepository,
+)
+
 if TYPE_CHECKING:
     from ere.adapters import AbstractResolver
 
@@ -233,16 +243,6 @@ class AbstractPubSubResolutionService(AbstractService):
         )
         self._push_response(response)
 
-
-# Resolver service exports
-from ere.services.linker import SimilarityLinker  # pylint: disable=C0413
-from ere.services.resolver_config import ResolverConfig  # pylint: disable=C0413
-from ere.services.entity_resolution_service import EntityResolutionService  # pylint: disable=C0413
-from ere.adapters.repositories import (  # pylint: disable=C0413
-    ClusterRepository,
-    MentionRepository,
-    SimilarityRepository,
-)
 
 __all__ = [
     "AbstractService",

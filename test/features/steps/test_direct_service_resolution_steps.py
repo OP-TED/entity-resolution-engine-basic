@@ -57,9 +57,12 @@ def fresh_service(entity_resolution_service):
 # ---------------------------------------------------------------------------
 
 
-@given(parsers.parse('entity mention "{mention_id}" of type "{entity_type}" was already resolved with content from "{rdf_file_first}"'))
-def pre_resolve(mention_id: str, entity_type: str, rdf_file_first: str, entity_resolution_service, rdf_mapper):
-    resolve_entity_mention(_make_mention(mention_id, entity_type, load_rdf(rdf_file_first)), entity_resolution_service, rdf_mapper)
+@given(
+    parsers.parse('entity mention "{mention_id}" of type "{entity_type}" was already resolved with content from "{rdf_file_first}"'),
+    target_fixture="seed_result",
+)
+def pre_resolve(mention_id: str, entity_type: str, rdf_file_first: str, entity_resolution_service, rdf_mapper) -> ClusterReference:
+    return resolve_entity_mention(_make_mention(mention_id, entity_type, load_rdf(rdf_file_first)), entity_resolution_service, rdf_mapper)
 
 
 # ---------------------------------------------------------------------------
@@ -181,5 +184,27 @@ def check_exception_raised(outcome):
     elif isinstance(raised_exception, ConflictError):
         # Conflict errors should contain mention_id and indicate content mismatch
         assert_that(str(raised_exception)).contains("was already resolved with different content")
-        # Conflict errors should contain mention_id and indicate content mismatch
-        assert_that(str(raised_exception)).contains("was already resolved with different content")
+
+
+@then("the result is a ClusterReference")
+def check_single_result_type(first_result: ClusterReference):
+    """Verify single resolution produces a valid ClusterReference."""
+    assert_that(first_result).is_instance_of(ClusterReference)
+
+
+@then("the cluster_id matches the seed cluster")
+def check_matches_seed_cluster(first_result: ClusterReference, seed_result: ClusterReference):
+    """Verify new mention joined the pre-established cluster (not a new one)."""
+    assert_that(first_result.cluster_id).is_equal_to(seed_result.cluster_id)
+
+
+@then("an unsupported entity type exception is raised")
+def check_unsupported_entity_type_exception(outcome):
+    """Verify that unsupported entity types raise ValueError with proper message."""
+    raised_exception = outcome["exception"]
+    assert raised_exception is not None, (
+        "Expected a ValueError for unsupported entity type, but the call succeeded. "
+        f"Result was: {outcome['result']!r}"
+    )
+    assert_that(raised_exception).is_instance_of(ValueError)
+    assert_that(str(raised_exception)).matches(r"No rdf_mapping configured for entity_type")

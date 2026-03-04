@@ -1,4 +1,4 @@
-"""End-to-end smoke test: app.py main() invoked directly for coverage."""
+"""End-to-end smoke test: app.py main() invoked directly."""
 
 import json
 import os

@@ -156,17 +156,7 @@ def entity_resolution_service():
         raw_config = yaml.safe_load(f)
 
     # Entity fields are the source of truth from config
-    entity_fields = list(raw_config.get("splink", {}).get("comparisons", [])[0].keys())
-    if "field" in str(raw_config.get("splink", {}).get("comparisons", [])[0]):
-        # Extract field names from comparison configurations
-        entity_fields = [
-            comp["field"]
-            for comp in raw_config.get("splink", {}).get("comparisons", [])
-        ]
-
-    # For now, entity_fields are hardcoded but validated against config
-    # TODO: Extract from splink.comparisons and blocking_rules
-    entity_fields = ["legal_name", "country_code"]
+    entity_fields = raw_config.get("entity_fields", ["legal_name", "country_code"])
 
     resolver_config = ResolverConfig.from_dict(raw_config)
     con = duckdb.connect(":memory:")

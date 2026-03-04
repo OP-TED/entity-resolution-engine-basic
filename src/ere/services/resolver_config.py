@@ -60,7 +60,7 @@ class ResolverConfig(BaseModel):
         duckdb_config_dict = d.get("duckdb", {})
         duckdb_config = DuckDBConfig(
             type=duckdb_config_dict.get("type", "in-memory"),
-            path=duckdb_config_dict.get("path", "/data/app.duckdb"),
+            path=duckdb_config_dict.get("path", ":memory:"),
         )
 
         return cls(

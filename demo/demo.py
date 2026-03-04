@@ -64,7 +64,7 @@ def load_env_file(env_path: str = None) -> dict:
     config["REDIS_HOST"] = os.environ.get("REDIS_HOST", config.get("REDIS_HOST", "localhost"))
     config["REDIS_PORT"] = int(os.environ.get("REDIS_PORT", config.get("REDIS_PORT", "6379")))
     config["REDIS_DB"] = int(os.environ.get("REDIS_DB", config.get("REDIS_DB", "0")))
-    config["REDIS_PASSWORD"] = os.environ.get("REDIS_PASSWORD", config.get("REDIS_PASSWORD", "changeme"))
+    config["REDIS_PASSWORD"] = os.environ.get("REDIS_PASSWORD", config.get("REDIS_PASSWORD"))
     config["REQUEST_QUEUE"] = os.environ.get("REQUEST_QUEUE", config.get("REQUEST_QUEUE", "ere-requests"))
     config["RESPONSE_QUEUE"] = os.environ.get("RESPONSE_QUEUE", config.get("RESPONSE_QUEUE", "ere-responses"))
 

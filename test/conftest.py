@@ -231,7 +231,7 @@ def redis_client():
 
     port = int(os.environ.get("REDIS_PORT", "6379"))
     db = int(os.environ.get("REDIS_DB", "0"))
-    password = os.environ.get("REDIS_PASSWORD", "")
+    password = os.environ.get("REDIS_PASSWORD")
 
     client = None
     host = None

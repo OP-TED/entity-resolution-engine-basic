@@ -10,7 +10,6 @@ Tests the complete entrypoint flow:
 import json
 import os
 from datetime import datetime, timezone
-from pathlib import Path
 
 import pytest
 import redis
@@ -85,13 +84,10 @@ def redis_queues(redis_client):
 
 
 @pytest.fixture(scope="module")
-def e2e_entity_resolution_service():
-    """Build the full entity resolution service using test-specific config files."""
-    test_resources = Path(__file__).parent.parent / "resources"
-    resolver_config = test_resources / "resolver.yaml"
-    rdf_mapping = test_resources / "rdf_mapping.yaml"
-    resolver = build_entity_resolver(resolver_config_path=resolver_config)
-    mapper = build_rdf_mapper(rdf_mapping_path=rdf_mapping)
+def e2e_entity_resolution_service(resolver_config_path, rdf_mapping_path):
+    """Build the full entity resolution service using test-specific config paths (injected from conftest)."""
+    resolver = build_entity_resolver(resolver_config_path=resolver_config_path)
+    mapper = build_rdf_mapper(rdf_mapping_path=rdf_mapping_path)
     return build_entity_resolution_service(resolver, mapper)
 
 

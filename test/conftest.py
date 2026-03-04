@@ -11,8 +11,9 @@ from pathlib import Path
 import pytest
 import yaml
 
-# Locate local test data (copied from entity-resolution-spec)
-TEST_DATA_ROOT = Path(__file__).parent / "test_data"
+# Path constants — single source of truth for test directory structure
+TEST_RESOURCES_DIR = Path(__file__).parent / "resources"
+TEST_DATA_DIR = Path(__file__).parent / "test_data"
 
 
 def pytest_configure(config: pytest.Config):
@@ -26,7 +27,7 @@ def pytest_configure(config: pytest.Config):
     config.addinivalue_line("markers", "integration: Integration test marker.")
 
     # Setup logging from YAML config file
-    cfg_path = os.path.join(os.path.dirname(__file__), "resources/logging-test.yml")
+    cfg_path = str(TEST_RESOURCES_DIR / "logging-test.yml")
     with open(cfg_path, encoding="utf-8") as f:
         config = yaml.safe_load(f)
     logging.config.dictConfig(config)
@@ -50,7 +51,7 @@ def load_rdf(relative_path: str) -> str:
     Raises:
         FileNotFoundError: If file does not exist
     """
-    file_path = TEST_DATA_ROOT / relative_path
+    file_path = TEST_DATA_DIR / relative_path
     if not file_path.exists():
         raise FileNotFoundError(f"Test data file not found: {file_path}")
     return file_path.read_text(encoding="utf-8")
@@ -127,12 +128,29 @@ def proc_group2_file2() -> str:
 
 
 # ============================================================================
+# Path Fixtures — inject test file paths to avoid inline Path constructions
+# ============================================================================
+
+
+@pytest.fixture(scope="session")
+def resolver_config_path():
+    """Path to test resolver.yaml (from test/resources)."""
+    return TEST_RESOURCES_DIR / "resolver.yaml"
+
+
+@pytest.fixture(scope="session")
+def rdf_mapping_path():
+    """Path to test rdf_mapping.yaml (from test/resources)."""
+    return TEST_RESOURCES_DIR / "rdf_mapping.yaml"
+
+
+# ============================================================================
 # Entity Resolution Service Fixture
 # ============================================================================
 
 
 @pytest.fixture
-def entity_resolution_service():
+def entity_resolution_service(resolver_config_path, rdf_mapping_path):
     """
     Fresh EntityResolver instance per test (core resolver).
 
@@ -150,9 +168,8 @@ def entity_resolution_service():
     from ere.services.entity_resolution_service import EntityResolver
     from ere.services.resolver_config import ResolverConfig
 
-    # Load resolver config from test/resources (isolated from infra config)
-    config_path = Path(__file__).parent / "resources" / "resolver.yaml"
-    with open(config_path, encoding="utf-8") as f:
+    # Load resolver config from injected fixture path
+    with open(resolver_config_path, encoding="utf-8") as f:
         raw_config = yaml.safe_load(f)
 
     # Entity fields are the source of truth from config
@@ -178,14 +195,13 @@ def entity_resolution_service():
 
 
 @pytest.fixture
-def rdf_mapper():
+def rdf_mapper(rdf_mapping_path):
     """
     Fresh RDFMapper instance per test.
 
     Returns a concrete TurtleRDFMapper implementation using test-specific config.
-    Uses test/resources/rdf_mapping.yaml to ensure reproducibility and independence.
+    Uses injected rdf_mapping_path fixture to ensure reproducibility and independence.
     """
     from ere.adapters.rdf_mapper_impl import TurtleRDFMapper
 
-    rdf_mapping_path = Path(__file__).parent / "resources" / "rdf_mapping.yaml"
     return TurtleRDFMapper(rdf_mapping_path)

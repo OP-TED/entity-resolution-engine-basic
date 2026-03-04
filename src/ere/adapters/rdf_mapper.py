@@ -107,10 +107,7 @@ def extract_mention_attributes(
 
         # Convert to string if found
         if current is not None:
-            if isinstance(current, Literal):
-                attributes[field_name] = str(current)
-            else:
-                attributes[field_name] = str(current)
+            attributes[field_name] = str(current)
         else:
             attributes[field_name] = None
 

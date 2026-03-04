@@ -137,7 +137,7 @@ def entity_resolution_service():
     Fresh EntityResolver instance per test (core resolver).
 
     Creates isolated resolver with in-memory DuckDB for test scenario isolation.
-    Entity fields are derived from resolver.yaml config as the source of truth.
+    Uses test-specific config files to ensure reproducibility and independence.
     """
     import duckdb
     from ere.adapters.duckdb_repositories import (
@@ -150,8 +150,8 @@ def entity_resolution_service():
     from ere.services.entity_resolution_service import EntityResolver
     from ere.services.resolver_config import ResolverConfig
 
-    # Load resolver config (from infra/config directory)
-    config_path = Path(__file__).parent.parent / "infra" / "config" / "resolver.yaml"
+    # Load resolver config from test/resources (isolated from infra config)
+    config_path = Path(__file__).parent / "resources" / "resolver.yaml"
     with open(config_path, encoding="utf-8") as f:
         raw_config = yaml.safe_load(f)
 
@@ -182,8 +182,10 @@ def rdf_mapper():
     """
     Fresh RDFMapper instance per test.
 
-    Returns a concrete TurtleRDFMapper implementation for Turtle RDF parsing.
+    Returns a concrete TurtleRDFMapper implementation using test-specific config.
+    Uses test/resources/rdf_mapping.yaml to ensure reproducibility and independence.
     """
     from ere.adapters.rdf_mapper_impl import TurtleRDFMapper
 
-    return TurtleRDFMapper()
+    rdf_mapping_path = Path(__file__).parent / "resources" / "rdf_mapping.yaml"
+    return TurtleRDFMapper(rdf_mapping_path)

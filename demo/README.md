@@ -150,25 +150,7 @@ Datasets are stored in `demo/data/` (JSON format with RDF Turtle content).
 
 ### Dataset Correspondence to Stress Tests
 
-Demo JSON datasets map to CSV datasets in `test/stress/data/` for reproducible benchmarking:
-
-| Demo Dataset | Stress Test CSV | Size | Clusters | Purpose |
-|---|---|---|---|---|
-| `mentions_100b.json` | `mentions_100b.csv` | 100 mentions | ~46 clusters | Realistic clustering with name variations |
-| `mentions_1000.json` | `mentions_1000.csv` | 1,000 mentions | ~144 clusters | Scalability and performance testing |
-| `org-tiny.json` | N/A (custom demo) | 8 mentions | 2 clusters | Quick demo with 2 organization clusters |
-| `org-small.json` | N/A (custom demo) | Small dataset | Multiple | Lightweight testing |
-| `org-mid.json` | N/A (custom demo) | Mid-size dataset | Multiple | Medium-scale testing |
-
-The **mentions** datasets use EU-based organization data with realistic name variations and Jaro-Winkler similarity-derived ground-truth clusters.
-
-### Message Timing
-
-**Important**: The demo inserts a **1-second delay** between sending messages. This ensures they are processed sequentially in the order sent. Since the entity resolution algorithm depends on the order of processing (incremental clustering), this delay is crucial for predictable, reproducible clustering results.
-
-Without the delay, messages could be processed out-of-order, leading to different clustering assignments.
-
-
+Demo JSON datasets map to CSV datasets in `test/stress/data/` for reproducible benchmarking.
 
 ## Message Format
 
@@ -277,12 +259,3 @@ Configure logging via environment variable:
 export LOG_LEVEL=TRACE  # TRACE, DEBUG, INFO, WARNING, ERROR
 python3 demo/demo.py
 ```
-
-## Related Files
-
-- `test/stress/data/` - Stress test datasets (CSV format with ground-truth clustering)
-- `test/stress/data/README.md` - Dataset documentation and experiment matrix
-- `.env.local` - Configuration template with defaults (Redis, queue names)
-- `infra/docker-compose.yml` - Docker Compose setup for full stack
-- `test/e2e/test_app.py` - Integration tests showing request/response patterns
-- `docs/architecture.md` - ERE architecture and layering

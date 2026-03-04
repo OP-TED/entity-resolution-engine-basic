@@ -15,7 +15,7 @@ Its primary purpose is to interact with the Entity Resolution System (ERSys). It
 
 ### Dependencies
 
-ERE relies on **ers-core** (from [entity-resolution-spec](https://github.com/meaningfy-ws/entity-resolution-spec)), which provides:
+ERE relies on **ers-core** (from [entity-resolution-spec](https://github.com/OP-TED/entity-resolution-spec)), which provides:
 - **Shared domain models** — Common entity types and concepts across the ERSys ecosystem
 - **ERE contract message models** — Standardized request/response structures for ERE–ERS communication (`EntityMentionResolutionRequest`, `EntityMentionResolutionResponse`, `EREErrorResponse`)
 

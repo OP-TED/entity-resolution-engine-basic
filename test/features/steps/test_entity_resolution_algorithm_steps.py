@@ -10,14 +10,14 @@ from pytest_bdd import given, when, then, parsers, scenarios
 from ere.models.resolver import Mention, MentionId, ClusterId
 from ere.services.entity_resolution_service import EntityResolver
 from ere.services.resolver_config import DuckDBConfig, ResolverConfig
-from test.adapters.stubs import (
+from test.unit.adapters.stubs import (
     InMemoryMentionRepository,
     InMemorySimilarityRepository,
     InMemoryClusterRepository,
     FixedSimilarityLinker,
 )
 
-scenarios("../features/entity_resolution_algorithm.feature")
+scenarios("../entity_resolution_algorithm.feature")
 
 
 # ===============================================================================

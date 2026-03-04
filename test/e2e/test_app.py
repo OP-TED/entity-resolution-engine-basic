@@ -28,46 +28,6 @@ from ere.services.factories import (
 # ===============================================================================
 
 
-@pytest.fixture(scope="module")
-def redis_client():
-    """
-    Connect to Redis and verify it's available.
-    Tries configured host first, then fallback to localhost if configured host is "redis".
-    Raises: RuntimeError if Redis is not accessible.
-    """
-    hosts_to_try = []
-
-    # Primary: configured host (from .env or environment)
-    configured_host = os.environ.get("REDIS_HOST", "localhost")
-    hosts_to_try.append(configured_host)
-
-    # Fallback: if configured host is "redis" (Docker), also try localhost
-    if configured_host == "redis":
-        hosts_to_try.append("localhost")
-
-    port = int(os.environ.get("REDIS_PORT", "6379"))
-    db = int(os.environ.get("REDIS_DB", "0"))
-    password = os.environ.get("REDIS_PASSWORD", "changeme")
-
-    last_error = None
-    for host in hosts_to_try:
-        try:
-            client = redis.Redis(
-                host=host,
-                port=port,
-                db=db,
-                password=password,
-                decode_responses=False,
-            )
-            client.ping()
-            return client
-        except Exception as e:
-            last_error = e
-            continue
-
-    raise RuntimeError("Redis test service cannot be detected.") from last_error
-
-
 @pytest.fixture
 def redis_queues(redis_client):
     """Provide queue names and clear them before test."""

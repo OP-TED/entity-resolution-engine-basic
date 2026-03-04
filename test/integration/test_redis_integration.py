@@ -11,76 +11,8 @@ Run with:
 
 import json
 import time
-import os
-from pathlib import Path
+
 import pytest
-import redis
-
-# Try to load environment from /infra/.env.local
-# _env_local_path = Path(__file__).parent.parent / "infra" / ".env.local"
-# if _env_local_path.exists():
-#     try:
-#         from dotenv import load_dotenv
-#         load_dotenv(_env_local_path, override=False)
-#     except ImportError:
-#         # python-dotenv not installed, parse manually
-#         with open(_env_local_path) as f:
-#             for line in f:
-#                 line = line.strip()
-#                 if line and not line.startswith("#"):
-#                     key, _, value = line.partition("=")
-#                     if key and value:
-#                         os.environ.setdefault(key.strip(), value.strip())
-
-
-# @pytest.fixture
-# def redis_client():
-#     """Connect to Redis with configuration from environment or defaults.
-
-#     When running tests from host machine with .env.local (which has REDIS_HOST=redis),
-#     automatically fall back to localhost for testing.
-#     """
-#     host = os.getenv("REDIS_HOST", "localhost")
-#     port = int(os.getenv("REDIS_PORT", "6379"))
-#     db = int(os.getenv("REDIS_DB", "0"))
-#     password = os.getenv("REDIS_PASSWORD", None)
-
-#     # If using 'redis' hostname from Docker, try localhost instead
-#     if host == "redis":
-#         test_host = "localhost"
-#     else:
-#         test_host = host
-
-#     # Use decode_responses=False to get bytes, then decode explicitly in tests
-#     client = redis.Redis(
-#         host=test_host,
-#         port=port,
-#         db=db,
-#         password=password,
-#         decode_responses=False,
-#     )
-
-#     # Verify connection
-#     try:
-#         response = client.ping()
-#         print(f"\n✓ Connected to Redis at {test_host}:{port}")
-#     except Exception as e:
-#         pytest.skip(f"Redis not available at {test_host}:{port} — {e}")
-
-#     # Flush entire database to start clean
-#     try:
-#         client.flushdb()
-#         print(f"✓ Flushed Redis DB {db}")
-#     except Exception as e:
-#         print(f"Warning: Could not flush database: {e}")
-
-#     yield client
-
-#     # Cleanup after test
-#     try:
-#         client.flushdb()
-#     except Exception as e:
-#         print(f"Warning: Could not cleanup after test: {e}")
 
 
 def create_test_request(request_id: str = "test-001", content: str = "John Smith") -> dict:

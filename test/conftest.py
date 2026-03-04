@@ -9,6 +9,7 @@ import logging.config
 from pathlib import Path
 
 import pytest
+import redis
 import yaml
 
 # Path constants — single source of truth for test directory structure
@@ -205,3 +206,67 @@ def rdf_mapper(rdf_mapping_path):
     from ere.adapters.rdf_mapper_impl import TurtleRDFMapper
 
     return TurtleRDFMapper(rdf_mapping_path)
+
+
+# ============================================================================
+# Redis fixture
+# ============================================================================
+
+@pytest.fixture(scope="module")
+def redis_client():
+    """
+    Connect to Redis and verify it's available.
+    Tries configured host first, then fallback to localhost if configured host is "redis".
+    Raises: RuntimeError if Redis is not accessible.
+    """
+    hosts_to_try = []
+
+    # Primary: configured host (from .env or environment)
+    configured_host = os.environ.get("REDIS_HOST", "localhost")
+    hosts_to_try.append(configured_host)
+
+    # Fallback: if configured host is "redis" (Docker), also try localhost
+    if configured_host == "redis":
+        hosts_to_try.append("localhost")
+
+    port = int(os.environ.get("REDIS_PORT", "6379"))
+    db = int(os.environ.get("REDIS_DB", "0"))
+    password = os.environ.get("REDIS_PASSWORD", "changeme")
+
+    last_error = None
+    for host in hosts_to_try:
+        try:
+            client = redis.Redis(
+                host=host,
+                port=port,
+                db=db,
+                password=password,
+                decode_responses=False,
+            )
+            client.ping()
+        except Exception as e:
+            raise RuntimeError("Redis test service cannot be detected.") from e
+    
+    # Verify connection
+    try:
+        response = client.ping()
+        print(f"\n✓ Connected to Redis at {host}:{port}")
+    except Exception as e:
+        pytest.skip(f"Redis not available at {host}:{port} — {e}")
+
+    # Flush entire database to start clean
+    try:
+        client.flushdb()
+        print(f"✓ Flushed Redis DB {db}")
+    except Exception as e:
+        print(f"Warning: Could not flush database: {e}")
+
+    yield client
+
+    # Cleanup after test
+    try:
+        client.flushdb()
+    except Exception as e:
+        print(f"Warning: Could not cleanup after test: {e}")
+
+    return client

@@ -10,7 +10,7 @@ from ere.models.resolver import (
 )
 from ere.services.entity_resolution_service import EntityResolver
 from ere.services.resolver_config import DuckDBConfig, ResolverConfig
-from test.adapters.stubs import (
+from test.unit.adapters.stubs import (
     FixedSimilarityLinker,
     InMemoryClusterRepository,
     InMemoryMentionRepository,

@@ -49,6 +49,18 @@ class MentionRepository(ABC):
             Non-negative integer count.
         """
 
+    @abstractmethod
+    def find_by_id(self, mention_id: MentionId) -> Mention | None:
+        """
+        Retrieve a single mention by ID.
+
+        Args:
+            mention_id: The MentionId to look up.
+
+        Returns:
+            The Mention object if found, None otherwise.
+        """
+
 
 class SimilarityRepository(ABC):
     """

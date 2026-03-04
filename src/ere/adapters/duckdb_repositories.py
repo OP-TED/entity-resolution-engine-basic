@@ -65,6 +65,27 @@ class DuckDBMentionRepository(MentionRepository):
         row = self._con.execute("SELECT COUNT(*) FROM mentions").fetchone()
         return row[0]
 
+    def find_by_id(self, mention_id: MentionId) -> Mention | None:
+        """
+        Retrieve a single mention by ID.
+
+        Returns:
+            The Mention object if found, None otherwise.
+        """
+        col_list = ", ".join(["mention_id"] + self._entity_fields)
+        rows = self._con.execute(
+            f"SELECT {col_list} FROM mentions WHERE mention_id = ?",
+            [mention_id.value],
+        ).fetchall()
+        if not rows:
+            return None
+        row = rows[0]
+        # Reconstruct flat dict: {"mention_id": ..., "legal_name": ..., ...}
+        flat_dict = {"mention_id": row[0]}
+        for i, field in enumerate(self._entity_fields):
+            flat_dict[field] = row[i + 1]
+        return Mention(**flat_dict)
+
 
 class DuckDBSimilarityRepository(SimilarityRepository):
     """DuckDB-backed similarity repository."""

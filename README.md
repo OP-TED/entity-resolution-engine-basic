@@ -18,14 +18,14 @@ Their cooperation is governed exclusively by the [ERS–ERE Technical Contract](
 
 | Capability | Description |
 |---|---|
-| **Entity mention resolution** | Accepts a structured entity mention and returns one or more cluster candidates with confidence scores |
+| **Entity mention resolution** | Accepts a structured entity mention and returns one or more cluster candidates with similarity and confidence scores |
 | **Cluster lifecycle management** | Creates new singleton clusters for unknown entities; assigns known entities to the best-matching cluster |
 | **Canonical identifier derivation** | Derives cluster IDs deterministically: `SHA256(concat(source_id, request_id, entity_type))` |
 | **Idempotent processing** | Re-submitting the same request (same identifier triad) returns the same clustering outcome |
-| **Time-budget support** | Supports hard and soft timeouts; responds with the best provisional result if the soft deadline expires |
-| **Curator feedback loop** | Accepts authoritative re-assessments; updates cluster state from provisional to final |
-| **Pluggable resolver strategy** | Resolution algorithm is injected via `AbstractResolver`; swap mock, basic, or ML resolvers without touching the service layer |
-| **Read-only canonical lookup** | Lightweight synchronous query returning the canonical cluster for a known entity URI |
+| **~~Time-budget support~~** | Supports hard and soft timeouts; responds with the best provisional result if the soft deadline expires |
+| **~~Curator feedback loop~~** | Accepts authoritative re-assessments; updates cluster state from provisional to final |
+| **~~Pluggable resolver strategy~~** | Resolution algorithm is injected via `AbstractResolver`; swap mock, basic, or ML resolvers without touching the service layer |
+| **~~Read-only canonical lookup~~** | Lightweight synchronous query returning the canonical cluster for a known entity URI |
 
 ---
 
@@ -66,17 +66,15 @@ Requests and responses are JSON-serialised `ERERequest` / `EREResponse` subclass
 The contract is intentionally decoupled from the transport: any broker that supports
 at-least-once delivery and idempotent semantics may be used.
 
----
+## Installation
 
-## Requirements
+### Requirements
 
 - **Python** 3.12+
 - **Poetry** (dependency management)
 - **Docker** (required for integration tests — used by `testcontainers` to spin up Redis)
 
----
-
-## Installation
+### Installation steps
 
 ```bash
 # Install Poetry if not already present
@@ -191,17 +189,6 @@ Cosmic Python development methodology. Before starting work:
 
 Branch naming: `feature/<ticket-id>/<short-description>` (e.g. `feature/ERE1-121/mock-resolver`).
 
----
-
-## Roadmap
-
-- [ ] Implement mock `resolve_entity_mention` with content-hash clustering and idempotency cache
-- [ ] CLI wrapper to start the Redis entrypoint
-- [ ] Dockerisation
-- [ ] GitHub Actions CI (test, lint, build)
-- [ ] ML-based resolver strategy
-
----
 
 ## Related documents
 
@@ -209,9 +196,3 @@ Branch naming: `feature/<ticket-id>/<short-description>` (e.g. `feature/ERE1-121
 - [ERE Architecture Overview](docs/architecture/ERE-OVERVIEW.md)
 - [Cosmic Python Architecture Blueprint](docs/architecture/ERE-COSMIC-PYTHON-ARCHITECTURE.md)
 - [Resolution Tools](docs/resolution-tools.md)
-
----
-
-## License
-
-See [LICENSE](LICENSE) — if no licence file is present, the project is proprietary to Meaningfy.

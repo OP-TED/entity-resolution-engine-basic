@@ -8,6 +8,7 @@ from erspec.models.core import ClusterReference, EntityMention, EntityMentionIde
 from pytest_bdd import given, scenario, scenarios, then, when
 from pytest_bdd import parsers
 
+from ere.models.exceptions import ConflictError
 from ere.services.entity_resolution_service import resolve_entity_mention
 from test.conftest import load_rdf
 
@@ -175,33 +176,29 @@ def check_exception_raised(outcome):
         "Expected an exception, but the call succeeded. "
         f"Result was: {outcome['result']!r}"
     )
-    assert_that(raised_exception).is_instance_of(ValueError)
-    assert_that(str(raised_exception)).matches(
-        r"(Failed to parse RDF Turtle:|RDF content is empty or whitespace-only)"
-    )
+    assert_that(raised_exception).is_instance_of((ValueError, ConflictError))
+    # RDF parsing errors (ValueError) should match specific patterns
+    if isinstance(raised_exception, ValueError):
+        assert_that(str(raised_exception)).matches(
+            r"(Failed to parse RDF Turtle:|RDF content is empty or whitespace-only)"
+        )
 
 
 # ---------------------------------------------------------------------------
-# Conflict scenario — xfail until service implements conflict detection
+# Conflict scenario — conflict detection is now implemented
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=False, reason="Conflict detection not yet implemented in EntityResolver")
 @scenario(
     "../direct_service_resolution.feature",
     "Resolving the same mention_id with different content raises an exception",
 )
-def test_resolving_the_same_mention_id_with_different_content_raises_an_exception():
+def test_resolving_conflicting_entity_mention_raises_exception():
     """
-    FUTURE: Implement conflict detection in EntityResolver.resolve_to_result().
+    Verify that resolving the same mention_id with different content raises ConflictError.
 
-    Currently: idempotency check (line 319) returns cached result without validating content.
-    When conflict detection is ready:
-      1. Check if mention_id already exists in mention_repo
-      2. Validate that parsed attributes match cached mention
-      3. If attributes differ, raise ConflictError (new exception type)
-      4. Rename test to test_resolving_conflicting_entity_mention_raises_exception
-      5. Remove @pytest.mark.xfail decorator
-      6. Update step_definitions.check_exception_raised() to validate ConflictError specifically
+    This test validates the conflict detection feature in EntityResolver.check_conflict(),
+    which is called before idempotency checks to ensure re-submissions with different
+    content are rejected even if cached in the cluster repo.
     """
     pass

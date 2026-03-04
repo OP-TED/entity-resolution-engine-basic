@@ -213,6 +213,29 @@ class EntityResolver:
         except KeyError:
             return None
 
+    def check_conflict(self, mention: Mention) -> None:
+        """
+        Raise ConflictError if the same mention_id exists with different attributes.
+
+        Called before idempotency check to ensure that re-submissions with different
+        content are rejected, even if cached in the cluster repo.
+
+        Args:
+            mention: The Mention being submitted for resolution.
+
+        Raises:
+            ConflictError: If mention_id already exists with different attributes.
+        """
+        from ere.models.exceptions import ConflictError
+
+        existing = self._mention_repo.find_by_id(mention.id)
+        if existing is not None and existing.attributes != mention.attributes:
+            raise ConflictError(
+                mention_id=mention.id.value,
+                existing_attributes=existing.attributes,
+                incoming_attributes=mention.attributes,
+            )
+
     # -----------------------------------------------------------------------
     # Helpers
     # -----------------------------------------------------------------------
@@ -291,11 +314,9 @@ def resolve_to_result(
     entity_mention: EntityMention,
     resolver: EntityResolver,
     mapper: RDFMapper,
-):
+) -> ResolutionResult:
     """
     Core resolution pipeline: RDF parsing -> domain mapping -> resolver resolution.
-
-    Used by both public API and service paths.
 
     Args:
         entity_mention: EntityMention from erspec.
@@ -316,6 +337,9 @@ def resolve_to_result(
         entity_mention.identifiedBy.request_id,
         mention.attributes,
     )
+
+    # Conflict guard: same mention_id, different content → reject
+    resolver.check_conflict(mention)
 
     # Idempotency: if already resolved, return current state
     cached = resolver.find_cluster_for(mention.id)

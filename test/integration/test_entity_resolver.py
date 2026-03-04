@@ -104,6 +104,7 @@ def service(con, entity_fields, resolver_config, splink_config):
 # ===============================================================================
 
 
+@pytest.mark.integration
 def test_first_mention_resolves_to_singleton(service, con):
     """
     Resolve the first mention.
@@ -125,6 +126,7 @@ def test_first_mention_resolves_to_singleton(service, con):
     assert cluster_count == 1
 
 
+@pytest.mark.integration
 def test_strong_match_joins_existing_cluster(service, con):
     """
     Resolve m1, then resolve m2 (similar name, same country).
@@ -146,6 +148,7 @@ def test_strong_match_joins_existing_cluster(service, con):
     assert [row[0] for row in cluster_rows] == ["m1", "m2"]
 
 
+@pytest.mark.integration
 def test_below_threshold_creates_new_cluster(service, con):
     """
     Resolve m1 (resolves to its own cluster), then resolve m2.
@@ -170,6 +173,7 @@ def test_below_threshold_creates_new_cluster(service, con):
     assert cluster_count >= 1
 
 
+@pytest.mark.integration
 def test_cross_country_blocked_by_blocking_rule(service, con):
     """
     Resolve m1 (US), then resolve m2 (DE, similar name but different country).
@@ -188,6 +192,7 @@ def test_cross_country_blocked_by_blocking_rule(service, con):
     assert sim_count == 0, "No similarities should exist for blocked cross-country pair"
 
 
+@pytest.mark.integration
 def test_similarities_persisted_to_repository(service, con):
     """
     Resolve multiple mentions with some matches.
@@ -212,6 +217,7 @@ def test_similarities_persisted_to_repository(service, con):
     assert len(pair_rows) >= 2, "Should have at least 2 pairs (m2 vs m1, m3 vs m1/m2)"
 
 
+@pytest.mark.integration
 def test_train_succeeds_with_sufficient_records(service, con):
     """
     Resolve 10+ mentions, then train.
@@ -244,6 +250,7 @@ def test_train_succeeds_with_sufficient_records(service, con):
     assert len(result.candidates) >= 1
 
 
+@pytest.mark.integration
 def test_auto_training_nonblocking(con, entity_fields):
     """
     Auto-training triggers at threshold without blocking resolution.
@@ -309,6 +316,7 @@ def test_auto_training_nonblocking(con, entity_fields):
     assert state.mention_count == 5
 
 
+@pytest.mark.integration
 def test_state_reflects_all_mentions(service, con):
     """
     Resolve multiple mentions, check state.
@@ -330,6 +338,7 @@ def test_state_reflects_all_mentions(service, con):
     assert state.mention_count == db_mention_count
 
 
+@pytest.mark.integration
 def test_state_reflects_cluster_membership(service):
     """
     Resolve mentions and verify cluster membership is reflected in state.
@@ -358,6 +367,7 @@ def test_state_reflects_cluster_membership(service):
     assert all_mentions == {"m1", "m2", "m3"}, "All mentions should be assigned"
 
 
+@pytest.mark.integration
 def test_state_reflects_similarity_count(service, con):
     """
     Resolve mentions, check state.similarity_count.
@@ -377,6 +387,7 @@ def test_state_reflects_similarity_count(service, con):
     assert state.similarity_count == db_sim_count
 
 
+@pytest.mark.integration
 def test_linker_warm_start_capability(entity_fields, splink_config):
     """
     Verify SpLinkSimilarityLinker supports warm-start with pre-seeded mentions.
@@ -408,6 +419,7 @@ def test_linker_warm_start_capability(entity_fields, splink_config):
     assert len(links2) >= 1, "Linker should work after registering new mention"
 
 
+@pytest.mark.integration
 def test_multiple_resolves_accumulate_state(service, con):
     """
     Resolve mentions in sequence, verify state accumulates correctly.
@@ -431,6 +443,7 @@ def test_multiple_resolves_accumulate_state(service, con):
             assert len(result.candidates) >= 1, "Should see candidates from earlier mentions"
 
 
+@pytest.mark.integration
 def test_end_to_end_realistic_scenario(service, con):
     """
     Realistic scenario: resolve a stream of entity mentions with variants.

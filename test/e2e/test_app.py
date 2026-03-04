@@ -160,6 +160,7 @@ epd:ent001 a org:Organization ;
 # ===============================================================================
 
 
+@pytest.mark.integration
 def test_single_request_resolution_flow(redis_client, redis_queues, queue_worker):
     """
     E2E test: single entity mention pushed to queue, resolved, response returned.
@@ -198,6 +199,7 @@ def test_single_request_resolution_flow(redis_client, redis_queues, queue_worker
     assert response_obj.candidates is not None
 
 
+@pytest.mark.integration
 def test_multiple_requests_accumulate(redis_client, redis_queues, queue_worker):
     """
     E2E test: multiple entity mentions are resolved and responses queued.
@@ -246,6 +248,7 @@ def test_multiple_requests_accumulate(redis_client, redis_queues, queue_worker):
         assert response.candidates is not None
 
 
+@pytest.mark.integration
 def test_request_response_payload_structure(redis_client, redis_queues, queue_worker):
     """
     E2E test: verify request and response payload structures match spec.
@@ -298,6 +301,7 @@ def test_request_response_payload_structure(redis_client, redis_queues, queue_wo
         assert isinstance(candidate.similarity_score, (float, int))
 
 
+@pytest.mark.integration
 def test_organisation_with_different_country(redis_client, redis_queues, queue_worker):
     """
     E2E test: organization entities with different country codes.

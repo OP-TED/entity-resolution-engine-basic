@@ -103,8 +103,8 @@ class DuckDBSimilarityRepository(SimilarityRepository):
         """
         Persist multiple mention-links using vectorized INSERT.
 
-        Skips if empty. Uses pandas DataFrame + INSERT SELECT for efficiency
-        (optimized performance with minimal I/O).
+        Skips if empty. Uses pandas DataFrame + temporary table registration for efficiency
+        (DuckDB optimizes vectorized INSERT SELECT operations).
         """
         if not links:
             return
@@ -120,11 +120,9 @@ class DuckDBSimilarityRepository(SimilarityRepository):
         ]
         df = pd.DataFrame(rows)
 
-        # Vectorized INSERT: INSERT INTO similarities SELECT * FROM df
-        self._con.from_df(df)
-        self._con.execute(
-            "INSERT INTO similarities SELECT * FROM df"
-        )
+        # Register DataFrame as temporary table and insert (optimized by DuckDB for vectorized operations)
+        self._con.register("df_temp", df)
+        self._con.execute("INSERT INTO similarities SELECT * FROM df_temp")
 
     def count(self) -> int:
         """Return the total number of mention-links in storage."""

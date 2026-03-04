@@ -10,8 +10,8 @@ The ERE (Entity Resolution Engine) implements an **online clustering algorithm**
 
 Mentions are grouped into **clusters** representing the same real-world entity. A mention belongs to exactly one cluster at any given time. When a new mention arrives:
 
-1. **Score** it against existing mentions using a similarity function and evaluate match probablity
-2. **Persist** all computed match probablities (mention-links)
+1. **Score** it against existing mentions using a similarity function and evaluate match probability
+2. **Persist** all computed match probabilities (mention-links)
 3. **Assign** the mention to the best-matching cluster or create a new one
 4. **Return** a ranked list of candidate clusters
 

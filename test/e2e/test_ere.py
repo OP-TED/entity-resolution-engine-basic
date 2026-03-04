@@ -31,8 +31,8 @@ from ere.services.factories import (
 @pytest.fixture
 def redis_queues(redis_client):
     """Provide queue names and clear them before test."""
-    request_queue = "test-ere-requests"
-    response_queue = "test-ere-responses"
+    request_queue = "test-ere_requests"
+    response_queue = "test-ere_responses"
 
     # Clear queues
     redis_client.delete(request_queue, response_queue)

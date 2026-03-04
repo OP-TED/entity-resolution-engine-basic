@@ -26,8 +26,8 @@ Configuration is loaded from `.env.local` (or environment variables):
 | `REDIS_PORT` | `6379` | Redis port |
 | `REDIS_DB` | `0` | Redis database number |
 | `REDIS_PASSWORD` | `changeme` | Redis password |
-| `REQUEST_QUEUE` | `ere-requests` | Queue name for incoming requests |
-| `RESPONSE_QUEUE` | `ere-responses` | Queue name for outgoing responses |
+| `REQUEST_QUEUE` | `ere_requests` | Queue name for incoming requests |
+| `RESPONSE_QUEUE` | `ere_responses` | Queue name for outgoing responses |
 
 The script tries the configured host first, then falls back to `localhost` if the host is `redis` (Docker), making it work both locally and in Docker.
 
@@ -81,7 +81,7 @@ The demo sends 6 messages with 1-second delays between them, then waits for resp
 ```
 2026-03-01 12:34:56 [INFO] Loading configuration...
 2026-03-01 12:34:56 [INFO] Redis config: host=localhost, port=6379, db=0
-2026-03-01 12:34:56 [INFO] Queue names: request=ere-requests, response=ere-responses
+2026-03-01 12:34:56 [INFO] Queue names: request=ere_requests, response=ere_responses
 2026-03-01 12:34:56 [INFO] Checking Redis connectivity...
 2026-03-01 12:34:56 [INFO] ✓ Redis is available
 2026-03-01 12:34:56 [INFO] Clearing request and response queues...

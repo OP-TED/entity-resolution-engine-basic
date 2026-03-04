@@ -24,8 +24,8 @@ class RedisQueueWorker:
         self,
         redis_client,
         entity_resolution_service: EntityResolutionService,
-        request_queue: str = "ere-requests",
-        response_queue: str = "ere-responses",
+        request_queue: str = "ere_requests",
+        response_queue: str = "ere_responses",
         queue_timeout: int = 1,
     ):
         """Initialize worker with dependencies."""

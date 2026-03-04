@@ -74,9 +74,31 @@ poetry run python3 demo/demo.py
 ```
 
 **Runtime**: Approximately 5-35 seconds (5s sending + up to 30s waiting for responses).
-The demo sends 6 messages with 1-second delays between them, then waits for responses.
+The demo sends messages with 1-second delays between them, then waits for responses.
+
+### Using Different Datasets
+
+By default, the demo loads `demo/data/org-tiny.json`. Specify a different dataset with the `--data` parameter:
+
+```bash
+# Use mentions dataset
+poetry run python3 demo/demo.py --data demo/data/mentions_100b.json
+
+# Use larger dataset
+poetry run python3 demo/demo.py --data demo/data/org-mid.json
+```
+
+Available datasets in `demo/data/`:
+- `org-tiny.json` (default) — 8 organization mentions, 2 clusters
+- `org-small.json` — Small organization dataset
+- `org-mid.json` — Mid-size organization dataset
+- `mentions_100b.json` — 100 business entities, EU-based (corresponds to `test/stress/data/mentions_100b.csv`)
+- `mentions_1000.json` — 1,000 business entities stress test (corresponds to `test/stress/data/mentions_1000.csv`)
+- `mentions_mixed_countries_ext.json` — Original demo with 2 countries (US/GB)
 
 ## Example Output
+
+The demo logs all interactions with timestamps and provides a clustering summary at the end:
 
 ```
 2026-03-01 12:34:56 [INFO] Loading configuration...
@@ -85,37 +107,60 @@ The demo sends 6 messages with 1-second delays between them, then waits for resp
 2026-03-01 12:34:56 [INFO] Checking Redis connectivity...
 2026-03-01 12:34:56 [INFO] ✓ Redis is available
 2026-03-01 12:34:56 [INFO] Clearing request and response queues...
-2026-03-01 12:34:56 [INFO] Sending 6 entity mentions...
-2026-03-01 12:34:56 [INFO]   → Sent request m1: Acme Corp (US) [Mention 1 - initial mention]
-2026-03-01 12:34:56 [INFO]   → Sent request m2: Acme Corporation (US) [Mention 2 - high similarity to m1 (sim=0.8)]
+2026-03-01 12:34:56 [INFO] Sending 8 entity mentions...
+2026-03-01 12:34:56 [INFO]   → Sent request m1: Stadt Osnabrück [Mention 1]
+2026-03-01 12:34:57 [INFO]   → Sent request m2: Stadt Osnabrück — Fachdienst Öffentliche Aufträge [Mention 2]
 ...
 2026-03-01 12:34:56 [INFO] Listening for responses...
 2026-03-01 12:34:56 [INFO] ✓ Response received for m1:
 2026-03-01 12:34:56 [INFO]   Type: EntityMentionResolutionResponse
 2026-03-01 12:34:56 [INFO]   Timestamp: 2026-03-01T12:34:56.123456+00:00
 2026-03-01 12:34:56 [INFO]   Candidates:
-2026-03-01 12:34:56 [INFO]     1. Cluster m1: confidence=0.0000, similarity=0.0000
+2026-03-01 12:34:56 [INFO]     1. Cluster 8cf6eabbf0edb0fe58fb0c346a7fc3c78ef4939518b1a6f349548c2d6a9953c2: confidence=0.95, similarity=0.95
 ...
-2026-03-01 12:34:57 [INFO] Demo complete. Received 6/6 responses.
-2026-03-01 12:34:57 [INFO] ✓ All responses received successfully!
+2026-03-01 12:35:00 [INFO] Demo complete. Received 8/8 responses.
+
+================================================================================
+CLUSTERING SUMMARY
+================================================================================
+
+8cf6eabbf0edb0fe58fb0c346a7fc3c78ef4939518b1a6f349548c2d6a9953c2 (3 members):
+  m1   | Stadt Osnabrück
+  m2   | Stadt Osnabrück — Fachdienst Öffentliche Aufträge
+  m5   | Stadt Osnabrück, Zentrale
+
+914d738331f965d12ca7a0bb964473ce53876d308862b4f46e242de4a3ff6348 (3 members):
+  m3   | Conseil départemental Haute-Garonne
+  m4   | Conseil départemental Haute-Garonne Service Public
+  m6   | Conseil Haute-Garonne
+
+================================================================================
+2026-03-01 12:35:00 [INFO] ✓ All responses received successfully!
 ```
+
+The demo logs:
+- **Request tracking**: Each sent mention with descriptive details
+- **Response logging**: Received cluster candidates with confidence/similarity scores
+- **Clustering summary**: Final cluster assignments with member organizations (by default, saved to `demo/log/`)
+- **Extended logging**: Trace-level logging for detailed resolution diagnostics
 
 ## Demo Data
 
-The demo sends 6 synthetic mentions based on the flow in ALGORITHM.md:
+Datasets are stored in `demo/data/` (JSON format with RDF Turtle content).
 
-| ID | Name | Country | Description |
-|----|------|---------|-------------|
-| m1 | Acme Corp | US | Initial mention, creates singleton cluster |
-| m2 | Acme Corporation | US | High similarity to m1 (0.8), extends cluster |
-| m3 | Global Industries Ltd | GB | New entity, creates new cluster |
-| m4 | Global Industries | GB | High similarity to m3 (0.99), extends cluster |
-| m5 | Acme Inc | US | Similar to m2 (0.81), extends Acme cluster |
-| m6 | Global Ltd | GB | Similar to m3/m4 (0.9), extends Global cluster |
+### Dataset Correspondence to Stress Tests
 
-Expected clustering:
-- **Cluster 1**: {m1, m2, m5} - Acme organizations
-- **Cluster 2**: {m3, m4, m6} - Global organizations
+Demo JSON datasets map to CSV datasets in `test/stress/data/` for reproducible benchmarking:
+
+| Demo Dataset | Stress Test CSV | Size | Clusters | Purpose |
+|---|---|---|---|---|
+| `mentions_100b.json` | `mentions_100b.csv` | 100 mentions | ~46 clusters | Realistic clustering with name variations |
+| `mentions_1000.json` | `mentions_1000.csv` | 1,000 mentions | ~144 clusters | Scalability and performance testing |
+| `org-tiny.json` | N/A (custom demo) | 8 mentions | 2 clusters | Quick demo with 2 organization clusters |
+| `org-small.json` | N/A (custom demo) | Small dataset | Multiple | Lightweight testing |
+| `org-mid.json` | N/A (custom demo) | Mid-size dataset | Multiple | Medium-scale testing |
+
+The **mentions** datasets use EU-based organization data with realistic name variations and Jaro-Winkler similarity-derived ground-truth clusters.
 
 ### Message Timing
 
@@ -219,9 +264,25 @@ python3 demo/demo.py
 - **Timeout handling**: The demo waits up to 30 seconds for responses, then reports the count received
 - **Docker fallback**: If the configured Redis host is "redis" (Docker), the demo tries localhost as a fallback for local development
 
+## Logging
+
+The demo logs all activity to:
+- **Console**: INFO-level messages (requests, responses, clustering summary)
+- **Log file**: `demo/log/demo_YYYYMMDD-HHMM--DATASETNAME.log` with TRACE-level diagnostics
+  - Trace logs include detailed resolution diagnostics (field extraction, similarity scoring, etc.)
+  - Clustering summary included at the end of each log file
+
+Configure logging via environment variable:
+```bash
+export LOG_LEVEL=TRACE  # TRACE, DEBUG, INFO, WARNING, ERROR
+python3 demo/demo.py
+```
+
 ## Related Files
 
-- `ALGORITHM.md` - Entity resolution algorithm explanation (source of demo data)
-- `.env.local` - Configuration template with defaults
+- `test/stress/data/` - Stress test datasets (CSV format with ground-truth clustering)
+- `test/stress/data/README.md` - Dataset documentation and experiment matrix
+- `.env.local` - Configuration template with defaults (Redis, queue names)
 - `infra/docker-compose.yml` - Docker Compose setup for full stack
 - `test/e2e/test_app.py` - Integration tests showing request/response patterns
+- `docs/architecture.md` - ERE architecture and layering

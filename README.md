@@ -88,15 +88,22 @@ A working demo is available that demonstrates ERE as a black-box service communi
 
 ```bash
 # Prerequisites: Redis must be running, ERE service must be listening
-python demo/demo.py
+python demo/demo.py                              # Uses org-tiny.json (8 mentions, 2 clusters)
+python demo/demo.py --data demo/data/mentions_100b.json  # 100 mentions, realistic clustering
 ```
 
 The demo:
-- Sends 6 synthetic entity mentions to the request queue
+- Loads entity mentions from JSON datasets stored in `demo/data/`
+- Sends mentions to the request queue via RDF Turtle messages
 - Listens for resolution responses with cluster assignments
-- Logs all interactions with timestamps
+- Logs all interactions with timestamps and outputs a clustering summary
 
-See [`demo/README.md`](demo/README.md) for detailed configuration, prerequisites, troubleshooting, and example output.
+**Datasets**: Multiple datasets available:
+- `org-tiny.json` (default) — 8 organization mentions
+- `mentions_100b.json` — 100 business entities (corresponds to `test/stress/data/mentions_100b.csv`)
+- `mentions_1000.json` — 1,000 business entities (corresponds to `test/stress/data/mentions_1000.csv`)
+
+See [`demo/README.md`](demo/README.md) for datasets, configuration, logging, prerequisites, troubleshooting, and example output.
 
 
 

@@ -42,7 +42,7 @@ def test_app_main_processes_single_request(
     monkeypatch.setenv("REDIS_HOST", os.environ.get("REDIS_HOST", "localhost"))
     monkeypatch.setenv("REDIS_PORT", os.environ.get("REDIS_PORT", "6379"))
     monkeypatch.setenv("REDIS_DB", os.environ.get("REDIS_DB", "0"))
-    monkeypatch.setenv("REDIS_PASSWORD", os.environ.get("REDIS_PASSWORD", "changeme"))
+    monkeypatch.setenv("REDIS_PASSWORD", os.environ.get("REDIS_PASSWORD", ""))
     monkeypatch.setenv("REQUEST_QUEUE", req_queue)
     monkeypatch.setenv("RESPONSE_QUEUE", resp_queue)
     monkeypatch.setenv("RESOLVER_CONFIG_PATH", str(resolver_config_path))

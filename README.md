@@ -1,20 +1,12 @@
-# Entity Resolution Engine (ERE)
+# Basic Entity Resolution Engine (Basic ERE)
 
 > A basic implementation of the ERE component of the Entity Resolution System (ERSys).
 
-The **Entity Resolution Engine (ERE)** is an asynchronous microservice that resolves entity
-mentions to canonical clusters. It holds *clustering authority* within ERSys: it evaluates
-entity mentions, executes resolution logic, and produces clustering outcomes — including the
-canonical cluster identifier. Its counterpart, the **Entity Resolution Service (ERS)**, holds
-*exposure and integration authority*: it forwards requests, enforces client-facing time budgets,
-and persists the latest clustering outcome per mention.
-
-Their cooperation is governed exclusively by the [ERS–ERE Technical Contract](docs/ERS-ERE-System-Technical-Contract.pdf)
-(v0.2, Stable, 23 Feb 2026).
-
----
-
 ## Overview
+
+The **Basic Entity Resolution Engine (Basic ERE)** is an asynchronous microservice that implements entity resolution for predefined entity types. It supports incremental clustering with stable cluster identifiers.
+
+Its primary purpose is to interact with the Entity Resolution System (ERSys). It adheres to the [ERS–ERE Technical Contract](docs/ERS-ERE-System-Technical-Contract.pdf), which establishes the communication protocol between ERE and ERS (part of ERSys) via a message queue (Redis). It also provides a foundation for other ERE implementations.
 
 ### Capabilities
 
@@ -26,7 +18,7 @@ Their cooperation is governed exclusively by the [ERS–ERE Technical Contract](
 
 * **Idempotent processing**: Re-submitting the same request (same identifier triad) returns the same clustering outcome
 
-* **Cold-start and iterative resolution**: Builds cluster structure organically without prior training data; incrementally refines clustering as mentions arrive
+* **Cold-start and incremental resolution**: Builds cluster structure organically without prior training data and doesn't require global reclustering.
 
 * **RDF data ingestion**: Accepts RDF (Turtle) entity data with configurable field mapping and extraction
 
@@ -34,7 +26,6 @@ Their cooperation is governed exclusively by the [ERS–ERE Technical Contract](
 
 * **Automatic probabilistic model training**: Trains the entity resolution model on-the-fly as the mention database grows (Expectation-Maximisation based)
 
-### References
 
 For detailed documentation, see:
 - [**Architecture**](docs/architecture.md) — layered design, sequence diagrams, ADRs
@@ -48,8 +39,9 @@ For detailed documentation, see:
 ### Requirements
 
 - **Python** 3.12+
+- **make**
 - **Poetry** (dependency management)
-- **Docker** (required for integration tests — used by `testcontainers` to spin up Redis)
+- **Docker**
 
 ### Quickstart
 
@@ -64,7 +56,7 @@ make infra-build
 make infra-up
 ```
 
-For detailed setup instructions, see the requirements section above.
+For detailed setup instructions, see `Make targets`.
 
 ---
 
@@ -73,6 +65,9 @@ For detailed setup instructions, see the requirements section above.
 ERE has no HTTP API. It communicates exclusively through Redis message queues:
 - **Request queue**: `ere_requests` — ERS publishes `EntityMentionResolutionRequest` messages
 - **Response queue**: `ere_responses` — ERE publishes `EntityMentionResolutionResponse` or `EREErrorResponse` messages
+
+
+### Make targets
 
 ### Configuration (Resolver and Mapper)
 
@@ -155,11 +150,12 @@ ERE has several test layers aligned with its Cosmic Python architecture.
 
 | Test Type | Location | Purpose |
 |---|---|---|
-| **Unit Tests (adapters)** | `test/adapters/` | Verify individual adapter components (DuckDB repositories, RDF mapper, Splink linker) in isolation |
-| **Unit Tests (services)** | `test/services/` | Validate service-layer use-case orchestration; entity resolution workflow |
+| **Unit Tests (adapters)** | `test/unit/adapters/` | Verify individual adapter components (DuckDB repositories, RDF mapper, Splink linker) in isolation |
+| **Unit Tests (services)** | `test/unit/services/` | Validate service-layer use-case orchestration; entity resolution workflow |
 | **Integration Tests** | `test/integration/` | Test EntityResolver with all real adapters (DuckDB, Splink); full entity mention flow with clustering |
-| **BDD Scenarios** | `test/features/` + `test/steps/` | Gherkin feature files + pytest-bdd steps; document resolution algorithm behaviour; verify clustering rules and thresholds |
+| **BDD Scenarios** | `test/features/` + `test/features/steps/` | Gherkin feature files + pytest-bdd step definitions; document resolution algorithm behaviour; verify clustering rules and thresholds |
 | **End-to-End Tests** | `test/e2e/` | Full service startup; Redis queue integration; request/response payload structure validation |
+| **Stress Tests** | `test/stress/` | Load testing and performance profiling; throughput and latency benchmarks |
 
 ### Running Tests
 

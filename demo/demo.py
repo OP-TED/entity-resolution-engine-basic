@@ -33,7 +33,7 @@ from pathlib import Path
 import redis
 
 # Default data file path
-DEFAULT_DATA_FILE = Path(__file__).parent / "data" / "mentions_mixed_countries.json"
+DEFAULT_DATA_FILE = Path(__file__).parent / "data" / "org-tiny.json"
 
 DELAY_BETWEEN_MESSAGES = 0  # seconds to wait between sending messages (set to >0 for sequential processing)
 GLOBAL_TIMEOUT = 0  # seconds to wait for responses before giving up (0 = no timeout)

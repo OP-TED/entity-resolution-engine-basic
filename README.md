@@ -1,5 +1,10 @@
 # Basic Entity Resolution Engine (Basic ERE)
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=meaningfy-ws_entity-resolution-engine-basic&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=meaningfy-ws_entity-resolution-engine-basic)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=meaningfy-ws_entity-resolution-engine-basic&metric=coverage)](https://sonarcloud.io/summary/new_code?id=meaningfy-ws_entity-resolution-engine-basic)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/downloads/)
+
 > A basic implementation of the ERE component of the Entity Resolution System (ERSys).
 
 ## Overview

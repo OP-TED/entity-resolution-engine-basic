@@ -1,7 +1,7 @@
 [MASTER]
 # Ignore patterns
 ignore=CVS,tests,__pycache__
-ignore-patterns=test_.*?\.py
+ignore-patterns=test_.*?\.py,_test_.*?\.py
 persistent=yes
 load-plugins=
 

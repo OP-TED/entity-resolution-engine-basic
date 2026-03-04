@@ -94,7 +94,6 @@ def resolve_second(mention_id: str, entity_type: str, rdf_file: str, entity_reso
 )
 def resolve_mention(mention_id: str, entity_type: str, rdf_file: str, entity_resolution_service, rdf_mapper) -> ClusterReference:
     mention = _make_mention(mention_id, entity_type, load_rdf(rdf_file))
-    print(f"DEBUG: _make_mention result = {mention!r}")
     return resolve_entity_mention(mention, entity_resolution_service, rdf_mapper)
 
 
@@ -151,15 +150,11 @@ def check_cluster_reference_type(first_result: ClusterReference, second_result: 
 
 @then("both cluster_ids are equal")
 def check_same_cluster(first_result: ClusterReference, second_result: ClusterReference):
-    # print(f"DEBUG: first_result = {first_result!r}")
-    # print(f"DEBUG: second_result = {second_result!r}")
     assert_that(first_result.cluster_id).is_equal_to(second_result.cluster_id)
 
 
 @then("the cluster_ids are different")
 def check_different_clusters(first_result: ClusterReference, second_result: ClusterReference):
-    # print(f"DEBUG: first_result = {first_result!r}")
-    # print(f"DEBUG: second_result = {second_result!r}")
     assert_that(first_result.cluster_id).is_not_equal_to(second_result.cluster_id)
 
 
@@ -177,28 +172,14 @@ def check_exception_raised(outcome):
         f"Result was: {outcome['result']!r}"
     )
     assert_that(raised_exception).is_instance_of((ValueError, ConflictError))
-    # RDF parsing errors (ValueError) should match specific patterns
+    # Validate exception message based on type
     if isinstance(raised_exception, ValueError):
+        # RDF parsing errors should match specific patterns
         assert_that(str(raised_exception)).matches(
             r"(Failed to parse RDF Turtle:|RDF content is empty or whitespace-only)"
         )
-
-
-# ---------------------------------------------------------------------------
-# Conflict scenario — conflict detection is now implemented
-# ---------------------------------------------------------------------------
-
-
-@scenario(
-    "../direct_service_resolution.feature",
-    "Resolving the same mention_id with different content raises an exception",
-)
-def test_resolving_conflicting_entity_mention_raises_exception():
-    """
-    Verify that resolving the same mention_id with different content raises ConflictError.
-
-    This test validates the conflict detection feature in EntityResolver.check_conflict(),
-    which is called before idempotency checks to ensure re-submissions with different
-    content are rejected even if cached in the cluster repo.
-    """
-    pass
+    elif isinstance(raised_exception, ConflictError):
+        # Conflict errors should contain mention_id and indicate content mismatch
+        assert_that(str(raised_exception)).contains("was already resolved with different content")
+        # Conflict errors should contain mention_id and indicate content mismatch
+        assert_that(str(raised_exception)).contains("was already resolved with different content")

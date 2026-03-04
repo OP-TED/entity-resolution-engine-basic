@@ -178,16 +178,19 @@ def entity_resolution_service(resolver_config_path, rdf_mapping_path):  # pylint
 
     resolver_config = ResolverConfig.from_dict(raw_config)
     con = duckdb.connect(":memory:")
-    init_schema(con, entity_fields)
+    try:
+        init_schema(con, entity_fields)
 
-    mention_repo = DuckDBMentionRepository(con, entity_fields)
-    similarity_repo = DuckDBSimilarityRepository(con)
-    cluster_repo = DuckDBClusterRepository(con)
-    linker = SpLinkSimilarityLinker(entity_fields, raw_config)
+        mention_repo = DuckDBMentionRepository(con, entity_fields)
+        similarity_repo = DuckDBSimilarityRepository(con)
+        cluster_repo = DuckDBClusterRepository(con)
+        linker = SpLinkSimilarityLinker(entity_fields, raw_config)
 
-    return EntityResolver(
-        mention_repo, similarity_repo, cluster_repo, linker, resolver_config
-    )
+        yield EntityResolver(
+            mention_repo, similarity_repo, cluster_repo, linker, resolver_config
+        )
+    finally:
+        con.close()
 
 
 # ============================================================================

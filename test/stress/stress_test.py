@@ -6,11 +6,11 @@ Standalone stress test runner (not pytest-managed) for performance testing
 of the entity resolver with configurable datasets and parameters.
 
 Usage:
-    python test/stress_test.py \
+    python test/stress/stress_test.py \
         --dataset test/stress/data/org-small.csv \
         --output /tmp/stress_result.json
 
-    python test/stress_test.py \
+    python test/stress/stress_test.py \
         --dataset test/stress/data/org-mid.csv \
         --seed 200 \
         --records 500 \

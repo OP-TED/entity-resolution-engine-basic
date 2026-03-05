@@ -75,7 +75,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Algorithm documentation with step-by-step resolution flow
 - Configuration reference for resolver and RDF mapping tuning
 - Contributing guidelines and branch naming conventions
-- WORKING.md for active task tracking
 - CLAUDE.md for development workflow and architecture rules
 
 **Demo Application**

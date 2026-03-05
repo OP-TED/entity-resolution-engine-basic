@@ -10,7 +10,7 @@
 # Required repository secrets:
 #   - SONAR_TOKEN: SonarCloud authentication token
 #
-# If the private ers-core dependency fails to resolve with the default
+# If the private ers-spec dependency fails to resolve with the default
 # GITHUB_TOKEN, add a PAT as GH_TOKEN_PRIVATE_REPOS and uncomment the
 # fallback section below.
 

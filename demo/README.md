@@ -90,11 +90,8 @@ poetry run python3 demo/demo.py --data demo/data/org-mid.json
 
 Available datasets in `demo/data/`:
 - `org-tiny.json` (default) — 8 organization mentions, 2 clusters
-- `org-small.json` — Small organization dataset
-- `org-mid.json` — Mid-size organization dataset
-- `mentions_100b.json` — 100 business entities, EU-based (corresponds to `test/stress/data/mentions_100b.csv`)
-- `mentions_1000.json` — 1,000 business entities stress test (corresponds to `test/stress/data/mentions_1000.csv`)
-- `mentions_mixed_countries_ext.json` — Original demo with 2 countries (US/GB)
+- `org-small.json` — Small (100 mentions) organization dataset
+- `org-mid.json` — Mid-size (1000 mentions) organization dataset
 
 ## Example Output
 

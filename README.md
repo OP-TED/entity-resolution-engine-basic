@@ -41,7 +41,7 @@ For detailed documentation, see:
 
 ### Dependencies
 
-ERE relies on **ers-core** (from [entity-resolution-spec](https://github.com/OP-TED/entity-resolution-spec)), which provides:
+ERE relies on **ers-spec** (from [entity-resolution-spec](https://github.com/OP-TED/entity-resolution-spec)), which provides:
 - **Shared domain models** - Common entity types and concepts across the ERSys ecosystem
 - **ERE contract message models** - Standardized request/response structures for ERE–ERS communication (`EntityMentionResolutionRequest`, `EntityMentionResolutionResponse`, `EREErrorResponse`)
 
@@ -145,8 +145,8 @@ Available targets (`make help`):
 ### Configuration (Resolver and Mapper)
 
 Entity resolution behaviour is configured via two YAML files:
-- **Resolver configuration** (`infra/.env.local`): Splink comparisons, cold-start parameters, similarity thresholds
-- **RDF mapping** (`test/resources/rdf_mapping.yaml`): RDF namespace bindings, field extraction rules, entity type definitions
+- **Resolver configuration** ([resolver.yaml](./infra/config/resolver.yaml)): Splink comparisons, cold-start parameters, similarity thresholds
+- **RDF mapping** ([rdf_mapping.yaml](./infra/config/rdf_mapping.yaml)): RDF namespace bindings, field extraction rules, entity type definitions
 
 For detailed configuration options and tuning, see the [configuration page](./infra/config/README.md).
 

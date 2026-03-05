@@ -29,7 +29,7 @@ Its primary purpose is to interact with the Entity Resolution System (ERSys). It
 
 * **Declarative entity type support**: Arbitrary entity types specified via configuration files (no hardcoding)
 
-* **Automatic probabilistic model training**: Trains the entity resolution model on-the-fly as the mention database grows (Expectation-Maximisation based)
+* **Automatic probabilistic model training**: Trains the entity resolution model on-the-fly as the mention database grows (based on statistical distribution and not human-in-the-loop; uses Expectation-Maximisation); 
 
 
 For detailed documentation, see:

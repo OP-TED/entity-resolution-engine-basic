@@ -148,7 +148,7 @@ Entity resolution behaviour is configured via two YAML files:
 - **Resolver configuration** (`infra/.env.local`): Splink comparisons, cold-start parameters, similarity thresholds
 - **RDF mapping** (`test/resources/rdf_mapping.yaml`): RDF namespace bindings, field extraction rules, entity type definitions
 
-For detailed configuration options and tuning, see [docs/configuration.md](docs/configuration.md).
+For detailed configuration options and tuning, see the [configuration page](./infra/config/README.md).
 
 ### Examples
 
@@ -250,7 +250,7 @@ ERE has several test layers aligned with its Cosmic Python architecture.
 | **Stress Tests** | `test/stress/` | Load testing and performance profiling; throughput and latency benchmarks |
 
 **Stress Test Datasets**: Committed to `test/stress/data/`.
-See [Stress Test Datasets README](test/stress/data/README.md) for dataset descriptions and usage.
+See [Stress Test & Datasets README](test/stress/README.md) for dataset descriptions and usage.
 
 ### Running Tests
 
@@ -286,5 +286,5 @@ Contributions are welcome. Please open an issue before submitting a pull request
 - Keep commits small and well-described
 - Branch naming: `feature/<ticket>/<short-description>` (e.g. `feature/ERS1-124/conflict-detection`)
 
-For active tasks and current work, see [WORKING.md](WORKING.md).
-For development workflow and architecture guidelines, see [CLAUDE.md](CLAUDE.md).
+For active tasks and current work, edit [WORKING.md](WORKING.md).
+For development workflow and architecture guidelines, see [CLAUDE.md](.claude/CLAUDE.md).

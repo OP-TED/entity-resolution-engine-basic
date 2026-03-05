@@ -1,4 +1,11 @@
-# Resolver Configuration
+# Entity resolver Configuration
+
+The Entity Resolver is the core component of the Basic ERE (Entity Resolution Engine) service.
+It is responsible for identifying and linking entities across different data sources,
+ensuring consistency and accuracy in entity identification and consolidation.
+
+This page provides configuration details and guidelines for the Entity Resolver component.
+ 
 
 Configuration files control the entity resolution algorithm behavior, including similarity matching, blocking rules, thresholds, and statistical priors. This directory contains two primary configuration files.
 

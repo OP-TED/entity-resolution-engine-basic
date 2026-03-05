@@ -59,10 +59,16 @@ This ensures type-safe, versioned communication between ERE and other ERSys comp
 
 ### Quickstart
 
+In order to setup the project locally:
 ```bash
 # Install all Python dependencies (Poetry is required)
 make install
+```
 
+To build and launch Docker-based stack (ERE + Redis):
+1. (optional) Adjust connection and logging config in [.env.local](infra/.env.local).
+2. Run the following:
+```bash
 # Build the ERE Docker image
 make infra-build
 
@@ -70,8 +76,27 @@ make infra-build
 make infra-up
 ```
 
-For detailed setup instructions, see `Make targets`.
+Launch a demo script and observe the end-to-end resolution flow; the demo script connects to the locally deployed Redis instance to which the ERE service is subscribed.
+```bash
+poetry run python demo/demo.py  # run the demo script with the default data
 
+# run the script with a custom request data file
+poetry run python demo/demo.py --data demo/data/org-small.json
+# logs from request submission and resolution outcomes will be printed to stdout
+
+# inspect ere service logs
+make infra-logs
+```
+
+Terminate the service:
+```bash
+make infra-down
+```
+
+Note: In order for the demo to work, you need to either set `REDIS_HOST=localhost` in the [.env.local](infra/.env.local) file or pass it to the script as an environment variable.
+
+
+For detailed setup instructions, see `Make targets`.
 
 
 ## Usage
@@ -132,7 +157,7 @@ A working demo is available that demonstrates ERE as a black-box service communi
 ```bash
 # Prerequisites: Redis must be running, ERE service must be listening
 python demo/demo.py                              # Uses org-tiny.json (8 mentions, 2 clusters)
-python demo/demo.py --data demo/data/mentions_100b.json  # 100 mentions, realistic clustering
+python demo/demo.py --data demo/data/org-small.json  # 100 mentions, realistic clustering
 ```
 
 The demo:
@@ -142,9 +167,11 @@ The demo:
 - Logs all interactions with timestamps and outputs a clustering summary
 
 **Datasets**: Multiple datasets available:
-- `org-tiny.json` (default) - 8 organization mentions
-- `mentions_100b.json` - 100 business entities (corresponds to `test/stress/data/mentions_100b.csv`)
-- `mentions_1000.json` - 1,000 business entities (corresponds to `test/stress/data/mentions_1000.csv`)
+- `org-tiny.json` (default) — 8 organization mentions
+- `org-small.json` — 100 organization mentions (corresponds to `test/stress/data/org-small.csv`)
+- `org-mid.json` — 1,000 organization mentions (corresponds to `test/stress/data/org-mid.csv`)
+
+Note: For practical reasons (Turtle syntax is more verbose and less popular than JSON), the `demo.py` script accepts JSON files of a fixed structure and constructs RDF payloads from them on the fly.
 
 See [`demo/README.md`](demo/README.md) for datasets, configuration, logging, prerequisites, troubleshooting, and example output.
 
@@ -222,7 +249,7 @@ ERE has several test layers aligned with its Cosmic Python architecture.
 | **End-to-End Tests** | `test/e2e/` | Full service startup; Redis queue integration; request/response payload structure validation |
 | **Stress Tests** | `test/stress/` | Load testing and performance profiling; throughput and latency benchmarks |
 
-**Stress Test Datasets**: Committed to `test/stress/data/` with ground-truth clustering for reproducible benchmarking.
+**Stress Test Datasets**: Committed to `test/stress/data/`.
 See [Stress Test Datasets README](test/stress/data/README.md) for dataset descriptions and usage.
 
 ### Running Tests

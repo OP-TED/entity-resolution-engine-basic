@@ -141,7 +141,10 @@ def create_resolver(
 
 
 def seed_and_train(
-    resolver: EntityResolver, mentions: list[Mention], n_seed: int, skip_train: bool = False
+    resolver: EntityResolver,
+    mentions: list[Mention],
+    n_seed: int,
+    skip_train: bool = False,
 ):
     """
     Seed resolver with first n_seed mentions and optionally trigger training.

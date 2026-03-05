@@ -78,7 +78,9 @@ def main() -> None:
 
     # Config file paths: CLI takes precedence over environment
     rdf_mapping_path = args.rdf_mapping_path or os.environ.get("RDF_MAPPING_PATH")
-    resolver_config_path = args.resolver_config_path or os.environ.get("RESOLVER_CONFIG_PATH")
+    resolver_config_path = args.resolver_config_path or os.environ.get(
+        "RESOLVER_CONFIG_PATH"
+    )
     duckdb_path = os.environ.get("DUCKDB_PATH")
 
     log.info(

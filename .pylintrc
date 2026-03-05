@@ -1,0 +1,98 @@
+[MASTER]
+# Ignore patterns
+ignore=CVS,tests,__pycache__
+ignore-patterns=test_.*?\.py,_test_.*?\.py
+persistent=yes
+load-plugins=
+
+[MESSAGES CONTROL]
+# Disable specific warnings that conflict with our style or are false positives
+disable=C0111,  # missing-docstring (we document via type hints)
+        C0103,  # invalid-name (allow single letter vars like i, j, k, x, y, z)
+        C0301,  # line-too-long (handled by Ruff formatter)
+        C0303,  # trailing-whitespace (handled by formatter)
+        C0305,  # trailing-newlines (handled by formatter)
+        C0321,  # multiple-statements (handled by formatter)
+        C0415,  # import-outside-toplevel (sometimes necessary)
+        W0107,  # unnecessary-pass
+        W0221,  # arguments-differ (common in inheritance)
+        W0311,  # bad-indentation (handled by formatter)
+        W0511,  # fixme (TODO/FIXME comments are useful)
+        W0603,  # global-statement
+        W0613,  # unused-argument (common in abstract methods)
+        W0707,  # raise-missing-from
+        R0903,  # too-few-public-methods (dataclasses often have few methods)
+        R0913,  # too-many-arguments (7 args is reasonable for services)
+        R0914,  # too-many-locals (20 locals is reasonable for complex functions)
+        R1705,  # no-else-return
+        R1711,  # useless-return
+        R0801,  # duplicate-code (detected separately)
+        E1134   # not-a-mapping (false positive with config objects)
+
+[REPORTS]
+output-format=text
+reports=no
+score=yes
+
+[BASIC]
+# Good names for short variables
+good-names=i,j,k,v,e,ex,f,fp,fd,x,y,z,id,pk,db,df,dt,ts,tz,io,ok,_,__,Run,log,url,uri,api,sql,xml,json,csv,ttl,rdf,ns,ctx,cfg,tmp,value
+bad-names=foo,bar,baz,toto,tutu,tata,temp,tmp2,tmp3,data,info,obj,item,thing,stuff,do_stuff,handle,process,manager,helper,util,utils,utility,common,misc,base,abstract,generic,value,result,output,input,flag,flag1,flag2,aux,auxiliary
+
+# Naming patterns for code elements
+name-group=
+include-naming-hint=no
+function-rgx=[a-z_][a-z0-9_]{2,30}$
+variable-rgx=[a-z_][a-z0-9_]{2,30}$
+const-rgx=(([A-Z_][A-Z0-9_]*)|(__.*__))$
+attr-rgx=[a-z_][a-z0-9_]{2,30}$
+argument-rgx=[a-z_][a-z0-9_]{2,30}$
+class-attribute-rgx=([A-Za-z_][A-Za-z0-9_]{2,30}|(__.*__))$
+inlinevar-rgx=[A-Za-z_][A-Za-z0-9_]*$
+class-rgx=[A-Z_][a-zA-Z0-9]+$
+module-rgx=(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$
+method-rgx=[a-z_][a-z0-9_]{2,30}$
+
+[FORMAT]
+max-line-length=120
+max-module-lines=1000
+indent-string='    '
+
+[MISCELLANEOUS]
+notes=FIXME,XXX,TODO
+
+[SIMILARITIES]
+min-similarity-lines=10
+ignore-comments=yes
+ignore-docstrings=yes
+ignore-imports=yes
+
+[TYPECHECK]
+ignore-mixin-members=yes
+ignored-classes=SQLObject
+
+[VARIABLES]
+init-import=no
+dummy-variables-rgx=_|dummy
+
+[CLASSES]
+defining-attr-methods=__init__,__new__,setUp
+valid-classmethod-first-arg=cls
+valid-metaclass-classmethod-first-arg=mcs
+
+[DESIGN]
+# SOLID Principles enforcement thresholds
+max-args=7              # SRP: keep functions focused
+max-attributes=10       # SRP: keep classes cohesive
+max-bool-expr=5         # DIP: complex conditions suggest abstraction needed
+max-branches=15         # Cyclomatic complexity (SRP)
+max-locals=20           # Keep functions readable
+max-returns=6           # SRP: multiple returns suggest multiple responsibilities
+max-statements=75       # Keep methods manageable
+min-public-methods=1    # Allow classes with few public methods
+
+[IMPORTS]
+deprecated-modules=regsub,TERMIOS,Bastion,rexec
+
+[EXCEPTIONS]
+overgeneral-exceptions=builtins.Exception

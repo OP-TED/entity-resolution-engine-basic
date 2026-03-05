@@ -1,0 +1,107 @@
+# Quality Check workflow for Entity Resolution Engine (ERE)
+# =========================================================
+# Runs on push to develop and on PRs targeting develop.
+#
+# Steps:
+#   1. Install (Python, Poetry, project dependencies)
+#   2. Lint, Test & Verify (tox: unit tests + architecture + clean-code checks)
+#   3. SonarCloud analysis (coverage, quality gate)
+#
+# Required repository secrets:
+#   - SONAR_TOKEN: SonarCloud authentication token
+#
+# If the private ers-spec dependency fails to resolve with the default
+# GITHUB_TOKEN, add a PAT as GH_TOKEN_PRIVATE_REPOS and uncomment the
+# fallback section below.
+
+name: Quality Check
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint, Test & Verify
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      # ------------------------------------------------------------------
+      # Checkout
+      # ------------------------------------------------------------------
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0  # Full history required for SonarCloud analysis
+
+      # ------------------------------------------------------------------
+      # Python & Poetry
+      # ------------------------------------------------------------------
+      - name: Read Python version from pyproject.toml
+        id: python-version
+        run: echo "version=$(grep -m1 'python = ' pyproject.toml | grep -oP '\d+\.\d+' | head -1)" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ steps.python-version.outputs.version }}
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Configure git credentials for private dependencies
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+        # NOTE: If GITHUB_TOKEN lacks cross-repo access, replace with:
+        # git config --global url."https://x-access-token:${{ secrets.GH_TOKEN_PRIVATE_REPOS }}@github.com/".insteadOf "https://github.com/"
+
+      # ------------------------------------------------------------------
+      # Dependency caching
+      # ------------------------------------------------------------------
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            .tox
+          key: poetry-${{ runner.os }}-${{ hashFiles('poetry.lock', 'tox.ini') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-
+
+      # ------------------------------------------------------------------
+      # Install
+      # ------------------------------------------------------------------
+      - name: Install dependencies
+        run: poetry install --with dev
+
+      # ------------------------------------------------------------------
+      # Lint, Test & Verify (tox)
+      # ------------------------------------------------------------------
+      - name: Run quality checks (unit tests + architecture + clean-code)
+        run: |
+          rm -f infra/.env.local
+          poetry run tox -e py312,architecture,clean-code
+
+      # ------------------------------------------------------------------
+      # SonarCloud
+      # ------------------------------------------------------------------
+      - name: SonarCloud scan
+        if: always()
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

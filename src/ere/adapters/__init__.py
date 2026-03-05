@@ -1,33 +1,49 @@
 from abc import abstractmethod
 from typing import Protocol
 
-from ere.models.core import ERERequest, EREResponse
+from erspec.models.ere import ERERequest, EREResponse
+
+from ere.adapters.repositories import (
+    ClusterRepository,
+    MentionRepository,
+    SimilarityRepository,
+)
+from ere.adapters.rdf_mapper_port import RDFMapper
 
 
-class AbstractResolver ( Protocol ):
-	"""
-	ERE resolver abstraction.
+class AbstractResolver(Protocol):
+    """
+    ERE resolver abstraction.
 
-	An ERE resolver deals with the core of the job, ie, it takes requests like 
-  :class:`ere.models.core.ERERequest` and computes results for them. 
-	
-	A resolver doesn't deal with aspects like networking or asynchronous processing, this
-	is are concerns for services and entrypoints, which wrap around resolvers.
+    An ERE resolver deals with the core of the job, ie, it takes requests like
+    :class:`ere.models.ere.ERERequest` and computes results for them.
 
-	As you can see, it makes sense to define resolvers as :class:`Protocol` classes, so that, 
-	for instance, even a simple lambda could be uses as a resolver. 
-	"""
-	
-	@abstractmethod
-	def process_request ( self, request: ERERequest ) -> EREResponse:
-		"""
-		Resolves an entity resolution request, returning the corresponding response.
+    A resolver doesn't deal with aspects like networking or asynchronous processing, these
+    are concerns for services and entrypoints, which wrap around resolvers.
 
-		This only concerns the resolution logic, leaving out aspects like transport or
-		asynchronous processing.
+    As you can see, it makes sense to define resolvers as :class:`Protocol` classes, so that,
+    for instance, even a simple lambda could be used as a resolver.
+    """
 
-		This should take care of wrapping exceptions into ErrorResponse results.
-		"""
+    @abstractmethod
+    def process_request(self, request: ERERequest) -> EREResponse:
+        """
+        Resolve an entity resolution request, returning the corresponding response.
 
-	def __call__ ( self, request: ERERequest ) -> EREResponse:
-		return self.process_request ( request )
+        This only concerns the resolution logic, leaving out aspects like transport or
+        asynchronous processing.
+
+        This should take care of wrapping exceptions into ErrorResponse results.
+        """
+
+    def __call__(self, request: ERERequest) -> EREResponse:
+        return self.process_request(request)
+
+
+__all__ = [
+    "AbstractResolver",
+    "ClusterRepository",
+    "MentionRepository",
+    "RDFMapper",
+    "SimilarityRepository",
+]

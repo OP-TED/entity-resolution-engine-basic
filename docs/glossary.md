@@ -1,4 +1,4 @@
-# Business Glossary
+# Entity Resolver Glossary
 
 This document defines the domain terms and business rules for the Entity Resolver component.
 

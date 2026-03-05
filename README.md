@@ -33,11 +33,20 @@ Its primary purpose is to interact with the Entity Resolution System (ERSys). It
 
 
 For detailed documentation, see:
-- [**Architecture**](docs/architecture.md) — layered design, sequence diagrams, ADRs
-- [**Algorithm**](docs/algorithm.md) — incremental probabilistic entity linking (to be written)
-- [**Configuration**](docs/configuration.md) — field mapping, model tuning, Splink setup (to be written)
+- [Architecture](docs/architecture.md) - description of the applied architecture
+- [Algorithm](docs/algorithm.md) - incremental probabilistic entity linking
+- [Configuration](infra/config/README.md) - field mapping, model tuning, Splink setup
+- [ERS–ERE Technical Contract v0.2](docs/ERS-ERE-System-Technical-Contract.pdf)
 
----
+
+### Dependencies
+
+ERE relies on **ers-spec** (from [entity-resolution-spec](https://github.com/OP-TED/entity-resolution-spec)), which provides:
+- **Shared domain models** - Common entity types and concepts across the ERSys ecosystem
+- **ERE contract message models** - Standardized request/response structures for ERE–ERS communication (`EntityMentionResolutionRequest`, `EntityMentionResolutionResponse`, `EREErrorResponse`)
+
+This ensures type-safe, versioned communication between ERE and other ERSys components.
+
 
 ## Installation
 
@@ -50,10 +59,16 @@ For detailed documentation, see:
 
 ### Quickstart
 
+In order to setup the project locally:
 ```bash
 # Install all Python dependencies (Poetry is required)
 make install
+```
 
+To build and launch Docker-based stack (ERE + Redis):
+1. (optional) Adjust connection and logging config in [.env.local](infra/.env.local).
+2. Run the following:
+```bash
 # Build the ERE Docker image
 make infra-build
 
@@ -61,26 +76,79 @@ make infra-build
 make infra-up
 ```
 
+Launch a demo script and observe the end-to-end resolution flow; the demo script connects to the locally deployed Redis instance to which the ERE service is subscribed.
+```bash
+poetry run python demo/demo.py  # run the demo script with the default data
+
+# run the script with a custom request data file
+poetry run python demo/demo.py --data demo/data/org-small.json
+# logs from request submission and resolution outcomes will be printed to stdout
+
+# inspect ere service logs
+make infra-logs
+```
+
+Terminate the service:
+```bash
+make infra-down
+```
+
+Note: In order for the demo to work, you need to either set `REDIS_HOST=localhost` in the [.env.local](infra/.env.local) file or pass it to the script as an environment variable.
+
+
 For detailed setup instructions, see `Make targets`.
 
----
 
 ## Usage
 
 ERE has no HTTP API. It communicates exclusively through Redis message queues:
-- **Request queue**: `ere_requests` — ERS publishes `EntityMentionResolutionRequest` messages
-- **Response queue**: `ere_responses` — ERE publishes `EntityMentionResolutionResponse` or `EREErrorResponse` messages
+- **Request queue**: `ere_requests` - ERS publishes `EntityMentionResolutionRequest` messages
+- **Response queue**: `ere_responses` - ERE publishes `EntityMentionResolutionResponse` or `EREErrorResponse` messages
 
 
 ### Make targets
+Available targets (`make help`):
+```
+  Development:
+    install              - Install project dependencies via Poetry
+    install-poetry       - Install Poetry if not present
+    build                - Build the package distribution
+
+  Testing:
+    test                 - Run all tests
+    test-unit            - Run unit tests with coverage (fast, your venv)
+    test-integration     - Run integration tests only
+    test-coverage        - Generate HTML coverage report
+
+  Code Quality (Developer):
+    format               - Format code with Ruff
+    lint                 - Run pylint checks (your venv, fast)
+    lint-fix             - Auto-fix with Ruff
+
+  Code Quality (CI/Isolated):
+    check-clean-code     - Clean-code checks: pylint + radon + xenon (tox)
+    check-architecture   - Validate layer contracts (tox)
+    all-quality-checks   - Run all quality checks
+    ci                   - Full CI pipeline for GitHub Actions
+
+  Infrastructure (Docker):
+    infra-build          - Build the ERE Docker image
+    infra-up             - Start full stack (Redis + ERE) in detached mode
+    infra-down           - Stop and remove stack containers and networks
+    infra-logs           - Tail ERE container logs
+
+  Utilities:
+    clean                - Remove build artifacts and caches
+    help                 - Display this help message
+```
 
 ### Configuration (Resolver and Mapper)
 
 Entity resolution behaviour is configured via two YAML files:
-- **Resolver configuration** (`infra/.env.local`): Splink comparisons, cold-start parameters, similarity thresholds
-- **RDF mapping** (`test/resources/rdf_mapping.yaml`): RDF namespace bindings, field extraction rules, entity type definitions
+- **Resolver configuration** ([resolver.yaml](./infra/config/resolver.yaml)): Splink comparisons, cold-start parameters, similarity thresholds
+- **RDF mapping** ([rdf_mapping.yaml](./infra/config/rdf_mapping.yaml)): RDF namespace bindings, field extraction rules, entity type definitions
 
-For detailed configuration options and tuning, see [docs/configuration.md](docs/configuration.md) (to be written).
+For detailed configuration options and tuning, see the [configuration page](./infra/config/README.md).
 
 ### Examples
 
@@ -88,21 +156,31 @@ A working demo is available that demonstrates ERE as a black-box service communi
 
 ```bash
 # Prerequisites: Redis must be running, ERE service must be listening
-python demo/demo.py
+python demo/demo.py                              # Uses org-tiny.json (8 mentions, 2 clusters)
+python demo/demo.py --data demo/data/org-small.json  # 100 mentions, realistic clustering
 ```
 
 The demo:
-- Sends 6 synthetic entity mentions to the request queue
+- Loads entity mentions from JSON datasets stored in `demo/data/`
+- Sends mentions to the request queue via RDF Turtle messages
 - Listens for resolution responses with cluster assignments
-- Logs all interactions with timestamps
+- Logs all interactions with timestamps and outputs a clustering summary
 
-See [`demo/README.md`](demo/README.md) for detailed configuration, prerequisites, troubleshooting, and example output.
+**Datasets**: Multiple datasets available:
+- `org-tiny.json` (default) — 8 organization mentions
+- `org-small.json` — 100 organization mentions (corresponds to `test/stress/data/org-small.csv`)
+- `org-mid.json` — 1,000 organization mentions (corresponds to `test/stress/data/org-mid.csv`)
 
----
+Note: For practical reasons (Turtle syntax is more verbose and less popular than JSON), the `demo.py` script accepts JSON files of a fixed structure and constructs RDF payloads from them on the fly.
+
+See [`demo/README.md`](demo/README.md) for datasets, configuration, logging, prerequisites, troubleshooting, and example output.
+
 
 ## Project
 
 ### Structure
+
+ERE follows a **Cosmic Python layered architecture** that enforces clear separation of concerns and testability. The `src/ere/` directory contains four layers: domain models (pure business logic), services (use-case orchestration), adapters (infrastructure integrations), and entrypoints (external drivers). Test suites mirror this structure with unit, integration, and BDD scenarios, while documentation covers architecture decisions and implementation tasks. The `demo/` directory provides working examples with sample datasets, and `infra/` contains containerisation and configuration for local development.
 
 ```
 src/ere/
@@ -128,8 +206,13 @@ docs/
 infra/
 ├── Dockerfile       # ERE service image definition
 ├── docker-compose.yml  # Full stack (Redis + ERE)
-├── .env.example     # Configuration template
+├── config           # ERE Configuration
 └── .env.local       # Local runtime config (git-ignored)
+
+demo/
+├── demo.py          # Entity resolution demonstration script
+├── data/            # Sample datasets (derived from TED procurement data)
+└── README.md        # Demo usage and configuration guide
 ```
 
 ### Tooling
@@ -147,7 +230,11 @@ infra/
 | Code quality | Ruff (formatting, linting), Pylint (style/SOLID) |
 | Architecture enforcement | importlinter (dependency validation) |
 
----
+### Data Sources
+
+The datasets stored in `demo/data/` and `test/` directories have been derived from public procurement data published by the European Commission at [TED (Tenders Electronic Daily)](https://ted.europa.eu/en/). These datasets are used for demonstration, testing, and benchmarking the entity resolution engine. The derived datasets maintain the character of the original procurement data while being tailored for the specific purposes of validating ERE functionality across realistic entity resolution scenarios.
+
+
 
 ## Testing
 
@@ -161,6 +248,9 @@ ERE has several test layers aligned with its Cosmic Python architecture.
 | **BDD Scenarios** | `test/features/` + `test/features/steps/` | Gherkin feature files + pytest-bdd step definitions; document resolution algorithm behaviour; verify clustering rules and thresholds |
 | **End-to-End Tests** | `test/e2e/` | Full service startup; Redis queue integration; request/response payload structure validation |
 | **Stress Tests** | `test/stress/` | Load testing and performance profiling; throughput and latency benchmarks |
+
+**Stress Test Datasets**: Committed to `test/stress/data/`.
+See [Stress Test & Datasets README](test/stress/README.md) for dataset descriptions and usage.
 
 ### Running Tests
 
@@ -182,21 +272,10 @@ make lint-fix           # Lint with auto-fix
 
 ### Key Testing Practices
 
-- **TDD by default** — write failing tests before implementing features
-- **Layer isolation** — each layer tests its own responsibility only
-- **Fixture-driven setup** — reusable fixtures in `conftest.py` for service/mapper creation
-- **RDF test data** — Turtle fixtures in `test/test_data/` for realistic entity mention testing
+- **TDD by default** - write failing tests before implementing features
+- **Layer isolation** - each layer tests its own responsibility only
+- **Fixture-driven setup** - reusable fixtures in `conftest.py` for service/mapper creation
 
----
-
-## Related Documents
-
-- [ERS–ERE Technical Contract v0.2](docs/ERS-ERE-System-Technical-Contract.pdf)
-- [ERE Architecture](docs/architecture.md)
-- [ERE Cosmic Python Architecture Blueprint](docs/architecture/ERE-COSMIC-PYTHON-ARCHITECTURE.md)
-- [Resolution Tools](docs/resolution-tools.md)
-
----
 
 ## Contributing
 
@@ -207,5 +286,5 @@ Contributions are welcome. Please open an issue before submitting a pull request
 - Keep commits small and well-described
 - Branch naming: `feature/<ticket>/<short-description>` (e.g. `feature/ERS1-124/conflict-detection`)
 
-For active tasks and current work, see [WORKING.md](WORKING.md).
-For development workflow and architecture guidelines, see [CLAUDE.md](CLAUDE.md).
+For active tasks and current work, edit [WORKING.md](WORKING.md).
+For development workflow and architecture guidelines, see [CLAUDE.md](.claude/CLAUDE.md).

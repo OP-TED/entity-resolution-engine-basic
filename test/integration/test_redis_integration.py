@@ -65,16 +65,16 @@ class TestRedisQueueIntegration:
         request = create_test_request("test-receive-001")
 
         # Snapshot response count before pushing request (to handle in-flight requests from prior tests)
-        initial_response_count = redis_client.llen("ere-responses")
+        initial_response_count = redis_client.llen("ere_responses")
 
         # Push request
-        redis_client.lpush("ere-requests", json.dumps(request))
+        redis_client.lpush("ere_requests", json.dumps(request))
 
         # Wait for processing (service has 3-5s timeout per iteration)
         time.sleep(2)
 
         # Check delta in response queue
-        new_response_count = redis_client.llen("ere-responses") - initial_response_count
+        new_response_count = redis_client.llen("ere_responses") - initial_response_count
 
         # Skip this test if the service isn't running
         if new_response_count == 0:
@@ -83,7 +83,7 @@ class TestRedisQueueIntegration:
         assert new_response_count == 1, f"Expected 1 new response, got {new_response_count}"
 
         # Retrieve and verify response format (latest response is at index 0)
-        response_raw = redis_client.lindex("ere-responses", 0)
+        response_raw = redis_client.lindex("ere_responses", 0)
         assert response_raw is not None, "Response is empty"
 
         # response_raw is bytes, decode it
@@ -100,18 +100,18 @@ class TestRedisQueueIntegration:
     def test_multiple_requests(self, redis_client):
         """Test: Handle multiple sequential requests."""
         # Snapshot response count before pushing requests (to handle in-flight responses from prior tests)
-        initial_response_count = redis_client.llen("ere-responses")
+        initial_response_count = redis_client.llen("ere_responses")
 
         # Send 3 requests
         for i in range(3):
             request = create_test_request(f"test-multi-{i:03d}", f"Entity {i}")
-            redis_client.lpush("ere-requests", json.dumps(request))
+            redis_client.lpush("ere_requests", json.dumps(request))
 
         # Wait for processing (service has 3-5s timeout per iteration)
         time.sleep(4)
 
         # Check delta in response queue
-        new_response_count = redis_client.llen("ere-responses") - initial_response_count
+        new_response_count = redis_client.llen("ere_responses") - initial_response_count
         if new_response_count == 0:
             pytest.skip("ERE service not running — skipping response verification")
 
@@ -128,7 +128,7 @@ class TestRedisQueueIntegration:
     def test_malformed_request_handling(self, redis_client):
         """Test: Service handles malformed requests gracefully."""
         # Push invalid JSON
-        redis_client.lpush("ere-requests", "this is not valid json")
+        redis_client.lpush("ere_requests", "this is not valid json")
 
         # Service should still be running (not crash)
         time.sleep(1)

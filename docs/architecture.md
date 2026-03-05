@@ -1,9 +1,7 @@
 # ERE Architecture
 
-> This document describes the layered architecture of ERE.
-> For comprehensive architecture details, sequence diagrams, and ADRs, see the [`architecture/`](architecture/) directory.
+This document describes the layered architecture of ERE.
 
----
 
 ## Layered Architecture
 
@@ -23,11 +21,8 @@ entrypoints → services → models
 | **Services** | `src/ere/services/` | Use-case orchestration; owns transaction boundaries and resolution workflow |
 | **Entrypoints** | `src/ere/entrypoints/` | Redis pub/sub consumer; thin layer that parses input and delegates to services |
 
-Architectural boundaries are enforced at CI time via `importlinter`. See
-[`architecture/`](architecture/) for sequence diagrams, ADRs, and the full
-architecture blueprint.
+Architectural boundaries are enforced at CI time via `importlinter`. 
 
----
 
 ## Async Pub/Sub Interface
 

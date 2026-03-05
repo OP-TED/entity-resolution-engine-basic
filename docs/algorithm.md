@@ -92,15 +92,15 @@ The algorithm processes mentions one at a time, making immediate clustering deci
 
 
 
-## Configuration Parameters
+## Selected configuration Parameters
 
 | Parameter | Purpose |
-|--||
+|--|--|
 | **threshold** | Minimum similarity score to extend an existing cluster |
 | **top_n** | Maximum candidate clusters returned per mention |
 | **blocking_rules** | Pre-filters to reduce similarity computation |
 
-
+The complete list of configuration parameters together with comprehensive description is available in [Configuration](../infra/config/README.md).
 
 ## Outputs
 

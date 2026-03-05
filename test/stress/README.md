@@ -4,60 +4,34 @@ Unified stress test runner for the entity resolver. This document describes usag
 
 ## Quick Start
 
-### Basic smoke test (100 records, ~5 seconds)
+### Small dataset smoke test (~30 seconds)
 
 ```bash
 poetry run python3 test/stress/stress_test.py \
-  --dataset test/data/stress/mentions_100a.csv \
+  --dataset test/stress/data/org-small.csv \
   --seed 20 \
   --records 30 \
   --output /tmp/results.json
 ```
 
-### Cold-start test (no training, ~4 seconds)
+### Mid-size dataset baseline (2-3 minutes)
 
 ```bash
 poetry run python3 test/stress/stress_test.py \
-  --dataset test/data/stress/mentions_100a.csv \
-  --no-train \
-  --records 30 \
-  --output /tmp/coldstart.json
-```
-
-### Standard baseline (1000 records, ~2-3 minutes)
-
-```bash
-poetry run python3 test/stress/stress_test.py \
-  --dataset test/data/stress/mentions_1000.csv \
+  --dataset test/stress/data/org-mid.csv \
   --seed 200 \
   --records 500 \
   --output /tmp/baseline.json
 ```
 
-### Balanced clustering test
+### Cold-start test (no training)
 
 ```bash
 poetry run python3 test/stress/stress_test.py \
-  --dataset test/data/stress/mentions_100b.csv \
-  --seed 20 \
-  --records 50 \
-  --output /tmp/balanced.json
-
-poetry run python3 test/stress/stress_test.py \
-  --dataset /home/greg/PROJECTS/ERS/ere-basic/DEV/mdr-proj-data/mentions_100d.csv \
-  --seed 0 \
-  --records 100 \
-  --output /tmp/mentions_100d--stress_test.json
-```
-
-### High-diversity geography test
-
-```bash
-poetry run python3 test/stress/stress_test.py \
-  --dataset test/data/stress/mentions_100c.csv \
-  --seed 20 \
-  --records 50 \
-  --output /tmp/diverse_geo.json
+  --dataset test/stress/data/org-small.csv \
+  --no-train \
+  --records 30 \
+  --output /tmp/coldstart.json
 ```
 
 ## CLI Parameters
@@ -66,12 +40,12 @@ poetry run python3 test/stress/stress_test.py \
 
 **`--dataset PATH`**
 - Path to CSV file with stress test data
-- Available: `test/data/stress/mentions_100a.csv`, `mentions_100b.csv`, `mentions_100c.csv`, `mentions_1000.csv`
+- Available: `test/stress/data/org-small.csv`, `test/stress/data/org-mid.csv`
 
 ### Optional
 
 **`--config PATH`**
-- Path to resolver config YAML (default: `config/resolver.yaml`)
+- Path to resolver config YAML (default: `infra/config/resolver.yaml`)
 - Determines blocking rules, thresholds, and Splink settings
 
 **`--seed N`**
@@ -92,7 +66,7 @@ poetry run python3 test/stress/stress_test.py \
 - JSON file to save results (default: `/tmp/stress_result.json`)
 
 **`--name STR`**
-- Experiment name (default: dataset basename, e.g., `mentions_100b`)
+- Experiment name (default: dataset basename, e.g., `org-small`)
 
 **`--no-train`**
 - Skip training; use cold-start parameters only (forces `--seed 0`)
@@ -106,15 +80,13 @@ poetry run python3 test/stress/stress_test.py \
 
 ```
 ======================================================================
-Experiment: mentions_100b
+Experiment: org-small
 ======================================================================
-Dataset: test/data/stress/mentions_100b.csv
+Dataset: test/stress/data/org-small.csv
 Mentions: 100 total, 50 stressed
 Seeding: 20 mentions
 
-Clusters (ground-truth): 20
-Cluster distribution: {1: 5, 2: 10, 3: 3, 4: 2, 5: 0}
-
+Resolved clusters: 25
 Latency (ms):
   Mean:     145.32
   Median:   143.87
@@ -131,20 +103,9 @@ Total time: 7.3 sec
 
 ### Key Metrics
 
-**Clustering Quality** (based on ground-truth CSV labels)
-- **Precision**: % of mentions assigned to the correct ground-truth cluster
-  - High = resolver matches original cluster labels well
-  - Low = resolver creates different cluster assignments (expected for new data)
-- **Recall**: % of non-singleton ground-truth clusters that got at least one mention assigned
-  - High = resolver links known cluster members together
-  - Low = resolver fails to find linkages between known cluster members
-- **F1 Score**: Harmonic mean of precision and recall (0.0-1.0)
-  - Balanced quality metric: 0 = no correct assignments, 1 = perfect clustering
-
-**Clusters**
-- Ground-truth count: Number of unique `cluster_id` values in stressed portion
-- Distribution: Histogram showing how many clusters have 1, 2, 3... mentions
-  - Sparsity indicator: High singleton count = sparse dataset
+**Resolved clusters**
+- Number of distinct clusters created by the resolver during stress test
+- Indicates clustering behavior and diversity of matches
 
 **Latency (ms)**
 - **Mean**: Average per-request time (typical case)
@@ -170,12 +131,11 @@ The JSON output has this structure:
 ```json
 {
   "name": "experiment_name",
-  "dataset_path": "test/data/stress/mentions_100b.csv",
+  "dataset_path": "test/stress/data/org-small.csv",
   "n_mentions": 100,
   "n_records_stressed": 50,
   "n_seed": 20,
-  "n_clusters": 20,
-  "cluster_distribution": {"1": 14, "2": 3, "3": 2, "4": 1},
+  "n_clusters": 25,
   "mean_latency_ms": 145.32,
   "median_latency_ms": 143.87,
   "p95_latency_ms": 168.19,
@@ -185,14 +145,10 @@ The JSON output has this structure:
   "stdev_latency_ms": 12.45,
   "peak_memory_mb": 1.2,
   "total_time_sec": 7.3,
-  "ground_truth_clusters": 20,
-  "clustering_precision": 0.45,
-  "clustering_recall": 0.82,
-  "clustering_f1": 0.588,
   "metrics": [
     {
       "record_idx": 20,
-      "mention_id": "m00001234",
+      "mention_id": "d00001234",
       "latency_ms": 145.67,
       "cluster_id": "cl000042",
       "n_candidates": 5,
@@ -203,78 +159,40 @@ The JSON output has this structure:
 }
 ```
 
-## Datasets
+## Stress Test Datasets
 
-### mentions_100a.csv — Sparsity Baseline
+Organization datasets for entity resolution testing across varied scales.
 
-**Use case**: Edge case with high sparsity (94% singletons)
+### org-small.csv — Small Organization Dataset
+- **Size**: 100 organizations (12 KB)
+- **Use Case**: Quick testing and validation, smoke testing with realistic EU organization data
+- **Expected latency**: ~15-25ms per request
+- **Geography**: European organizations with country codes (ISO 3166-1 alpha-3)
 
-- 100 mentions, 97 clusters
-- Useful for testing resolver behavior when most entities are unique
-- Expected latency: 15-25ms per request (cold-start variable)
-- Total time: < 5 seconds seed + train
+### org-mid.csv — Mid-Size Organization Dataset
+- **Size**: 5,497 organizations (456 KB)
+- **Use Case**: Performance baseline testing, representative dataset for entity resolution evaluation
+- **Expected latency**: ~100-200ms per request (scaling effects)
+- **Geography**: European organizations with country codes (ISO 3166-1 alpha-3)
 
-**Example**:
-```bash
-poetry run python3 test/stress/stress_test.py \
-  --dataset test/data/stress/mentions_100a.csv \
-  --seed 30 \
-  --records 50
+### CSV Schema
+
+```
+mention_id,legal_name,country_code,nuts_code,post_code,post_name,thoroughfare
+d000001,"SNAGA, družba za ravnanje z odpadki in druge komunalne storitve, d.o.o.",SVN,SI,2000,Maribor,Nasipna ulica 64
+d000002,Zavod Republike Slovenije za transfuzijsko medicino,SVN,SI,1000,Ljubljana,Šlajmerjeva ulica 6
+d000003,Universitair Ziekenhuis Gent,BEL,BE234,9000,Gent,Corneel Heymanslaan 10
+...
 ```
 
-### mentions_100b.csv — Balanced Clustering
-
-**Use case**: Realistic clustering workload with even distribution
-
-- 100 mentions, 20 clusters (5 per cluster)
-- Each cluster = 1 EU country (20 different countries)
-- Tests resolver with well-defined matches and diverse geography
-- Expected latency: 20-30ms per request
-- Total time: < 5 seconds seed + train
-
-**Example**:
-```bash
-poetry run python3 test/stress/stress_test.py \
-  --dataset test/data/stress/mentions_100b.csv \
-  --seed 20 \
-  --records 60
-```
-
-### mentions_100c.csv — High-Diversity Geography
-
-**Use case**: Blocking rule stress test with sparse country distribution
-
-- 100 mentions, 20 clusters (5 per cluster)
-- 24 EU countries, randomly distributed
-- Tests resolver when blocking rules create sparse, diverse buckets
-- Expected latency: 20-30ms per request
-- Total time: < 5 seconds seed + train
-
-**Example**:
-```bash
-poetry run python3 test/stress/stress_test.py \
-  --dataset test/data/stress/mentions_100c.csv \
-  --seed 20 \
-  --records 60
-```
-
-### mentions_1000.csv — Scalability Test
-
-**Use case**: Standard baseline for scalability evaluation
-
-- 1000 mentions, 638 clusters (realistic sparsity)
-- 27 EU countries, randomized distribution
-- Tests resolver at realistic scale
-- Expected latency: 100-200ms per request
-- Total time: 2-3 minutes (seed 200 + stress 500+)
-
-**Example**:
-```bash
-poetry run python3 test/stress/stress_test.py \
-  --dataset test/data/stress/mentions_1000.csv \
-  --seed 200 \
-  --records 500
-```
+**Fields**:
+- `mention_id`: Unique mention identifier (e.g., `d000001`)
+- `legal_name`: Organization name (company/institution name, may contain special characters and formatting)
+- `country_code`: ISO 3166-1 alpha-3 code (European countries)
+- `nuts_code`: NUTS (Nomenclature of Territorial Units for Statistics) region code
+- `post_code`: Postal code (may be empty)
+- `post_name`: City or postal locality name
+- `thoroughfare`: Street address or location (may be empty)
 
 ## Cold-Start Testing
 
@@ -295,7 +213,7 @@ Useful for:
 ```bash
 # Pure cold-start: no seeding, no training
 poetry run python3 test/stress/stress_test.py \
-  --dataset test/data/stress/mentions_100a.csv \
+  --dataset test/stress/data/org-small.csv \
   --no-train \
   --records 30
 ```
@@ -310,12 +228,11 @@ The `--no-train` flag:
 Cold-start results typically show:
 - **Higher latency** than trained (no optimized parameters)
 - **More variable latency** (P99 >> Mean, indicating higher uncertainty)
-- **Lower clustering accuracy** (more false negatives)
 - **Faster startup** (no EM training overhead)
 
 Example output:
 ```
-Experiment: mentions_100a_coldstart
+Experiment: org-small_coldstart
 Seeding: 0 mentions
 Latency (ms):
   Mean:     226.54
@@ -326,7 +243,7 @@ Latency (ms):
 
 vs. trained (for comparison):
 ```
-Experiment: mentions_100a
+Experiment: org-small
 Seeding: 20 mentions
 Latency (ms):
   Mean:     218.76
@@ -339,14 +256,14 @@ Latency (ms):
 ```bash
 # Warm-start baseline
 poetry run python3 test/stress/stress_test.py \
-  --dataset test/data/stress/mentions_100b.csv \
+  --dataset test/stress/data/org-small.csv \
   --seed 50 \
   --records 50 \
   --output /tmp/warm.json
 
 # Cold-start equivalent
 poetry run python3 test/stress/stress_test.py \
-  --dataset test/data/stress/mentions_100b.csv \
+  --dataset test/stress/data/org-small.csv \
   --no-train \
   --records 50 \
   --output /tmp/cold.json
@@ -363,7 +280,7 @@ Process a fixed number of records:
 ```bash
 # Process exactly 100 records after seeding
 python3 test/stress/stress_test.py \
-  --dataset test/data/stress/mentions_1000.csv \
+  --dataset test/stress/data/org-mid.csv \
   --seed 200 \
   --records 100
 ```
@@ -383,7 +300,7 @@ Process records for a fixed duration:
 ```bash
 # Run for 60 seconds, process as many records as possible
 python3 test/stress/stress_test.py \
-  --dataset test/data/stress/mentions_1000.csv \
+  --dataset test/stress/data/org-mid.csv \
   --seed 200 \
   --time 60
 ```
@@ -412,12 +329,7 @@ python3 test/stress/stress_test.py \
    - EM training happens during seed phase
    - Latency may stabilize after first N records
 
-4. **Ground-truth clusters**: Used for quality metrics only
-   - CSV must include `cluster_id` column
-   - Used to compute cluster distribution
-   - Not used for resolver evaluation (resolver doesn't see it)
-
-5. **Single config**: All experiments use one resolver config
+4. **Single config**: All experiments use one resolver config
    - To test different configs, run separate experiments
    - Results not comparable if configs differ
 
@@ -426,9 +338,9 @@ python3 test/stress/stress_test.py \
 **"ModuleNotFoundError: No module named 'ere'"**
 - Run with `poetry run`: `poetry run python3 test/stress/stress_test.py`
 
-**"No such file: test/data/stress/mentions_100a.csv"**
+**"No such file: test/stress/data/org-small.csv"**
 - Check dataset path is correct
-- Datasets must be in `/home/greg/PROJECTS/ERS/ere-basic/test/data/stress/`
+- Datasets must be in `/home/greg/PROJECTS/ERS/ere-basic/test/stress/data/`
 
 **"Your model is not yet fully trained" warnings**
 - Normal with small seed or sparse data
@@ -442,11 +354,5 @@ python3 test/stress/stress_test.py \
 
 **Memory grows over time**
 - Check `peak_memory_mb` in JSON output
-- If > 1GB with 1000 records, investigate for leaks
+- If > 1GB with 5k records, investigate for leaks
 - Consider smaller seed or fewer records
-
-## Next Steps
-
-- [Blocking rules configuration](../config/resolver.yaml)
-- [Entity resolution service](../src/ere/services/entity_resolution_service.py)
-- [Splink linker implementation](../src/ere/adapters/splink_linker_impl.py)

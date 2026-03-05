@@ -2,20 +2,20 @@
 """
 Unified Stress Test for Entity Resolver
 
-Standalone stress test runner (not pytest-managed) for performance and quality
-testing of the entity resolver with configurable datasets and parameters.
+Standalone stress test runner (not pytest-managed) for performance testing
+of the entity resolver with configurable datasets and parameters.
 
 Usage:
     python test/stress_test.py \
-        --dataset test/data/stress/mentions_100b.csv \
+        --dataset test/stress/data/org-small.csv \
         --output /tmp/stress_result.json
 
     python test/stress_test.py \
-        --dataset test/data/stress/mentions_1000.csv \
+        --dataset test/stress/data/org-mid.csv \
         --seed 200 \
         --records 500 \
         --config infra/config/resolver.yaml \
-        --output /tmp/stress_1000.json
+        --output /tmp/stress_mid.json
 """
 
 import argparse
@@ -76,7 +76,6 @@ class ExperimentResult:
     n_records_stressed: int
     n_seed: int
     n_clusters: int
-    cluster_distribution: dict  # histogram of cluster sizes
     mean_latency_ms: float
     median_latency_ms: float
     p95_latency_ms: float
@@ -87,10 +86,6 @@ class ExperimentResult:
     peak_memory_mb: float
     total_time_sec: float
     metrics: list[RequestMetric]
-    ground_truth_clusters: int
-    clustering_precision: float = 0.0  # % of assigned mentions in correct cluster
-    clustering_recall: float = 0.0  # % of non-singleton GTs that got assigned
-    clustering_f1: float = 0.0  # harmonic mean of precision & recall
 
 
 # =============================================================================
@@ -102,7 +97,7 @@ def load_mentions(csv_path: str) -> list[Mention]:
     """
     Load mentions from CSV file.
 
-    Expected columns: mention_id, legal_name, country_code, city, cluster_id
+    Expected columns: mention_id, legal_name, country_code (and other optional attributes).
     """
     mentions = []
     with open(csv_path) as f:
@@ -115,12 +110,12 @@ def load_mentions(csv_path: str) -> list[Mention]:
 
 def create_resolver(
     entity_fields: list[str], config_path: str
-) -> tuple[EntityResolver, dict]:
+) -> tuple[EntityResolver, dict, duckdb.DuckDBPyConnection]:
     """
     Create fresh EntityResolver instance with in-memory DuckDB.
 
     Returns:
-        (resolver, raw_config_dict)
+        (resolver, raw_config_dict, connection)
     """
     # Load config
     with open(config_path) as f:
@@ -142,7 +137,7 @@ def create_resolver(
         mention_repo, similarity_repo, cluster_repo, linker, resolver_config
     )
 
-    return resolver, raw_config
+    return resolver, raw_config, con
 
 
 def seed_and_train(
@@ -264,70 +259,6 @@ def stress_loop(
     return metrics
 
 
-def compute_clustering_quality(metrics: list[RequestMetric], mentions: list[Mention]) -> tuple[float, float, float]:
-    """
-    Compute clustering quality metrics based on ground-truth clusters.
-
-    Args:
-        metrics: List of RequestMetric from stress loop
-        mentions: List of all mentions (to access ground truth)
-
-    Returns:
-        (precision, recall, f1) tuple
-
-    Metrics:
-        - Precision: % of assigned mentions that are in the correct ground-truth cluster
-        - Recall: % of non-singleton ground-truth clusters that got at least one mention assigned
-        - F1: Harmonic mean of precision and recall
-    """
-    # Map mention_id to ground truth cluster
-    gt_clusters = {}
-    for mention in mentions:
-        gt_clusters[mention.id.value] = mention.get("cluster_id")
-
-    # Count correct assignments (assigned to same GT cluster)
-    correct_assignments = 0
-    total_assignments = 0
-
-    # Track which GT clusters had at least one mention assigned
-    assigned_gts = set()
-    singleton_gts = set()
-
-    # Count GT clusters by size
-    gt_cluster_sizes = Counter(gt_clusters.values())
-
-    for metric in metrics:
-        gt_cluster = gt_clusters.get(metric.mention_id)
-        if not gt_cluster:
-            continue
-
-        total_assignments += 1
-
-        # Check if assigned to correct GT cluster
-        if metric.cluster_id == gt_cluster:
-            correct_assignments += 1
-            assigned_gts.add(gt_cluster)
-        elif metric.cluster_id != "NONE":
-            # Assigned to wrong cluster (not a singleton)
-            pass
-
-    # Precision: correct / total assigned
-    precision = correct_assignments / total_assignments if total_assignments > 0 else 0.0
-
-    # Recall: assigned GT clusters / non-singleton GT clusters
-    non_singleton_gts = {cid for cid, size in gt_cluster_sizes.items() if size > 1}
-    recall = len(assigned_gts & non_singleton_gts) / len(non_singleton_gts) if non_singleton_gts else 0.0
-
-    # F1 score
-    f1 = (
-        2 * (precision * recall) / (precision + recall)
-        if (precision + recall) > 0
-        else 0.0
-    )
-
-    return precision, recall, f1
-
-
 def run_experiment(
     name: str,
     dataset_path: str,
@@ -367,60 +298,56 @@ def run_experiment(
     ]
 
     # Create resolver
-    resolver, _ = create_resolver(entity_fields, config_path)
+    resolver, _, con = create_resolver(entity_fields, config_path)
 
-    # Seed and train (or cold-start)
-    seed_and_train(resolver, mentions, seed_count, skip_train=skip_train)
+    try:
+        # Seed and train (or cold-start)
+        seed_and_train(resolver, mentions, seed_count, skip_train=skip_train)
 
-    # Run stress loop
-    tracemalloc.start()
-    start_idx = seed_count
-    metrics = stress_loop(resolver, mentions, start_idx, exit_strategy, exit_value)
-    current, peak = tracemalloc.get_traced_memory()
-    tracemalloc.stop()
+        # Run stress loop
+        tracemalloc.start()
+        start_idx = seed_count
+        metrics = stress_loop(resolver, mentions, start_idx, exit_strategy, exit_value)
+        current, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
 
-    # Aggregate metrics
-    if not metrics:
-        logger.error("No metrics collected!")
-        return None
+        # Aggregate metrics
+        if not metrics:
+            logger.error("No metrics collected!")
+            return None
 
-    latencies = [m.latency_ms for m in metrics]
-    latencies_sorted = sorted(latencies)
+        latencies = [m.latency_ms for m in metrics]
+        latencies_sorted = sorted(latencies)
 
-    # Ground-truth cluster distribution
-    ground_truth_clusters = Counter(m.cluster_id for m in metrics)
-    ground_truth_cluster_dist = dict(
-        sorted(Counter(ground_truth_clusters.values()).items())
-    )
+        # Resolved cluster count
+        resolved_clusters = Counter(m.cluster_id for m in metrics)
 
-    # Compute clustering quality metrics
-    precision, recall, f1 = compute_clustering_quality(metrics, mentions)
+        result = ExperimentResult(
+            name=name,
+            dataset_path=str(dataset_path),
+            n_mentions=len(mentions),
+            n_records_stressed=len(metrics),
+            n_seed=seed_count,
+            n_clusters=len(resolved_clusters),
+            mean_latency_ms=mean(latencies),
+            median_latency_ms=latencies_sorted[len(latencies_sorted) // 2],
+            p95_latency_ms=latencies_sorted[int(0.95 * len(latencies_sorted))],
+            p99_latency_ms=latencies_sorted[int(0.99 * len(latencies_sorted))],
+            min_latency_ms=min(latencies),
+            max_latency_ms=max(latencies),
+            stdev_latency_ms=stdev(latencies) if len(latencies) > 1 else 0.0,
+            peak_memory_mb=peak / (1024 * 1024),
+            total_time_sec=sum(m.latency_ms for m in metrics) / 1000,
+            metrics=metrics,
+        )
 
-    result = ExperimentResult(
-        name=name,
-        dataset_path=str(dataset_path),
-        n_mentions=len(mentions),
-        n_records_stressed=len(metrics),
-        n_seed=seed_count,
-        n_clusters=len(ground_truth_clusters),
-        cluster_distribution=ground_truth_cluster_dist,
-        mean_latency_ms=mean(latencies),
-        median_latency_ms=latencies_sorted[len(latencies_sorted) // 2],
-        p95_latency_ms=latencies_sorted[int(0.95 * len(latencies_sorted))],
-        p99_latency_ms=latencies_sorted[int(0.99 * len(latencies_sorted))],
-        min_latency_ms=min(latencies),
-        max_latency_ms=max(latencies),
-        stdev_latency_ms=stdev(latencies) if len(latencies) > 1 else 0.0,
-        peak_memory_mb=peak / (1024 * 1024),
-        total_time_sec=sum(m.latency_ms for m in metrics) / 1000,
-        metrics=metrics,
-        ground_truth_clusters=len(ground_truth_clusters),
-        clustering_precision=precision,
-        clustering_recall=recall,
-        clustering_f1=f1,
-    )
-
-    return result
+        return result
+    finally:
+        # Ensure DuckDB connection is properly closed
+        try:
+            con.close()
+        except Exception as e:
+            logger.warning(f"Error closing DuckDB connection: {e}")
 
 
 # =============================================================================
@@ -437,8 +364,7 @@ def print_summary(result: ExperimentResult):
     print(f"Mentions: {result.n_mentions} total, {result.n_records_stressed} stressed")
     print(f"Seeding: {result.n_seed} mentions")
     print()
-    print(f"Clusters (ground-truth): {result.ground_truth_clusters}")
-    print(f"Cluster distribution: {result.cluster_distribution}")
+    print(f"Resolved clusters: {result.n_clusters}")
     print()
     print("Latency (ms):")
     print(f"  Mean:   {result.mean_latency_ms:8.2f}")
@@ -448,11 +374,6 @@ def print_summary(result: ExperimentResult):
     print(f"  P95:    {result.p95_latency_ms:8.2f}")
     print(f"  P99:    {result.p99_latency_ms:8.2f}")
     print(f"  Max:    {result.max_latency_ms:8.2f}")
-    print()
-    print("Clustering Quality (ground-truth based):")
-    print(f"  Precision: {result.clustering_precision:6.1%}  (% correct assignments)")
-    print(f"  Recall:    {result.clustering_recall:6.1%}  (% non-singleton GT clusters assigned)")
-    print(f"  F1 Score:  {result.clustering_f1:6.3f}    (harmonic mean)")
     print()
     print(f"Memory: {result.peak_memory_mb:.1f} MB (peak)")
     print(f"Total time: {result.total_time_sec:.1f} sec")
@@ -484,7 +405,7 @@ def main():
     parser.add_argument(
         "--dataset",
         required=True,
-        help="Path to CSV dataset (mentions_100a.csv, etc.)",
+        help="Path to CSV dataset (org-small.csv, org-mid.csv, etc.)",
     )
     parser.add_argument(
         "--config",
@@ -580,6 +501,9 @@ def main():
             print_summary(result)
             save_result_json(result, args.output)
             logger.info(f"✅ Experiment complete")
+            # Flush output streams before exiting
+            sys.stdout.flush()
+            sys.stderr.flush()
             return 0
         else:
             logger.error("❌ Experiment failed")

@@ -28,6 +28,8 @@ SRC_PATH = ${PROJECT_PATH}/src
 TEST_PATH = ${PROJECT_PATH}/test
 BUILD_PATH = ${PROJECT_PATH}/dist
 INFRA_PATH = ${PROJECT_PATH}/infra
+COMPOSE_FILE = ${INFRA_PATH}/compose.dev.yaml
+ENV_FILE = ${INFRA_PATH}/.env
 PACKAGE_NAME = ere
 
 ICON_DONE = [✔]
@@ -66,9 +68,13 @@ help: ## Display available targets
 	@ echo ""
 	@ echo -e "  $(BUILD_PRINT)Infrastructure (Docker):$(END_BUILD_PRINT)"
 	@ echo "    infra-build          - Build the ERE Docker image"
-	@ echo "    infra-up             - Start full stack (Redis + ERE) in detached mode"
+	@ echo "    infra-up             - Start services (docker compose up -d)"
 	@ echo "    infra-down           - Stop and remove stack containers and networks"
-	@ echo "    infra-logs           - Tail ERE container logs"
+	@ echo "    infra-down-volumes   - Stop services and remove volumes (clean slate)"
+	@ echo "    infra-rebuild        - Rebuild images and start services"
+	@ echo "    infra-rebuild-clean  - Rebuild from scratch (no cache) and start"
+	@ echo "    infra-logs           - Follow service logs"
+	@ echo "    infra-watch          - Start services with file watching (sync src/ and config/)"
 	@ echo ""
 	@ echo -e "  $(BUILD_PRINT)Utilities:$(END_BUILD_PRINT)"
 	@ echo "    clean                - Remove build artifacts and caches"
@@ -158,25 +164,48 @@ ci: ## Full CI pipeline for GitHub Actions (tox)
 #-----------------------------------------------------------------------------
 # Infrastructure commands (Docker)
 #-----------------------------------------------------------------------------
-.PHONY: infra-build infra-up infra-down infra-logs
+.PHONY: check-env infra-build infra-up infra-down infra-down-volumes infra-rebuild infra-rebuild-clean infra-logs infra-watch
 
-infra-build: ## Build the ERE Docker image
+check-env:
+	@ test -f $(ENV_FILE) || (echo -e "$(BUILD_PRINT)$(ICON_ERROR) Missing $(ENV_FILE). Run: cp infra/.env.example infra/.env$(END_BUILD_PRINT)" && exit 1)
+
+infra-build: check-env ## Build the ERE Docker image
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Building ERE Docker image$(END_BUILD_PRINT)"
-	@ docker compose -f $(INFRA_PATH)/docker-compose.yml build
+	@ docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) build
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) ERE image built$(END_BUILD_PRINT)"
 
-infra-up: ## Start full stack: Redis + ERE (docker compose up --build)
+infra-up: check-env ## Start services (docker compose up -d)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Starting ERE stack$(END_BUILD_PRINT)"
-	@ docker compose -f $(INFRA_PATH)/docker-compose.yml up --build -d
+	@ docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) up -d
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) ERE stack is running — use 'make infra-logs' to follow output$(END_BUILD_PRINT)"
 
-infra-down: ## Stop and remove ERE stack containers and networks
+infra-down: check-env ## Stop and remove ERE stack containers and networks
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Stopping ERE stack$(END_BUILD_PRINT)"
-	@ docker compose -f $(INFRA_PATH)/docker-compose.yml down
+	@ docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) down
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) ERE stack stopped$(END_BUILD_PRINT)"
 
-infra-logs: ## Tail logs from the ERE container
-	@ docker compose -f $(INFRA_PATH)/docker-compose.yml logs -f ere
+infra-down-volumes: check-env ## Stop services and remove volumes (clean slate)
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Stopping ERE stack and removing volumes$(END_BUILD_PRINT)"
+	@ docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) down -v
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) ERE stack stopped and volumes removed$(END_BUILD_PRINT)"
+
+infra-rebuild: check-env ## Rebuild images and start services
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Rebuilding ERE stack$(END_BUILD_PRINT)"
+	@ docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) up -d --build
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) ERE stack rebuilt and started$(END_BUILD_PRINT)"
+
+infra-rebuild-clean: check-env ## Rebuild from scratch (no cache) and start
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Rebuilding ERE stack (no cache)$(END_BUILD_PRINT)"
+	@ docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) build --no-cache
+	@ docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) up -d
+	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) ERE stack rebuilt (clean) and started$(END_BUILD_PRINT)"
+
+infra-logs: check-env ## Follow service logs
+	@ docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) logs -f
+
+infra-watch: check-env ## Start services with file watching (sync src/ and config/)
+	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Starting ERE stack with watch$(END_BUILD_PRINT)"
+	@ docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) watch
 
 #-----------------------------------------------------------------------------
 # Utility commands

@@ -18,7 +18,7 @@ The demo treats ERE as a black box service accessible only through Redis message
 
 ## Configuration
 
-Configuration is loaded from `.env.local` (or environment variables):
+Configuration is loaded from `infra/.env` (or environment variables):
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
@@ -44,14 +44,13 @@ The script tries the configured host first, then falls back to `localhost` if th
 Start the full stack including Redis and ERE:
 
 ```bash
-cd /home/greg/PROJECTS/ERS/ere-basic
-docker-compose -f infra/docker-compose.yml up -d
+make infra-rebuild
 ```
 
 Wait for services to be ready (check logs):
 
 ```bash
-docker-compose -f infra/docker-compose.yml logs -f
+make infra-logs
 ```
 
 ### 2. Locally (development)
@@ -205,7 +204,7 @@ If it returns `PONG`, Redis is running. If not:
 
 - **Docker**: `docker run -d -p 6379:6379 redis:latest`
 - **Local Redis**: `brew install redis && brew services start redis` (macOS)
-- **Docker Compose**: Ensure the service is running: `docker-compose -f infra/docker-compose.yml up redis`
+- **Docker Compose**: Ensure the service is running: `make infra-up`
 
 ### Timeout waiting for responses
 
@@ -216,14 +215,14 @@ If it returns `PONG`, Redis is running. If not:
 
 **Check ERE logs:**
 ```bash
-docker-compose -f infra/docker-compose.yml logs ere
+make infra-logs
 ```
 
 ### Password authentication fails
 
 **Edit Redis connection parameters:**
 
-Option 1: Modify `.env.local`:
+Option 1: Modify `infra/.env`:
 ```bash
 REDIS_PASSWORD=your_password
 ```

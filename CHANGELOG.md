@@ -65,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Docker & Deployment**
 - Multi-stage Dockerfile for production-ready containerization
-- `docker-compose.yml` for full-stack setup (Redis + ERE service)
+- `compose.dev.yaml` for full-stack setup (Redis + ERE service)
 - `.env.example` template for configuration
 
 **Documentation**

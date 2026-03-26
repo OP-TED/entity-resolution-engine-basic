@@ -17,7 +17,7 @@ The example uses 6 synthetic mentions from ALGORITHM.md that cluster into 2 grou
     Before running a fresh demo with different data, clear the old database:
 
     docker volume rm ere-local_ere-data
-    docker-compose -f infra/docker-compose.yml up -d
+    make infra-rebuild
 
     Failure to do so will mix old mentions with new ones, corrupting demo results.
 """
@@ -35,7 +35,9 @@ import redis
 # Default data file path
 DEFAULT_DATA_FILE = Path(__file__).parent / "data" / "org-tiny.json"
 
-DELAY_BETWEEN_MESSAGES = 0  # seconds to wait between sending messages (set to >0 for sequential processing)
+DELAY_BETWEEN_MESSAGES = (
+    0  # seconds to wait between sending messages (set to >0 for sequential processing)
+)
 GLOBAL_TIMEOUT = 0  # seconds to wait for responses before giving up (0 = no timeout)
 
 
@@ -43,13 +45,14 @@ GLOBAL_TIMEOUT = 0  # seconds to wait for responses before giving up (0 = no tim
 # Configuration
 # ===============================================================================
 
+
 def load_env_file(env_path: str = None) -> dict:
-    """Load configuration from .env.local or environment variables."""
+    """Load configuration from .env or environment variables."""
     config = {}
 
-    # Try to load from .env.local if it exists
+    # Try to load from .env if it exists
     if env_path is None:
-        env_path = Path(__file__).parent.parent / "infra" / ".env.local"
+        env_path = Path(__file__).parent.parent / "infra" / ".env"
 
     if Path(env_path).exists():
         with open(env_path) as f:
@@ -60,13 +63,23 @@ def load_env_file(env_path: str = None) -> dict:
                         key, value = line.split("=", 1)
                         config[key.strip()] = value.strip()
 
-    # Environment variables override .env.local
-    config["REDIS_HOST"] = os.environ.get("REDIS_HOST", config.get("REDIS_HOST", "localhost"))
-    config["REDIS_PORT"] = int(os.environ.get("REDIS_PORT", config.get("REDIS_PORT", "6379")))
+    # Environment variables override .env
+    config["REDIS_HOST"] = os.environ.get(
+        "REDIS_HOST", config.get("REDIS_HOST", "localhost")
+    )
+    config["REDIS_PORT"] = int(
+        os.environ.get("REDIS_PORT", config.get("REDIS_PORT", "6379"))
+    )
     config["REDIS_DB"] = int(os.environ.get("REDIS_DB", config.get("REDIS_DB", "0")))
-    config["REDIS_PASSWORD"] = os.environ.get("REDIS_PASSWORD", config.get("REDIS_PASSWORD"))
-    config["REQUEST_QUEUE"] = os.environ.get("REQUEST_QUEUE", config.get("REQUEST_QUEUE", "ere_requests"))
-    config["RESPONSE_QUEUE"] = os.environ.get("RESPONSE_QUEUE", config.get("RESPONSE_QUEUE", "ere_responses"))
+    config["REDIS_PASSWORD"] = os.environ.get(
+        "REDIS_PASSWORD", config.get("REDIS_PASSWORD")
+    )
+    config["REQUEST_QUEUE"] = os.environ.get(
+        "REQUEST_QUEUE", config.get("REQUEST_QUEUE", "ere_requests")
+    )
+    config["RESPONSE_QUEUE"] = os.environ.get(
+        "RESPONSE_QUEUE", config.get("RESPONSE_QUEUE", "ere_responses")
+    )
 
     return config
 
@@ -76,6 +89,7 @@ def load_env_file(env_path: str = None) -> dict:
 # ===============================================================================
 
 TRACE = 5
+
 
 def setup_logging():
     """Configure logging with timestamps."""
@@ -105,7 +119,10 @@ def setup_logging():
 # Redis Connection
 # ===============================================================================
 
-def check_redis_connectivity(host: str, port: int, db: int, password: str) -> redis.Redis:
+
+def check_redis_connectivity(
+    host: str, port: int, db: int, password: str
+) -> redis.Redis:
     """
     Check Redis connectivity and return client.
 
@@ -124,7 +141,9 @@ def check_redis_connectivity(host: str, port: int, db: int, password: str) -> re
     last_error = None
     for try_host in hosts_to_try:
         try:
-            logging.getLogger(__name__).info(f"Attempting Redis connection to {try_host}:{port}...")
+            logging.getLogger(__name__).info(
+                f"Attempting Redis connection to {try_host}:{port}..."
+            )
             client = redis.Redis(
                 host=try_host,
                 port=port,
@@ -146,6 +165,7 @@ def check_redis_connectivity(host: str, port: int, db: int, password: str) -> re
 # ===============================================================================
 # Request/Response Handling
 # ===============================================================================
+
 
 def escape_turtle_string(value: str) -> str:
     """
@@ -223,7 +243,7 @@ def create_entity_mention_request(
         thoroughfare_safe = escape_turtle_string(thoroughfare)
         address_props.append(f'locn:thoroughfare "{thoroughfare_safe}"')
 
-    address_content = ' ;\n        '.join(address_props)
+    address_content = " ;\n        ".join(address_props)
 
     content = f"""@prefix org: <http://www.w3.org/ns/org#> .
 @prefix cccev: <http://data.europa.eu/m8g/> .
@@ -263,6 +283,7 @@ def parse_response(response_bytes: bytes) -> dict:
 # Demo Data Loading
 # ===============================================================================
 
+
 def load_demo_mentions(data_file: str | None = None) -> list[dict]:
     """
     Load demo mentions from a JSON file.
@@ -298,6 +319,7 @@ def load_demo_mentions(data_file: str | None = None) -> list[dict]:
 # Main Demo
 # ===============================================================================
 
+
 def main(data_file: str | None = None):
     """
     Run the Redis-based ERE demo.
@@ -323,7 +345,9 @@ def main(data_file: str | None = None):
     # Load demo mentions from JSON
     try:
         demo_mentions = load_demo_mentions(data_file)
-        logger.info(f"Loaded {len(demo_mentions)} mentions from {data_file or DEFAULT_DATA_FILE}")
+        logger.info(
+            f"Loaded {len(demo_mentions)} mentions from {data_file or DEFAULT_DATA_FILE}"
+        )
     except (FileNotFoundError, ValueError) as e:
         logger.error(f"Failed to load demo mentions: {e}")
         return 1
@@ -357,7 +381,7 @@ def main(data_file: str | None = None):
             f"      \n"
             f"      To reset the database:\n"
             f"      1. docker volume rm ere-local_ere-data\n"
-            f"      2. docker-compose -f infra/docker-compose.yml up -d\n"
+            f"      2. make infra-rebuild\n"
         )
 
     # Send demo requests
@@ -414,7 +438,9 @@ def main(data_file: str | None = None):
     while len(responses_received) < len(request_ids):
         elapsed = time.time() - start_time
         if GLOBAL_TIMEOUT > 0 and elapsed > GLOBAL_TIMEOUT:
-            logger.warning(f"Timeout after {GLOBAL_TIMEOUT}s. Received {len(responses_received)}/{len(request_ids)} responses.")
+            logger.warning(
+                f"Timeout after {GLOBAL_TIMEOUT}s. Received {len(responses_received)}/{len(request_ids)} responses."
+            )
             break
 
         # Try to get a response with short timeout
@@ -425,7 +451,9 @@ def main(data_file: str | None = None):
             response = parse_response(response_bytes)
 
             if logger.isEnabledFor(TRACE):
-                logger.log(TRACE, f"Full response message:\n{json.dumps(response, indent=2)}")
+                logger.log(
+                    TRACE, f"Full response message:\n{json.dumps(response, indent=2)}"
+                )
 
             req_id = response["entity_mention_id"]["request_id"]
             responses_received[req_id] = response
@@ -455,7 +483,9 @@ def main(data_file: str | None = None):
                 )
 
     logger.info("-" * 80)
-    logger.info(f"\nDemo complete. Received {len(responses_received)}/{len(request_ids)} responses.")
+    logger.info(
+        f"\nDemo complete. Received {len(responses_received)}/{len(request_ids)} responses."
+    )
 
     # Build clustering summary as single block
     summary_lines = []
@@ -510,7 +540,9 @@ def main(data_file: str | None = None):
         logger.info("✓ All responses received successfully!")
         return 0
     else:
-        logger.warning(f"✗ Missing {len(request_ids) - len(responses_received)} response(s).")
+        logger.warning(
+            f"✗ Missing {len(request_ids) - len(responses_received)} response(s)."
+        )
         return 1
 
 

@@ -1,0 +1,59 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.venv
+.mypy_cache
+.pytest_cache
+.ruff_cache
+*.egg-info
+
+# IDE
+.vscode
+.idea
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Docker (no need to send these into the build context)
+infra/Dockerfile
+infra/compose.dev.yaml
+infra/README.md
+infra/.env*
+
+# AI / tooling config
+.claude
+CLAUDE.md
+
+# CI
+.github
+
+# Docs
+docs
+
+# Build artifacts and data
+dist
+build
+data
+reports
+coverage.xml
+htmlcov
+.coverage
+.tox
+
+# Tests and demo (not needed at runtime)
+test
+demo
+
+# Project config (not needed at runtime)
+sonar-project.properties
+.pylintrc
+.importlinter
+tox.ini

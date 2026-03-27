@@ -35,7 +35,7 @@ Its primary purpose is to interact with the Entity Resolution System (ERSys). It
 For detailed documentation, see:
 - [Architecture](docs/architecture.md) - description of the applied architecture
 - [Algorithm](docs/algorithm.md) - incremental probabilistic entity linking
-- [Configuration](infra/config/README.md) - field mapping, model tuning, Splink setup
+- [Configuration](config/README.md) - field mapping, model tuning, Splink setup
 - [ERS–ERE Technical Contract v0.2](docs/ERS-ERE-System-Technical-Contract.pdf)
 
 
@@ -66,7 +66,10 @@ make install
 ```
 
 To build and launch Docker-based stack (ERE + Redis):
-1. (optional) Adjust connection and logging config in [.env.local](infra/.env.local).
+1. (optional) Copy and adjust connection and logging config:
+   ```bash
+   cp infra/.env.example infra/.env
+   ```
 2. Run the following:
 ```bash
 # Build the ERE Docker image
@@ -93,7 +96,7 @@ Terminate the service:
 make infra-down
 ```
 
-Note: In order for the demo to work, you need to either set `REDIS_HOST=localhost` in the [.env.local](infra/.env.local) file or pass it to the script as an environment variable.
+Note: In order for the demo to work, you need to either set `REDIS_HOST=localhost` in [infra/.env](infra/.env.example) or pass it to the script as an environment variable.
 
 
 For detailed setup instructions, see `Make targets`.
@@ -133,9 +136,13 @@ Available targets (`make help`):
 
   Infrastructure (Docker):
     infra-build          - Build the ERE Docker image
-    infra-up             - Start full stack (Redis + ERE) in detached mode
+    infra-up             - Start services (docker compose up -d)
     infra-down           - Stop and remove stack containers and networks
-    infra-logs           - Tail ERE container logs
+    infra-down-volumes   - Stop services and remove volumes (clean slate)
+    infra-rebuild        - Rebuild images and start services
+    infra-rebuild-clean  - Rebuild from scratch (no cache) and start
+    infra-logs           - Follow service logs
+    infra-watch          - Start services with file watching (sync src/ and config/)
 
   Utilities:
     clean                - Remove build artifacts and caches
@@ -145,10 +152,10 @@ Available targets (`make help`):
 ### Configuration (Resolver and Mapper)
 
 Entity resolution behaviour is configured via two YAML files:
-- **Resolver configuration** ([resolver.yaml](./infra/config/resolver.yaml)): Splink comparisons, cold-start parameters, similarity thresholds
-- **RDF mapping** ([rdf_mapping.yaml](./infra/config/rdf_mapping.yaml)): RDF namespace bindings, field extraction rules, entity type definitions
+- **Resolver configuration** ([resolver.yaml](./config/resolver.yaml)): Splink comparisons, cold-start parameters, similarity thresholds
+- **RDF mapping** ([rdf_mapping.yaml](./config/rdf_mapping.yaml)): RDF namespace bindings, field extraction rules, entity type definitions
 
-For detailed configuration options and tuning, see the [configuration page](./infra/config/README.md).
+For detailed configuration options and tuning, see the [configuration page](./config/README.md).
 
 ### Examples
 
@@ -203,11 +210,15 @@ docs/
 ├── ERS-ERE-System-Technical-Contract.pdf
 └── *.md             # Topic documentation
 
+config/
+├── resolver.yaml         # Splink comparisons, blocking rules, thresholds
+├── rdf_mapping.yaml      # RDF namespace bindings, field extraction rules
+└── README.md             # Configuration documentation
+
 infra/
 ├── Dockerfile       # ERE service image definition
-├── docker-compose.yml  # Full stack (Redis + ERE)
-├── config           # ERE Configuration
-└── .env.local       # Local runtime config (git-ignored)
+├── compose.dev.yaml # Docker Compose for local development
+└── .env.example     # Environment variable template
 
 demo/
 ├── demo.py          # Entity resolution demonstration script
@@ -266,7 +277,7 @@ make test-integration
 
 # Code formatting and linting
 make format             # Auto-format with Ruff
-make lint-check         # Lint without modifying files
+make lint               # Lint without modifying files
 make lint-fix           # Lint with auto-fix
 ```
 

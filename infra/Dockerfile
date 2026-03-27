@@ -1,38 +1,57 @@
-# ── ERE application image ──────────────────────────────────────────────────
-# Builds the Entity Resolution Engine service for local development.
-# Requires only Docker — no local Python, Redis, or DuckDB installation.
-#
+# Multi-stage build for the Entity Resolution Engine.
 # Build context: repository root (one level above /infra)
-# Usage:  docker compose -f infra/docker-compose.yml up --build
-# ───────────────────────────────────────────────────────────────────────────
 
-FROM python:3.12-slim
+# =============================================================================
+# Builder stage: install dependencies
+# =============================================================================
+FROM python:3.12-slim AS builder
+
+ARG POETRY_VERSION=">=2.0.0,<3.0.0"
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=true \
+    POETRY_NO_INTERACTION=1
 
 # git is required to fetch the ers-spec dependency from GitHub
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry (locked to major version 2)
-RUN pip install --no-cache-dir "poetry>=2.0.0,<3.0.0"
+RUN pip install --no-cache-dir "poetry${POETRY_VERSION}"
 
 WORKDIR /app
 
-# ── Dependency layer (cached unless pyproject.toml / poetry.lock change) ───
-COPY pyproject.toml poetry.lock* ./
+COPY pyproject.toml poetry.lock ./
 
-# Install into system Python (no virtualenv needed inside the container)
-RUN poetry config virtualenvs.create false \
-    && poetry install --without dev --no-root --no-interaction
+RUN poetry install --without dev --no-root
 
-# ── Application source ──────────────────────────────────────────────────────
 COPY README.md ./
 COPY src/ ./src/
-COPY infra/config/ ./config/
 
-# Install the ere package itself
-RUN poetry install --without dev --no-interaction
+RUN poetry install --without dev
 
-# ── Runtime ─────────────────────────────────────────────────────────────────
-# Fail fast: Python will exit immediately if the module cannot be imported.
+# =============================================================================
+# Runtime stage: minimal image
+# =============================================================================
+FROM python:3.12-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:${PATH}"
+
+RUN groupadd --gid 1000 appuser && \
+    useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser
+
+WORKDIR /app
+
+COPY --from=builder /app/.venv .venv
+COPY --from=builder /app/src src
+COPY config/ ./config/
+
+# Volume mount point for DuckDB persistent storage
+RUN mkdir -p /data && chown appuser:appuser /data
+
+USER appuser
+
 CMD ["python", "-m", "ere.entrypoints.app"]

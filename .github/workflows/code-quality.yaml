@@ -7,8 +7,8 @@
 #   2. Lint, Test & Verify (tox: unit tests + architecture + clean-code checks)
 #   3. SonarCloud analysis (coverage, quality gate)
 #
-# Optional repository secrets:
-#   - SONAR_TOKEN: SonarCloud authentication token (step skipped when absent)
+# Required repository secrets:
+#   - SONAR_TOKEN: SonarCloud authentication token
 #
 # If the private ers-spec dependency fails to resolve with the default
 # GITHUB_TOKEN, add a PAT as GH_TOKEN_PRIVATE_REPOS and uncomment the
@@ -29,8 +29,6 @@ jobs:
   quality:
     name: Lint, Test & Verify
     runs-on: ubuntu-latest
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     services:
       redis:
@@ -96,14 +94,14 @@ jobs:
       # ------------------------------------------------------------------
       - name: Run quality checks (unit tests + architecture + clean-code)
         run: |
-          rm -f infra/.env.local
+          rm -f infra/.env
           poetry run tox -e py312,architecture,clean-code
 
       # ------------------------------------------------------------------
       # SonarCloud
       # ------------------------------------------------------------------
       - name: SonarCloud scan
-        if: always() && env.SONAR_TOKEN != ''
+        if: always()
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

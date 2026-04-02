@@ -93,7 +93,7 @@ TRACE = 5
 
 def setup_logging():
     """Configure logging with timestamps."""
-    log_level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
+    log_level_name = os.environ.get("ERE_LOG_LEVEL", "INFO").upper()
 
     # Handle custom TRACE level
     if log_level_name == "TRACE":

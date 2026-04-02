@@ -1,6 +1,6 @@
 [project]
-name = "ere"
-version = "0.1.0"
+name = "ere-basic"
+version = "0.4.0"
 description = "A basic implementation of the Entity Resolution Engine (ERE)."
 authors = [
     {name = "Meaningfy",email = "hi@meaningfy.ws"}
@@ -14,6 +14,7 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 # Needed when the root doesn't contain $project_name
+[tool.poetry]
 packages = [
   { include = "ere", from = "src" }
 ]
@@ -48,7 +49,7 @@ pandas = ">=2.0,<3.0"
 splink = ">=4.0,<5.0"
 
 # TODO: should we have a registry?
-ers-spec = { git = "https://github.com/OP-TED/entity-resolution-spec.git", branch = "0.3.0-rc.1" }
+ers-spec = { git = "https://github.com/OP-TED/entity-resolution-spec.git", branch = "develop" }
 
 
 [tool.pytest.ini_options]

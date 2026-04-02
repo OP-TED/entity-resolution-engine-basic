@@ -30,6 +30,13 @@ BUILD_PATH = ${PROJECT_PATH}/dist
 INFRA_PATH = ${PROJECT_PATH}/infra
 COMPOSE_FILE = ${INFRA_PATH}/compose.dev.yaml
 ENV_FILE = ${INFRA_PATH}/.env
+
+# Auto-export all .env variables to every recipe shell (if the file exists)
+ifneq ($(wildcard $(ENV_FILE)),)
+include $(ENV_FILE)
+export $(shell sed -n 's/^\([^#= ][^= ]*\)[ ]*=.*/\1/p' $(ENV_FILE))
+endif
+
 PACKAGE_NAME = ere
 
 ICON_DONE = [✔]
@@ -112,7 +119,7 @@ test-unit: ## Run unit tests with coverage (fast, uses your venv)
 	    --cov=src --cov-report=term-missing --cov-report=html
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Unit tests passed (coverage: htmlcov/index.html)$(END_BUILD_PRINT)"
 
-test-integration: ## Run integration tests only
+test-integration: check-env ## Run integration tests only (requires Redis — run make infra-up first)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running integration tests$(END_BUILD_PRINT)"
 	@ poetry run pytest $(TEST_PATH) -m "integration"
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Integration tests passed$(END_BUILD_PRINT)"
@@ -158,7 +165,7 @@ all-quality-checks: lint check-clean-code check-architecture ## Run all: lint + 
 
 ci: ## Full CI pipeline for GitHub Actions (tox)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running full CI pipeline$(END_BUILD_PRINT)"
-	@ tox -e py312,architecture,clean-code
+	@ set -a && . $(ENV_FILE) && set +a && tox -e py312,architecture,clean-code
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) CI pipeline complete$(END_BUILD_PRINT)"
 
 #-----------------------------------------------------------------------------

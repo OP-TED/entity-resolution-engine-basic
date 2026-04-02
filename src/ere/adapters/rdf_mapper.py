@@ -87,9 +87,7 @@ def extract_mention_attributes(
     entity_subject = graph.value(predicate=RDF.type, object=rdf_type)
 
     if entity_subject is None:
-        raise ValueError(
-            f"No entity of type {rdf_type} found in RDF content"
-        )
+        raise ValueError(f"No entity of type {rdf_type} found in RDF content")
 
     # Extract attributes per config
     attributes = {}

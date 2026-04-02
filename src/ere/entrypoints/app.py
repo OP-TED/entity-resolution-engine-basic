@@ -12,7 +12,7 @@ Environment variables:
     REDIS_HOST            Redis hostname (default: localhost)
     REDIS_PORT            Redis port (default: 6379)
     REDIS_DB              Redis DB index (default: 0)
-    LOG_LEVEL             Python log level name (default: INFO) — supports TRACE
+    ERE_LOG_LEVEL         Python log level name (default: INFO) — supports TRACE
     RDF_MAPPING_PATH      Path to rdf_mapping.yaml config file
     RESOLVER_CONFIG_PATH  Path to resolver.yaml config file
     DUCKDB_PATH           Path to persistent DuckDB file (overrides resolver.yaml)
@@ -78,7 +78,9 @@ def main() -> None:
 
     # Config file paths: CLI takes precedence over environment
     rdf_mapping_path = args.rdf_mapping_path or os.environ.get("RDF_MAPPING_PATH")
-    resolver_config_path = args.resolver_config_path or os.environ.get("RESOLVER_CONFIG_PATH")
+    resolver_config_path = args.resolver_config_path or os.environ.get(
+        "RESOLVER_CONFIG_PATH"
+    )
     duckdb_path = os.environ.get("DUCKDB_PATH")
 
     log.info(

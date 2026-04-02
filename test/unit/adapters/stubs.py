@@ -2,6 +2,9 @@
 
 from typing import Protocol, runtime_checkable
 
+from erspec.models.core import EntityMention
+
+from ere.adapters.rdf_mapper_port import RDFMapper
 from ere.models.resolver import (
     ClusterId,
     ClusterMembership,
@@ -15,12 +18,14 @@ from ere.models.resolver import (
 def _get_repository_types():
     """Lazy import to avoid circular dependency with services.__init__."""
     from ere.adapters import repositories
+
     return repositories
 
 
 def _get_linker_type():
     """Lazy import to avoid circular dependency."""
     from ere.services import linker
+
     return linker
 
 
@@ -76,6 +81,9 @@ class InMemoryMentionRepository(MentionRepository):
     def load_all(self) -> list[Mention]:
         return list(self._mentions.values())
 
+    def find_by_id(self, mention_id: MentionId) -> Mention | None:
+        return self._mentions.get(mention_id)
+
     def count(self) -> int:
         return len(self._mentions)
 
@@ -95,9 +103,7 @@ class InMemorySimilarityRepository(SimilarityRepository):
     def find_for(self, mention_id: MentionId) -> list[MentionLink]:
         """Find all links involving the given mention (either side)."""
         return [
-            link
-            for link in self._links
-            if mention_id in (link.left_id, link.right_id)
+            link for link in self._links if mention_id in (link.left_id, link.right_id)
         ]
 
 
@@ -193,3 +199,28 @@ class FixedSimilarityLinker(SimilarityLinker):
     def train(self) -> None:
         """No-op for fixed linker (scores are pre-configured)."""
         pass
+
+
+class StubRDFMapper(RDFMapper):
+    """
+    RDFMapper stub for unit testing.
+
+    Returns a pre-configured Mention without performing any RDF parsing.
+    Optionally raises a configured exception to test error paths.
+    """
+
+    def __init__(
+        self,
+        mention_to_return: Mention = None,
+        error: Exception = None,
+    ):
+        self._mention = mention_to_return or Mention(
+            id=MentionId(value="stub-mention-id"),
+            attributes={"legal_name": "Stub Corp", "country_code": "US"},
+        )
+        self._error = error
+
+    def map_entity_mention_to_domain(self, entity_mention: EntityMention) -> Mention:
+        if self._error is not None:
+            raise self._error
+        return self._mention

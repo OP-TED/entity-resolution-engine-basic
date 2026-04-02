@@ -3,7 +3,13 @@
 import duckdb
 import pandas as pd
 
-from ere.models.resolver import ClusterId, ClusterMembership, Mention, MentionId, MentionLink
+from ere.models.resolver import (
+    ClusterId,
+    ClusterMembership,
+    Mention,
+    MentionId,
+    MentionLink,
+)
 from ere.adapters.repositories import (
     ClusterRepository,
     MentionRepository,

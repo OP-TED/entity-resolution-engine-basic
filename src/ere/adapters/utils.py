@@ -21,7 +21,10 @@ from erspec.models.ere import (
 )
 
 SUPPORTED_REQUEST_CLASSES = {
-    cls.__name__: cls for cls in [EntityMentionResolutionRequest]  # , FullRebuildRequest]  # TODO: Add when available
+    cls.__name__: cls
+    for cls in [
+        EntityMentionResolutionRequest
+    ]
 }
 """
 Explicit list of supported Request classes, used in utilities like :meth:`get_request_from_message`.
@@ -34,7 +37,10 @@ Note: FullRebuildRequest not yet implemented in erspec; add when available.
 
 SUPPORTED_RESPONSE_CLASSES = {
     cls.__name__: cls
-    for cls in [EntityMentionResolutionResponse, EREErrorResponse]  # , FullRebuildResponse]  # TODO: Add when available
+    for cls in [
+        EntityMentionResolutionResponse,
+        EREErrorResponse,
+    ]
 }
 """
 Explicit list of supported Response classes, used in utilities like :meth:`get_response_from_message`.

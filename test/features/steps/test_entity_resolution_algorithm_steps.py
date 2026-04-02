@@ -81,7 +81,7 @@ def resolve_mention(mention_id: str, algorithm_context):
     # Create mention
     mention = Mention(
         id=MentionId(value=mention_id),
-        attributes={"legal_name": f"Company {mention_id}", "country_code": "US"}
+        attributes={"legal_name": f"Company {mention_id}", "country_code": "US"},
     )
 
     # Update linker with new similarities
@@ -102,7 +102,9 @@ def resolve_mention(mention_id: str, algorithm_context):
     algorithm_context["last_result"] = result
 
 
-@when(parsers.parse('I set similarity between "{left_id}" and "{right_id}" to {score:f}'))
+@when(
+    parsers.parse('I set similarity between "{left_id}" and "{right_id}" to {score:f}')
+)
 def set_similarity(left_id: str, right_id: str, score: float, algorithm_context):
     """Set similarity between two mentions."""
     pair_set = frozenset([left_id, right_id])
@@ -114,8 +116,14 @@ def set_similarity(left_id: str, right_id: str, score: float, algorithm_context)
 # ===============================================================================
 
 
-@then(parsers.parse('mention "{mention_id}" is in cluster "{cluster_id}" with score {score:f}'))
-def check_mention_cluster(mention_id: str, cluster_id: str, score: float, algorithm_context):
+@then(
+    parsers.parse(
+        'mention "{mention_id}" is in cluster "{cluster_id}" with score {score:f}'
+    )
+)
+def check_mention_cluster(
+    mention_id: str, cluster_id: str, score: float, algorithm_context
+):
     """Verify that a mention is assigned to a cluster with the expected score."""
     result = algorithm_context["last_result"]
     assert_that(result.top.cluster_id.value).is_equal_to(cluster_id)
@@ -129,7 +137,9 @@ def check_candidate_count(count: int, algorithm_context):
     assert_that(len(result.candidates)).is_equal_to(count)
 
 
-@then(parsers.parse('candidate {index:d} is cluster "{cluster_id}" with score {score:f}'))
+@then(
+    parsers.parse('candidate {index:d} is cluster "{cluster_id}" with score {score:f}')
+)
 def check_candidate(index: int, cluster_id: str, score: float, algorithm_context):
     """Verify a specific candidate cluster and its score."""
     result = algorithm_context["last_result"]
@@ -139,7 +149,9 @@ def check_candidate(index: int, cluster_id: str, score: float, algorithm_context
     assert_that(candidate.score).is_close_to(score, 0.01)
 
 
-@then(parsers.parse('the cluster assignment for mention "{mention_id}" is "{cluster_id}"'))
+@then(
+    parsers.parse('the cluster assignment for mention "{mention_id}" is "{cluster_id}"')
+)
 def check_cluster_assignment(mention_id: str, cluster_id: str, algorithm_context):
     """Verify the cluster assignment from state."""
     service = algorithm_context["service"]

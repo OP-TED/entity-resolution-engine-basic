@@ -57,7 +57,7 @@ def test_first_mention_is_singleton(service):
     """Resolving the first mention should create a singleton cluster."""
     mention = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Acme Corp", "country_code": "US"}
+        attributes={"legal_name": "Acme Corp", "country_code": "US"},
     )
 
     result = service.resolve(mention)
@@ -79,7 +79,7 @@ def test_strong_match_joins_cluster(service):
     # Resolve m1 first
     m1 = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Acme", "country_code": "US"}
+        attributes={"legal_name": "Acme", "country_code": "US"},
     )
     result1 = service.resolve(m1)
     assert result1.top.cluster_id.value == "m1"
@@ -87,7 +87,7 @@ def test_strong_match_joins_cluster(service):
     # Now resolve m2 with strong match to m1
     m2 = Mention(
         id=MentionId(value="m2"),
-        attributes={"legal_name": "Acme Corp", "country_code": "US"}
+        attributes={"legal_name": "Acme Corp", "country_code": "US"},
     )
 
     # Set up the linker to return a strong match (m1, m2, 0.95)
@@ -116,14 +116,14 @@ def test_below_threshold_becomes_singleton(service):
     # Resolve m1 first
     m1 = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Acme", "country_code": "US"}
+        attributes={"legal_name": "Acme", "country_code": "US"},
     )
     service.resolve(m1)
 
     # Resolve m2 with weak match to m1
     m2 = Mention(
         id=MentionId(value="m2"),
-        attributes={"legal_name": "ACME Inc", "country_code": "US"}
+        attributes={"legal_name": "ACME Inc", "country_code": "US"},
     )
 
     # Set up weak match (0.7 < threshold 0.8)
@@ -136,7 +136,9 @@ def test_below_threshold_becomes_singleton(service):
 
     # m2 should be assigned to its own cluster (cluster "m2"),
     # but genCand still includes m1's cluster (via the below-threshold link)
-    assert result2.top.cluster_id.value == "m1"  # Still top by score, but own cluster also present
+    assert (
+        result2.top.cluster_id.value == "m1"
+    )  # Still top by score, but own cluster also present
     assert result2.top.score == pytest.approx(0.7, abs=0.01)
 
     # Verify the new invariant: own cluster is always included
@@ -165,11 +167,11 @@ def test_gen_cand_includes_below_threshold_links(service):
     # Resolve m1 and m3 in cluster 1, m3 in cluster 3
     m1 = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Acme", "country_code": "US"}
+        attributes={"legal_name": "Acme", "country_code": "US"},
     )
     m3 = Mention(
         id=MentionId(value="m3"),
-        attributes={"legal_name": "Globex", "country_code": "US"}
+        attributes={"legal_name": "Globex", "country_code": "US"},
     )
     service.resolve(m1)
     service.resolve(m3)  # m3 forms its own cluster
@@ -179,7 +181,7 @@ def test_gen_cand_includes_below_threshold_links(service):
     # - weak link (0.7) to m3 (cluster "m3") -> below threshold
     m2 = Mention(
         id=MentionId(value="m2"),
-        attributes={"legal_name": "Acme Corp", "country_code": "US"}
+        attributes={"legal_name": "Acme Corp", "country_code": "US"},
     )
 
     service._linker = FixedSimilarityLinker(
@@ -210,11 +212,11 @@ def test_gen_cand_groups_by_cluster(service):
     # Cluster 1: m1, m2
     m1 = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Acme", "country_code": "US"}
+        attributes={"legal_name": "Acme", "country_code": "US"},
     )
     m2 = Mention(
         id=MentionId(value="m2"),
-        attributes={"legal_name": "Acme Corp", "country_code": "US"}
+        attributes={"legal_name": "Acme Corp", "country_code": "US"},
     )
     service.resolve(m1)
     service._linker = FixedSimilarityLinker({frozenset(["m1", "m2"]): 0.95})
@@ -224,7 +226,7 @@ def test_gen_cand_groups_by_cluster(service):
     # m3 has weak links to both m1 (0.75) and m2 (0.85) in the same cluster
     m3 = Mention(
         id=MentionId(value="m3"),
-        attributes={"legal_name": "Acme Industries", "country_code": "US"}
+        attributes={"legal_name": "Acme Industries", "country_code": "US"},
     )
 
     service._linker = FixedSimilarityLinker(
@@ -258,7 +260,7 @@ def test_train_can_be_called_anytime(service):
         attributes={
             "legal_name": "Company 1",
             "country_code": "US",
-        }
+        },
     )
     service.resolve(mention)
 
@@ -313,7 +315,7 @@ def test_auto_training_triggers_at_threshold(service):
             attributes={
                 "legal_name": f"Company {i}",
                 "country_code": "US",
-            }
+            },
         )
         service.resolve(mention)
         service._linker.register_mention(mention)
@@ -326,11 +328,11 @@ def test_state_reflects_mentions(service):
     """State should reflect all resolved mentions."""
     m1 = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Acme", "country_code": "US"}
+        attributes={"legal_name": "Acme", "country_code": "US"},
     )
     m2 = Mention(
         id=MentionId(value="m2"),
-        attributes={"legal_name": "Acme Corp", "country_code": "US"}
+        attributes={"legal_name": "Acme Corp", "country_code": "US"},
     )
 
     service.resolve(m1)
@@ -348,7 +350,7 @@ def test_state_reflects_clusters(service):
     """State should reflect cluster membership."""
     m1 = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Acme", "country_code": "US"}
+        attributes={"legal_name": "Acme", "country_code": "US"},
     )
     service.resolve(m1)
 
@@ -362,11 +364,11 @@ def test_state_reflects_similarities(service):
     """State should reflect all stored similarities."""
     m1 = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Acme", "country_code": "US"}
+        attributes={"legal_name": "Acme", "country_code": "US"},
     )
     m2 = Mention(
         id=MentionId(value="m2"),
-        attributes={"legal_name": "Acme Corp", "country_code": "US"}
+        attributes={"legal_name": "Acme Corp", "country_code": "US"},
     )
 
     service.resolve(m1)
@@ -392,7 +394,7 @@ def test_resolution_result_never_empty(service):
     """Every resolve() call should return non-empty ResolutionResult."""
     m1 = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Acme", "country_code": "US"}
+        attributes={"legal_name": "Acme", "country_code": "US"},
     )
     result = service.resolve(m1)
 
@@ -437,7 +439,7 @@ def test_resolution_result_always_top_n_pruned(service):
     for i in range(2, 7):
         mention = Mention(
             id=MentionId(value=f"m{i}"),
-            attributes={"legal_name": f"Company {i}", "country_code": "US"}
+            attributes={"legal_name": f"Company {i}", "country_code": "US"},
         )
         service.resolve(mention)
 
@@ -447,7 +449,7 @@ def test_resolution_result_always_top_n_pruned(service):
 
     m1 = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Company 1", "country_code": "US"}
+        attributes={"legal_name": "Company 1", "country_code": "US"},
     )
     result = service.resolve(m1)
 
@@ -459,15 +461,15 @@ def test_multiple_independent_clusters(service):
     """Mentions with no links should form independent clusters."""
     m1 = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Acme", "country_code": "US"}
+        attributes={"legal_name": "Acme", "country_code": "US"},
     )
     m2 = Mention(
         id=MentionId(value="m2"),
-        attributes={"legal_name": "Globex", "country_code": "US"}
+        attributes={"legal_name": "Globex", "country_code": "US"},
     )
     m3 = Mention(
         id=MentionId(value="m3"),
-        attributes={"legal_name": "Initech", "country_code": "US"}
+        attributes={"legal_name": "Initech", "country_code": "US"},
     )
 
     # No links between any of them

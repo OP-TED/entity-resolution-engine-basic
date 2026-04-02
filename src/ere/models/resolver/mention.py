@@ -28,7 +28,11 @@ class Mention(BaseModel):
             {"mention_id": "m1", "legal_name": "Acme", "country_code": "US"}
         and convert to the structured form expected by the model.
         """
-        if isinstance(raw_input, dict) and "mention_id" in raw_input and "id" not in raw_input:
+        if (
+            isinstance(raw_input, dict)
+            and "mention_id" in raw_input
+            and "id" not in raw_input
+        ):
             return {
                 "id": MentionId(value=raw_input["mention_id"]),
                 "attributes": {k: v for k, v in raw_input.items() if k != "mention_id"},

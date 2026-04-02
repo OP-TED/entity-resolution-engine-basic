@@ -15,12 +15,14 @@ from ere.models.resolver import (
 def _get_repository_types():
     """Lazy import to avoid circular dependency with services.__init__."""
     from ere.adapters import repositories
+
     return repositories
 
 
 def _get_linker_type():
     """Lazy import to avoid circular dependency."""
     from ere.services import linker
+
     return linker
 
 
@@ -95,9 +97,7 @@ class InMemorySimilarityRepository(SimilarityRepository):
     def find_for(self, mention_id: MentionId) -> list[MentionLink]:
         """Find all links involving the given mention (either side)."""
         return [
-            link
-            for link in self._links
-            if mention_id in (link.left_id, link.right_id)
+            link for link in self._links if mention_id in (link.left_id, link.right_id)
         ]
 
 

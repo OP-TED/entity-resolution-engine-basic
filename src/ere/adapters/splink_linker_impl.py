@@ -45,7 +45,9 @@ def build_tf_df(mentions: list[Mention], entity_fields: list[str]) -> pd.DataFra
         flat_dict = mention.to_flat_dict()
         row = {
             "mention_id": flat_dict["mention_id"],
-            **{f: flat_dict.get(f) or "" for f in entity_fields},  # Convert None to empty string
+            **{
+                f: flat_dict.get(f) or "" for f in entity_fields
+            },  # Convert None to empty string
             "__splink_salt": 0.5,
         }
         rows.append(row)
@@ -246,11 +248,15 @@ class SpLinkSimilarityLinker(SimilarityLinker):
         )
 
         # Build new row with same schema as _tf_df
-        new_row = pd.DataFrame([{
-            "mention_id": flat_dict["mention_id"],
-            **{f: flat_dict.get(f) for f in self._entity_fields},
-            "__splink_salt": 0.5,
-        }])
+        new_row = pd.DataFrame(
+            [
+                {
+                    "mention_id": flat_dict["mention_id"],
+                    **{f: flat_dict.get(f) for f in self._entity_fields},
+                    "__splink_salt": 0.5,
+                }
+            ]
+        )
 
         # Cast string columns to pd.StringDtype() to prevent type drift on None values
         for col in self._entity_fields:
@@ -324,7 +330,9 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                     comp["field"],
                     thresholds,
                 )
-                comparisons.append(cl.JaroWinklerAtThresholds(comp["field"], thresholds))
+                comparisons.append(
+                    cl.JaroWinklerAtThresholds(comp["field"], thresholds)
+                )
             elif comp["type"] == "exact_match":
                 log.trace(
                     "_build_settings: Adding ExactMatch comparison on field '%s'",
@@ -406,7 +414,9 @@ class SpLinkSimilarityLinker(SimilarityLinker):
             log.info("EM training: estimating u-probabilities via random sampling")
             linker_new.training.estimate_u_using_random_sampling(max_pairs=1e6)
 
-            log.info("EM training: estimating m-probabilities and lambda via EM algorithm")
+            log.info(
+                "EM training: estimating m-probabilities and lambda via EM algorithm"
+            )
             linker_new.training.estimate_parameters_using_expectation_maximisation(
                 self._get_em_training_rule(), estimate_without_term_frequencies=True
             )
@@ -455,12 +465,16 @@ class SpLinkSimilarityLinker(SimilarityLinker):
         # Check if cold_start config exists
         cold_start_cfg = self._config.get("splink", {}).get("cold_start", {})
         if not cold_start_cfg:
-            log.info("Linker initializing: No cold_start config found, using Splink defaults")
+            log.info(
+                "Linker initializing: No cold_start config found, using Splink defaults"
+            )
             return
 
         comparisons_cfg = cold_start_cfg.get("comparisons", {})
         if not comparisons_cfg:
-            log.info("Linker initializing: No comparisons config in cold_start, using Splink defaults")
+            log.info(
+                "Linker initializing: No comparisons config in cold_start, using Splink defaults"
+            )
             return
 
         log.info(
@@ -475,11 +489,11 @@ class SpLinkSimilarityLinker(SimilarityLinker):
         for _, comparison in enumerate(self._linker._settings_obj.comparisons):
             # Get the field name from the comparison
             field_name = None
-            if hasattr(comparison, 'output_column_name'):
+            if hasattr(comparison, "output_column_name"):
                 field_name = comparison.output_column_name
-            elif hasattr(comparison, '_field_names') and comparison._field_names:
+            elif hasattr(comparison, "_field_names") and comparison._field_names:
                 field_name = comparison._field_names[0]
-        # pylint: enable=protected-access
+            # pylint: enable=protected-access
 
             if field_name not in comparisons_cfg:
                 continue
@@ -494,8 +508,9 @@ class SpLinkSimilarityLinker(SimilarityLinker):
 
             # Collect non-null levels to properly map cold-start probabilities
             non_null_levels = [
-                (i, level) for i, level in enumerate(comparison.comparison_levels)
-                if not (hasattr(level, 'is_null_level') and level.is_null_level)
+                (i, level)
+                for i, level in enumerate(comparison.comparison_levels)
+                if not (hasattr(level, "is_null_level") and level.is_null_level)
             ]
             log.trace(
                 "_apply_cold_start_params: Field '%s' has %d non-null levels: %s",
@@ -505,8 +520,8 @@ class SpLinkSimilarityLinker(SimilarityLinker):
             )
 
             # Apply m-probabilities to non-null levels in order
-            if 'm_probabilities' in field_cfg:
-                m_probs = field_cfg['m_probabilities']
+            if "m_probabilities" in field_cfg:
+                m_probs = field_cfg["m_probabilities"]
                 for config_idx, m_prob in enumerate(m_probs):
                     if config_idx < len(non_null_levels):
                         actual_level_idx, level = non_null_levels[config_idx]
@@ -528,8 +543,8 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                             )
 
             # Apply u-probabilities to non-null levels in order
-            if 'u_probabilities' in field_cfg:
-                u_probs = field_cfg['u_probabilities']
+            if "u_probabilities" in field_cfg:
+                u_probs = field_cfg["u_probabilities"]
                 for config_idx, u_prob in enumerate(u_probs):
                     if config_idx < len(non_null_levels):
                         actual_level_idx, level = non_null_levels[config_idx]
@@ -566,7 +581,7 @@ class SpLinkSimilarityLinker(SimilarityLinker):
             # Get the Fellegi-Sunter prior (lambda)
             prior = None
             # pylint: disable=protected-access  # Splink exposes no public API for settings introspection
-            if hasattr(linker._settings_obj, 'probability_two_random_records_match'):
+            if hasattr(linker._settings_obj, "probability_two_random_records_match"):
                 prior = linker._settings_obj.probability_two_random_records_match
                 log.info(
                     "EM trained parameter: lambda (P(match)) = %.6f",
@@ -577,11 +592,11 @@ class SpLinkSimilarityLinker(SimilarityLinker):
             for comparison in linker._settings_obj.comparisons:
                 # Get field name
                 field_name = None
-                if hasattr(comparison, 'output_column_name'):
+                if hasattr(comparison, "output_column_name"):
                     field_name = comparison.output_column_name
-                elif hasattr(comparison, '_field_names') and comparison._field_names:
+                elif hasattr(comparison, "_field_names") and comparison._field_names:
                     field_name = comparison._field_names[0]
-            # pylint: enable=protected-access
+                # pylint: enable=protected-access
 
                 if not field_name:
                     continue
@@ -593,8 +608,9 @@ class SpLinkSimilarityLinker(SimilarityLinker):
 
                 # Collect non-null levels
                 non_null_levels = [
-                    (i, level) for i, level in enumerate(comparison.comparison_levels)
-                    if not (hasattr(level, 'is_null_level') and level.is_null_level)
+                    (i, level)
+                    for i, level in enumerate(comparison.comparison_levels)
+                    if not (hasattr(level, "is_null_level") and level.is_null_level)
                 ]
 
                 # Log m and u probabilities for each level
@@ -605,19 +621,25 @@ class SpLinkSimilarityLinker(SimilarityLinker):
                     trained_u = False
 
                     # Extract m-probability
-                    if hasattr(level, 'm_probability') and level.m_probability is not None:
+                    if (
+                        hasattr(level, "m_probability")
+                        and level.m_probability is not None
+                    ):
                         m_prob = level.m_probability
                         # Check if it was trained (non-cold-start values have specific patterns)
                         # Cold-start values are typically set exactly; trained values may vary
                         trained_m = True
 
                     # Extract u-probability
-                    if hasattr(level, 'u_probability') and level.u_probability is not None:
+                    if (
+                        hasattr(level, "u_probability")
+                        and level.u_probability is not None
+                    ):
                         u_prob = level.u_probability
                         trained_u = True
 
                     # Log level details
-                    level_desc = getattr(level, 'label', f"Level {config_idx}")
+                    level_desc = getattr(level, "label", f"Level {config_idx}")
                     m_status = "✓ trained" if trained_m else "✗ cold-start"
                     u_status = "✓ trained" if trained_u else "✗ cold-start"
 

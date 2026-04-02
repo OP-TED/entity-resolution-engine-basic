@@ -9,7 +9,13 @@ swapping infrastructure without changing resolver logic.
 
 from abc import ABC, abstractmethod
 
-from ere.models.resolver import ClusterId, ClusterMembership, Mention, MentionId, MentionLink
+from ere.models.resolver import (
+    ClusterId,
+    ClusterMembership,
+    Mention,
+    MentionId,
+    MentionLink,
+)
 
 
 class MentionRepository(ABC):

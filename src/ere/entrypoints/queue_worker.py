@@ -47,7 +47,9 @@ class RedisQueueWorker:
             Exception: Propagates connection errors.
         """
         # Wait for a request
-        queue_message = self.redis_client.brpop(self.request_queue, timeout=self.queue_timeout)
+        queue_message = self.redis_client.brpop(
+            self.request_queue, timeout=self.queue_timeout
+        )
         if not queue_message:
             return False  # Timeout
 
@@ -88,7 +90,9 @@ class RedisQueueWorker:
             log.error("Failed to send response: %s", e)
 
     @staticmethod
-    def _build_error_response(error_detail: str, ere_request_id: str = "unknown") -> EREErrorResponse:
+    def _build_error_response(
+        error_detail: str, ere_request_id: str = "unknown"
+    ) -> EREErrorResponse:
         """Build error response for request processing failures."""
         log.error("Building error response: %s", error_detail)
         return EREErrorResponse(

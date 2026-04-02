@@ -128,7 +128,9 @@ class EntityResolver:
             cluster_id = ClusterId(value=mention.id.value)
             log.trace("New cluster generated for mention with id=%s", mention.id.value)
 
-        self._cluster_repo.save(ClusterMembership(mention_id=mention.id, cluster_id=cluster_id))
+        self._cluster_repo.save(
+            ClusterMembership(mention_id=mention.id, cluster_id=cluster_id)
+        )
 
         # Log cluster contents after assignment
         all_memberships = self._cluster_repo.get_all_memberships()
@@ -147,7 +149,10 @@ class EntityResolver:
 
         # Trigger auto-training if threshold is reached (non-blocking background thread).
         count = self._mention_repo.count()
-        if self._config.auto_train_threshold > 0 and count == self._config.auto_train_threshold:
+        if (
+            self._config.auto_train_threshold > 0
+            and count == self._config.auto_train_threshold
+        ):
             log.info(
                 "Auto-training triggered: %d mentions reached (threshold=%d). "
                 "Starting background EM training thread. Scoring continues with current parameters.",
@@ -155,9 +160,7 @@ class EntityResolver:
                 self._config.auto_train_threshold,
             )
             threading.Thread(
-                target=self._linker.train,
-                daemon=True,
-                name="linker-training"
+                target=self._linker.train, daemon=True, name="linker-training"
             ).start()
 
         # Step 5: Return cluster references (non-empty, always top-N).
@@ -351,7 +354,9 @@ def resolve_to_result(
 
 
 def resolve_entity_mention(
-    entity_mention: EntityMention, resolver: EntityResolver = None, mapper: RDFMapper = None
+    entity_mention: EntityMention,
+    resolver: EntityResolver = None,
+    mapper: RDFMapper = None,
 ) -> ClusterReference:
     """
     Resolve an entity mention to a Cluster (public API - returns top candidate).
@@ -454,7 +459,9 @@ class EntityResolutionService(AbstractResolver):
                 entity_mention.identifiedBy.request_id,
             )
 
-            resolution_outcome = resolve_to_result(entity_mention, self._resolver, self._mapper)
+            resolution_outcome = resolve_to_result(
+                entity_mention, self._resolver, self._mapper
+            )
 
             # Log resolution result with candidates
             candidate_info = [
@@ -482,7 +489,12 @@ class EntityResolutionService(AbstractResolver):
                 timestamp=now,
             )
         except Exception as exc:  # pylint: disable=broad-exception-caught
-            log.error("Resolution error for mention %s: %s", request.ere_request_id, exc, exc_info=True)
+            log.error(
+                "Resolution error for mention %s: %s",
+                request.ere_request_id,
+                exc,
+                exc_info=True,
+            )
             return EREErrorResponse(
                 ere_request_id=request.ere_request_id,
                 error_type=type(exc).__name__,

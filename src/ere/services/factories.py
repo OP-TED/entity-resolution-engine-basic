@@ -51,7 +51,9 @@ def build_entity_resolver(
     """
     if resolver_config_path is None:
         config_path = (
-            Path(__file__).parent.parent.parent.parent / "config" / "resolver.yaml"
+            Path(__file__).parent.parent.parent.parent
+            / "config"
+            / "resolver.yaml"
         )
     else:
         config_path = Path(resolver_config_path)

@@ -15,7 +15,9 @@ import time
 import pytest
 
 
-def create_test_request(request_id: str = "test-001", content: str = "John Smith") -> dict:
+def create_test_request(
+    request_id: str = "test-001", content: str = "John Smith"
+) -> dict:
     """Create a valid EntityMentionResolutionRequest for testing."""
     return {
         "type": "EntityMentionResolutionRequest",
@@ -80,14 +82,20 @@ class TestRedisQueueIntegration:
         if new_response_count == 0:
             pytest.skip("ERE service not running — skipping response test")
 
-        assert new_response_count == 1, f"Expected 1 new response, got {new_response_count}"
+        assert new_response_count == 1, (
+            f"Expected 1 new response, got {new_response_count}"
+        )
 
         # Retrieve and verify response format (latest response is at index 0)
         response_raw = redis_client.lindex("ere_responses", 0)
         assert response_raw is not None, "Response is empty"
 
         # response_raw is bytes, decode it
-        response_str = response_raw.decode("utf-8") if isinstance(response_raw, bytes) else response_raw
+        response_str = (
+            response_raw.decode("utf-8")
+            if isinstance(response_raw, bytes)
+            else response_raw
+        )
         response = json.loads(response_str)
 
         # Verify response structure
@@ -115,7 +123,9 @@ class TestRedisQueueIntegration:
         if new_response_count == 0:
             pytest.skip("ERE service not running — skipping response verification")
 
-        assert new_response_count == 3, f"Expected 3 new responses, got {new_response_count}"
+        assert new_response_count == 3, (
+            f"Expected 3 new responses, got {new_response_count}"
+        )
 
     def test_redis_authentication(self, redis_client):
         """Test: Verify Redis connection works with authentication."""

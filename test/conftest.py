@@ -215,6 +215,7 @@ def rdf_mapper(rdf_mapping_path):  # pylint: disable=redefined-outer-name  # pyt
 # Redis fixture
 # ============================================================================
 
+
 @pytest.fixture(scope="module")
 def redis_client():
     """

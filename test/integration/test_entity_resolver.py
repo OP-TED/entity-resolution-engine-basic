@@ -122,7 +122,9 @@ def test_first_mention_resolves_to_singleton(service, con):
     # Verify persistence
     mention_count = con.execute("SELECT COUNT(*) FROM mentions").fetchone()[0]
     assert mention_count == 1
-    cluster_count = con.execute("SELECT COUNT(DISTINCT cluster_id) FROM clusters").fetchone()[0]
+    cluster_count = con.execute(
+        "SELECT COUNT(DISTINCT cluster_id) FROM clusters"
+    ).fetchone()[0]
     assert cluster_count == 1
 
 
@@ -169,7 +171,9 @@ def test_below_threshold_creates_new_cluster(service, con):
     assert mention_count == 2
 
     # Verify cluster assignments persist
-    cluster_count = con.execute("SELECT COUNT(DISTINCT cluster_id) FROM clusters").fetchone()[0]
+    cluster_count = con.execute(
+        "SELECT COUNT(DISTINCT cluster_id) FROM clusters"
+    ).fetchone()[0]
     assert cluster_count >= 1
 
 
@@ -243,7 +247,9 @@ def test_train_succeeds_with_sufficient_records(service, con):
     service.train()
 
     # Verify linker is still functional
-    query = Mention(mention_id="test_q", legal_name="Acme Technologies", country_code="US")
+    query = Mention(
+        mention_id="test_q", legal_name="Acme Technologies", country_code="US"
+    )
     result = service.resolve(query)
 
     assert result.top is not None
@@ -436,11 +442,15 @@ def test_multiple_resolves_accumulate_state(service, con):
         state = service.state()
 
         # Verify state accumulates
-        assert state.mention_count == i, f"After resolving {i} mentions, should have {i} in DB"
+        assert state.mention_count == i, (
+            f"After resolving {i} mentions, should have {i} in DB"
+        )
 
         # Later mentions should see earlier mentions in results
         if i > 1:
-            assert len(result.candidates) >= 1, "Should see candidates from earlier mentions"
+            assert len(result.candidates) >= 1, (
+                "Should see candidates from earlier mentions"
+            )
 
 
 @pytest.mark.integration
@@ -452,14 +462,22 @@ def test_end_to_end_realistic_scenario(service, con):
     # Stream of mentions: 3 companies with variants
     mentions = [
         # Company A
-        Mention(mention_id="acme_1", legal_name="Acme Corporation Ltd", country_code="US"),
+        Mention(
+            mention_id="acme_1", legal_name="Acme Corporation Ltd", country_code="US"
+        ),
         Mention(mention_id="acme_2", legal_name="Acme Corp", country_code="US"),
         Mention(mention_id="acme_3", legal_name="Acme", country_code="US"),
         # Company B
-        Mention(mention_id="bestco_1", legal_name="BestCo Industries Inc", country_code="US"),
+        Mention(
+            mention_id="bestco_1", legal_name="BestCo Industries Inc", country_code="US"
+        ),
         Mention(mention_id="bestco_2", legal_name="BestCo Inc", country_code="US"),
         # Company C
-        Mention(mention_id="techsoft_1", legal_name="TechSoft Solutions Limited", country_code="US"),
+        Mention(
+            mention_id="techsoft_1",
+            legal_name="TechSoft Solutions Limited",
+            country_code="US",
+        ),
         Mention(mention_id="techsoft_2", legal_name="TechSoft Ltd", country_code="US"),
         Mention(mention_id="techsoft_3", legal_name="TechSoft", country_code="US"),
     ]
@@ -481,9 +499,14 @@ def test_end_to_end_realistic_scenario(service, con):
 
     # Verify all mentions are assigned
     assert set(mention_to_cluster.keys()) == {
-        "acme_1", "acme_2", "acme_3",
-        "bestco_1", "bestco_2",
-        "techsoft_1", "techsoft_2", "techsoft_3"
+        "acme_1",
+        "acme_2",
+        "acme_3",
+        "bestco_1",
+        "bestco_2",
+        "techsoft_1",
+        "techsoft_2",
+        "techsoft_3",
     }, "All mentions should be assigned to clusters"
 
     # Verify different companies are in different clusters
@@ -492,5 +515,6 @@ def test_end_to_end_realistic_scenario(service, con):
     bestco_cluster = mention_to_cluster["bestco_1"]
     techsoft_cluster = mention_to_cluster["techsoft_1"]
 
-    assert len({acme_cluster, bestco_cluster, techsoft_cluster}) == 3, \
+    assert len({acme_cluster, bestco_cluster, techsoft_cluster}) == 3, (
         "Different companies should be in different clusters"
+    )

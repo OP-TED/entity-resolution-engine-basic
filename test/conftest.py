@@ -30,8 +30,8 @@ def pytest_configure(config: pytest.Config):
     # Setup logging from YAML config file
     cfg_path = str(TEST_RESOURCES_DIR / "logging-test.yml")
     with open(cfg_path, encoding="utf-8") as f:
-        config = yaml.safe_load(f)
-    logging.config.dictConfig(config)
+        logging_cfg = yaml.safe_load(f)
+    logging.config.dictConfig(logging_cfg)
 
 
 # ============================================================================

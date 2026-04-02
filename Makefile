@@ -30,6 +30,13 @@ BUILD_PATH = ${PROJECT_PATH}/dist
 INFRA_PATH = ${PROJECT_PATH}/infra
 COMPOSE_FILE = ${INFRA_PATH}/compose.dev.yaml
 ENV_FILE = ${INFRA_PATH}/.env
+
+# Auto-export all .env variables to every recipe shell (if the file exists)
+ifneq ($(wildcard $(ENV_FILE)),)
+include $(ENV_FILE)
+export $(shell sed -n 's/^\([^#= ][^= ]*\)[ ]*=.*/\1/p' $(ENV_FILE))
+endif
+
 PACKAGE_NAME = ere
 
 ICON_DONE = [✔]
@@ -103,7 +110,7 @@ build: ## Build the package distribution
 .PHONY: test test-unit test-integration test-coverage
 test: ## Run all tests
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running all tests$(END_BUILD_PRINT)"
-	@ set -a && . $(ENV_FILE) && set +a && poetry run pytest $(TEST_PATH)
+	@ poetry run pytest $(TEST_PATH)
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) All tests passed$(END_BUILD_PRINT)"
 
 test-unit: ## Run unit tests with coverage (fast, uses your venv)
@@ -114,12 +121,12 @@ test-unit: ## Run unit tests with coverage (fast, uses your venv)
 
 test-integration: check-env ## Run integration tests only (requires Redis — run make infra-up first)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running integration tests$(END_BUILD_PRINT)"
-	@ set -a && . $(ENV_FILE) && set +a && poetry run pytest $(TEST_PATH) -m "integration"
+	@ poetry run pytest $(TEST_PATH) -m "integration"
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Integration tests passed$(END_BUILD_PRINT)"
 
 test-coverage: ## Generate detailed HTML coverage report
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Generating coverage report$(END_BUILD_PRINT)"
-	@ set -a && . $(ENV_FILE) && set +a && poetry run pytest $(TEST_PATH) -m "not integration" \
+	@ poetry run pytest $(TEST_PATH) -m "not integration" \
 	    --cov=src --cov-report=html --cov-report=term-missing
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Coverage report: htmlcov/index.html$(END_BUILD_PRINT)"
 
@@ -158,7 +165,7 @@ all-quality-checks: lint check-clean-code check-architecture ## Run all: lint + 
 
 ci: ## Full CI pipeline for GitHub Actions (tox)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running full CI pipeline$(END_BUILD_PRINT)"
-	@ tox -e py312,architecture,clean-code
+	@ set -a && . $(ENV_FILE) && set +a && tox -e py312,architecture,clean-code
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) CI pipeline complete$(END_BUILD_PRINT)"
 
 #-----------------------------------------------------------------------------

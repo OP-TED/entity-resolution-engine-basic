@@ -37,7 +37,7 @@ score=yes
 [BASIC]
 # Good names for short variables
 good-names=i,j,k,v,e,ex,f,fp,fd,x,y,z,id,pk,db,df,dt,ts,tz,io,ok,_,__,Run,log,url,uri,api,sql,xml,json,csv,ttl,rdf,ns,ctx,cfg,tmp,value
-bad-names=foo,bar,baz,toto,tutu,tata,temp,tmp2,tmp3,data,info,obj,item,thing,stuff,do_stuff,handle,process,manager,helper,util,utils,utility,common,misc,base,abstract,generic,value,result,output,input,flag,flag1,flag2,aux,auxiliary
+bad-names=foo,bar,baz,toto,tutu,tata,temp,tmp2,tmp3,data,info,obj,item,thing,stuff,do_stuff,handle,process,manager,helper,util,utility,common,misc,base,abstract,generic,value,result,output,input,flag,flag1,flag2,aux,auxiliary
 
 # Naming patterns for code elements
 name-group=

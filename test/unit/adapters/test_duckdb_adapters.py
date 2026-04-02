@@ -244,3 +244,29 @@ def test_cluster_membership_mapping(service, con):
     assert len(memberships[cluster_id]) == 2
     assert MentionId(value="m1") in memberships[cluster_id]
     assert MentionId(value="m2") in memberships[cluster_id]
+
+
+def test_mention_repository_load_all_returns_persisted_mentions(con, entity_fields):
+    """load_all should return all mentions previously saved."""
+    repo = DuckDBMentionRepository(con, entity_fields)
+    m1 = Mention(id=MentionId(value="la1"), attributes={"legal_name": "Alpha", "country_code": "DE"})
+    m2 = Mention(id=MentionId(value="la2"), attributes={"legal_name": "Beta", "country_code": "FR"})
+
+    repo.save(m1)
+    repo.save(m2)
+
+    loaded = repo.load_all()
+
+    assert len(loaded) == 2
+    ids = {m.id.value for m in loaded}
+    assert ids == {"la1", "la2"}
+
+
+def test_similarity_repository_save_all_empty_is_noop(con):
+    """save_all with an empty list should not raise and not write any rows."""
+    repo = DuckDBSimilarityRepository(con)
+
+    repo.save_all([])  # must not raise
+
+    count = con.execute("SELECT COUNT(*) FROM similarities").fetchone()[0]
+    assert count == 0

@@ -1,6 +1,14 @@
-"""Unit tests for EntityResolver (no DuckDB, no Splink)."""
+"""Unit tests for EntityResolver and EntityResolutionService (no DuckDB, no Splink)."""
 
 import pytest
+from datetime import datetime, timezone
+
+from erspec.models.core import EntityMention, EntityMentionIdentifier
+from erspec.models.ere import (
+    EREErrorResponse,
+    EntityMentionResolutionRequest,
+    EntityMentionResolutionResponse,
+)
 
 from ere.models.resolver import (
     ClusterId,
@@ -8,13 +16,18 @@ from ere.models.resolver import (
     MentionId,
     MentionLink,
 )
-from ere.services.entity_resolution_service import EntityResolver
+from ere.services.entity_resolution_service import (
+    EntityResolutionService,
+    EntityResolver,
+    resolve_entity_mention,
+)
 from ere.services.resolver_config import DuckDBConfig, ResolverConfig
 from test.unit.adapters.stubs import (
     FixedSimilarityLinker,
     InMemoryClusterRepository,
     InMemoryMentionRepository,
     InMemorySimilarityRepository,
+    StubRDFMapper,
 )
 
 
@@ -484,3 +497,105 @@ def test_multiple_independent_clusters(service):
     state = service.state()
     assert state.cluster_count == 3
     assert state.mention_count == 3
+
+
+# ===============================================================================
+# resolve_entity_mention guard tests
+# ===============================================================================
+
+
+def test_resolve_entity_mention_raises_when_resolver_is_none():
+    mention = EntityMention(
+        identifiedBy=EntityMentionIdentifier(
+            request_id="m1",
+            source_id="src",
+            entity_type="http://test.org/Org",
+        ),
+        content_type="text/turtle",
+        content="<>",
+    )
+    with pytest.raises(ValueError, match="resolver must be provided"):
+        resolve_entity_mention(mention, resolver=None, mapper=StubRDFMapper())
+
+
+def test_resolve_entity_mention_raises_when_mapper_is_none(service):
+    mention = EntityMention(
+        identifiedBy=EntityMentionIdentifier(
+            request_id="m1",
+            source_id="src",
+            entity_type="http://test.org/Org",
+        ),
+        content_type="text/turtle",
+        content="<>",
+    )
+    with pytest.raises(ValueError, match="mapper must be provided"):
+        resolve_entity_mention(mention, resolver=service, mapper=None)
+
+
+# ===============================================================================
+# EntityResolutionService tests
+# ===============================================================================
+
+
+@pytest.fixture
+def stub_mapper() -> StubRDFMapper:
+    return StubRDFMapper()
+
+
+@pytest.fixture
+def resolution_service(service: EntityResolver, stub_mapper: StubRDFMapper) -> EntityResolutionService:
+    return EntityResolutionService(resolver=service, mapper=stub_mapper)
+
+
+def _make_request(request_id: str = "req-001") -> EntityMentionResolutionRequest:
+    return EntityMentionResolutionRequest(
+        entity_mention=EntityMention(
+            identifiedBy=EntityMentionIdentifier(
+                request_id=request_id,
+                source_id="test-src",
+                entity_type="http://test.org/Org",
+            ),
+            content_type="text/turtle",
+            content="<>",
+        ),
+        ere_request_id=request_id,
+        timestamp=datetime.now(timezone.utc).isoformat(),
+    )
+
+
+def test_process_request_unsupported_type_returns_error_response(resolution_service):
+    class UnknownRequest:
+        ere_request_id = "unknown-001"
+
+    response = resolution_service.process_request(UnknownRequest())
+
+    assert isinstance(response, EREErrorResponse)
+    assert response.error_type == "UnsupportedRequestType"
+
+
+def test_process_request_happy_path_returns_resolution_response(resolution_service):
+    request = _make_request("req-happy")
+
+    response = resolution_service.process_request(request)
+
+    assert isinstance(response, EntityMentionResolutionResponse)
+    assert response.ere_request_id == "req-happy"
+    assert len(response.candidates) >= 1
+
+
+def test_process_request_mapper_error_returns_error_response(service: EntityResolver):
+    failing_mapper = StubRDFMapper(error=ValueError("RDF parse failure"))
+    svc = EntityResolutionService(resolver=service, mapper=failing_mapper)
+
+    response = svc.process_request(_make_request("req-fail"))
+
+    assert isinstance(response, EREErrorResponse)
+    assert response.error_type == "ValueError"
+    assert "RDF parse failure" in response.error_detail
+
+
+def test_call_delegates_to_process_request(resolution_service):
+    request = _make_request("req-call")
+    response = resolution_service(request)
+    assert isinstance(response, EntityMentionResolutionResponse)
+    assert response.ere_request_id == "req-call"

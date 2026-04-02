@@ -216,4 +216,4 @@ poetry.toml
 .vscode
 .import_linter_cache
 .pycharm_plugin
-
+.idea

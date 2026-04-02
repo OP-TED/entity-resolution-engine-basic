@@ -26,10 +26,10 @@ def configure_logging(log_level: str = None) -> None:
 
     Args:
         log_level: Log level name (e.g., 'DEBUG', 'INFO', 'TRACE').
-                  If None, reads from LOG_LEVEL environment variable (default: INFO).
+                  If None, reads from ERE_LOG_LEVEL environment variable (default: INFO).
     """
     if log_level is None:
-        log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+        log_level = os.environ.get("ERE_LOG_LEVEL", "INFO").upper()
     else:
         log_level = log_level.upper()
 

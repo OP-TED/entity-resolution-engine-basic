@@ -23,14 +23,14 @@ def test_configure_logging_passes_trace_level_to_basicconfig():
 
 
 def test_configure_logging_reads_env_var(monkeypatch):
-    monkeypatch.setenv("LOG_LEVEL", "ERROR")
+    monkeypatch.setenv("ERE_LOG_LEVEL", "ERROR")
     with patch("logging.basicConfig") as mock_bc:
         configure_logging()
     assert mock_bc.call_args[1]["level"] == logging.ERROR
 
 
 def test_configure_logging_defaults_to_info(monkeypatch):
-    monkeypatch.delenv("LOG_LEVEL", raising=False)
+    monkeypatch.delenv("ERE_LOG_LEVEL", raising=False)
     with patch("logging.basicConfig") as mock_bc:
         configure_logging()
     assert mock_bc.call_args[1]["level"] == logging.INFO

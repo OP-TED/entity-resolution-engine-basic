@@ -1,9 +1,7 @@
 """Unit tests for utils.logging: log-level setup and TRACE level."""
 
 import logging
-from unittest.mock import call, patch
-
-import pytest
+from unittest.mock import patch
 
 from ere.utils.logging import TRACE_LEVEL_NUM, configure_logging
 

@@ -103,7 +103,7 @@ build: ## Build the package distribution
 .PHONY: test test-unit test-integration test-coverage
 test: ## Run all tests
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running all tests$(END_BUILD_PRINT)"
-	@ poetry run pytest $(TEST_PATH)
+	@ set -a && . $(ENV_FILE) && set +a && poetry run pytest $(TEST_PATH)
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) All tests passed$(END_BUILD_PRINT)"
 
 test-unit: ## Run unit tests with coverage (fast, uses your venv)
@@ -112,14 +112,14 @@ test-unit: ## Run unit tests with coverage (fast, uses your venv)
 	    --cov=src --cov-report=term-missing --cov-report=html
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Unit tests passed (coverage: htmlcov/index.html)$(END_BUILD_PRINT)"
 
-test-integration: ## Run integration tests only
+test-integration: check-env ## Run integration tests only (requires Redis — run make infra-up first)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running integration tests$(END_BUILD_PRINT)"
-	@ poetry run pytest $(TEST_PATH) -m "integration"
+	@ set -a && . $(ENV_FILE) && set +a && poetry run pytest $(TEST_PATH) -m "integration"
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Integration tests passed$(END_BUILD_PRINT)"
 
 test-coverage: ## Generate detailed HTML coverage report
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Generating coverage report$(END_BUILD_PRINT)"
-	@ poetry run pytest $(TEST_PATH) -m "not integration" \
+	@ set -a && . $(ENV_FILE) && set +a && poetry run pytest $(TEST_PATH) -m "not integration" \
 	    --cov=src --cov-report=html --cov-report=term-missing
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Coverage report: htmlcov/index.html$(END_BUILD_PRINT)"
 

@@ -47,6 +47,12 @@ ERE relies on **ers-spec** (from [entity-resolution-spec](https://github.com/OP-
 
 This ensures type-safe, versioned communication between ERE and other ERSys components.
 
+#### External Infrastructure Dependencies
+To function, the ERE service requires the following external infrastructure:
+- **Redis**: Used as the message broker for the request/response queues (`ere_requests` and `ere_responses`).
+- **Docker**: Required for containerized deployment and local development.
+- **Python 3.12**: The runtime environment for the engine.
+
 
 ## Installation
 

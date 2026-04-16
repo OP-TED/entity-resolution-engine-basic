@@ -56,6 +56,7 @@ services:
         condition: service_healthy
     volumes:
       - ere-data:/data
+      - ../config:/app/config
     develop:
       watch:
         - action: sync

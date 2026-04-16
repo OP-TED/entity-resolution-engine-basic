@@ -70,8 +70,6 @@ WORKDIR /app
 # Copy only the virtual environment and necessary app files
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/src /app/src
-COPY config/ ./config/
-
 # Volume mount point for DuckDB persistent storage
 RUN mkdir -p /data && chown appuser:appuser /data
 

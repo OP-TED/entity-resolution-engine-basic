@@ -36,8 +36,8 @@ services:
 
   ere:
     build:
-      context: ..
-      dockerfile: infra/Dockerfile
+      context: ../..
+      dockerfile: src/infra/Dockerfile
     container_name: "ere"
     env_file: .env
     restart: unless-stopped
@@ -56,19 +56,19 @@ services:
         condition: service_healthy
     volumes:
       - ere-data:/data
-      - ../config:/app/config
+      - ../../src/config:/app/config
     develop:
       watch:
         - action: sync
-          path: ../src
-          target: /app/src
+          path: ../../src/ere
+          target: /app/ere
         - action: sync
-          path: ../config
+          path: ../../src/config
           target: /app/config
         - action: rebuild
-          path: ../pyproject.toml
+          path: ../../src/pyproject.toml
         - action: rebuild
-          path: ../poetry.lock
+          path: ../../src/poetry.lock
     networks:
       - ere-net
 

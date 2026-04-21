@@ -71,7 +71,7 @@ make all-quality-checks  # before opening a PR
 | `make ci` | full tox pipeline (py312 + architecture + clean-code) |
 | `make infra-up` | Start Redis stack (Docker Compose) |
 | `make infra-down` | Stop Redis stack |
-| `make infra-watch` | Live-reload mode (syncs `src/` and `config/`) |
+| `make infra-watch` | Live-reload mode (syncs `src/` and `src/config/`) |
 
 ---
 
@@ -115,7 +115,7 @@ Do **not** save to memory:
 - **DuckDB in tests**: use in-memory mode (`:memory:`) or a temp file via `tmp_path`; never a fixed path that leaks between tests.
 - **Integration tests are marked** with `@pytest.mark.integration` — `make test-unit` skips them automatically.
 - **`infra/.env`** is required for `make infra-*` targets. Copy from `infra/.env.example` on first use.
-- **Config files** live in `config/` (repo root), not `infra/config/` — the `1cf319c` refactor moved them.
+- **Config files** live in `src/config/` (moved from repo root in the 2026-04 restructure). Do not confuse with `infra/config/`.
 - **erspec models** are LinkML-generated with snake_case fields (e.g. `legal_name`, not `legalName`). Do not edit generated files — update the schema and regenerate.
 - **`ERE_LOG_LEVEL`** is the canonical env var for log level in this service (not `LOG_LEVEL`).
 

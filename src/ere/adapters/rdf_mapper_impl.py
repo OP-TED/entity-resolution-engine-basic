@@ -43,7 +43,7 @@ class TurtleRDFMapper(RDFMapper):
         """
         if rdf_mapping_path is None:
             rdf_mapping_path = (
-                Path(__file__).parent.parent.parent.parent
+                Path(__file__).parent.parent.parent
                 / "config"
                 / "rdf_mapping.yaml"
             )

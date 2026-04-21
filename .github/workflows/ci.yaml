@@ -52,7 +52,7 @@ jobs:
       # ------------------------------------------------------------------
       - name: Read Python version from pyproject.toml
         id: python-version
-        run: echo "version=$(grep -m1 'python = ' pyproject.toml | grep -oP '\d+\.\d+' | head -1)" >> $GITHUB_OUTPUT
+        run: echo "version=$(grep -m1 'python = ' src/pyproject.toml | grep -oP '\d+\.\d+' | head -1)" >> $GITHUB_OUTPUT
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -77,7 +77,7 @@ jobs:
           path: |
             ~/.cache/pypoetry
             .tox
-          key: poetry-${{ runner.os }}-${{ hashFiles('poetry.lock', 'tox.ini') }}
+          key: poetry-${{ runner.os }}-${{ hashFiles('src/poetry.lock', 'tox.ini') }}
           restore-keys: |
             poetry-${{ runner.os }}-
 
@@ -85,16 +85,16 @@ jobs:
       # Install
       # ------------------------------------------------------------------
       - name: Install dependencies
-        run: poetry install --with dev
+        run: cd src && poetry install --with dev
 
       # ------------------------------------------------------------------
       # Lint, Test & Verify (tox)
       # ------------------------------------------------------------------
       - name: Prepare environment file
-        run: cp infra/.env.example infra/.env
+        run: cp src/infra/.env.example src/infra/.env
 
       - name: Run quality checks (unit tests + architecture + clean-code)
-        run: poetry run tox -e py312,architecture,clean-code
+        run: cd src && poetry run tox -e py312,architecture,clean-code
         env:
           REDIS_HOST: localhost
           REDIS_PORT: 6379

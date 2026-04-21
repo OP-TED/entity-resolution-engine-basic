@@ -1,6 +1,6 @@
 [project]
 name = "ere-basic"
-version = "0.4.0"
+version = "1.0.0"
 description = "A basic implementation of the Entity Resolution Engine (ERE)."
 authors = [
     {name = "Meaningfy",email = "hi@meaningfy.ws"}

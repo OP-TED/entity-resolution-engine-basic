@@ -7,18 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [unreleased]
+## [Unreleased]
 
 ## [1.0.0-rc.1] - 2026-04-21
 
 ### Added
-* Unit test suite expanded to meet the 85% coverage threshold
+- Unit test suite expanded to meet the 80% coverage threshold
 
 ### Changed
-* Repository layout restructured: `config/`, `demo/`, `pyproject.toml`, `poetry.lock`, and `infra/` consolidated under `src/`; all tooling, Makefile targets, and path references updated accordingly
-* Docker: multi-stage wheel-based build with non-root user for improved security and build reproducibility; configuration decoupled from the image and mounted at runtime
-* CI: SonarCloud scan made conditional on token availability; coverage report path mapping corrected; integration tests excluded from the tox pipeline to keep unit runs self-contained; staging deployment gated behind explicit dispatch
-* Environment variables aligned with ERSys naming convention
+- Repository layout restructured: `config/`, `demo/`, `pyproject.toml`, `poetry.lock`, and `infra/` consolidated under `src/`; all tooling, Makefile targets, and path references updated accordingly
+- Docker: multi-stage wheel-based build with non-root user for improved security and build reproducibility; configuration decoupled from the image and mounted at runtime
+- CI: SonarCloud scan made conditional on token availability; coverage report path mapping corrected; integration tests excluded from the tox pipeline to keep unit runs self-contained; staging deployment gated behind explicit dispatch
+- Environment variables aligned with ERSys naming convention
 
 ## [0.3.0] - 2026-03-04
 

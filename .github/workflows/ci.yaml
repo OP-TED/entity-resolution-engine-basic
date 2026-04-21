@@ -85,7 +85,7 @@ jobs:
       # Install
       # ------------------------------------------------------------------
       - name: Install dependencies
-        run: poetry install --with dev
+        run: cd src && poetry install --with dev
 
       # ------------------------------------------------------------------
       # Lint, Test & Verify (tox)
@@ -94,7 +94,7 @@ jobs:
         run: cp src/infra/.env.example src/infra/.env
 
       - name: Run quality checks (unit tests + architecture + clean-code)
-        run: poetry run tox -e py312,architecture,clean-code
+        run: cd src && poetry run tox -e py312,architecture,clean-code
         env:
           REDIS_HOST: localhost
           REDIS_PORT: 6379

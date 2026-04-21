@@ -35,7 +35,7 @@ Its primary purpose is to interact with the Entity Resolution System (ERSys). It
 For detailed documentation, see:
 - [Architecture](docs/architecture.md) - description of the applied architecture
 - [Algorithm](docs/algorithm.md) - incremental probabilistic entity linking
-- [Configuration](config/README.md) - field mapping, model tuning, Splink setup
+- [Configuration](src/config/README.md) - field mapping, model tuning, Splink setup
 - [ERS–ERE Technical Contract v0.2](docs/ERS-ERE-System-Technical-Contract.pdf)
 
 
@@ -87,10 +87,10 @@ make infra-up
 
 Launch a demo script and observe the end-to-end resolution flow; the demo script connects to the locally deployed Redis instance to which the ERE service is subscribed.
 ```bash
-poetry run python demo/demo.py  # run the demo script with the default data
+poetry run python src/demo/demo.py  # run the demo script with the default data
 
 # run the script with a custom request data file
-poetry run python demo/demo.py --data demo/data/org-small.json
+poetry run python src/demo/demo.py --data src/demo/data/org-small.json
 # logs from request submission and resolution outcomes will be printed to stdout
 
 # inspect ere service logs
@@ -148,7 +148,7 @@ Available targets (`make help`):
     infra-rebuild        - Rebuild images and start services
     infra-rebuild-clean  - Rebuild from scratch (no cache) and start
     infra-logs           - Follow service logs
-    infra-watch          - Start services with file watching (sync src/ and config/)
+    infra-watch          - Start services with file watching (sync src/ and src/config/)
 
   Utilities:
     clean                - Remove build artifacts and caches
@@ -158,10 +158,10 @@ Available targets (`make help`):
 ### Configuration (Resolver and Mapper)
 
 Entity resolution behaviour is configured via two YAML files:
-- **Resolver configuration** ([resolver.yaml](./config/resolver.yaml)): Splink comparisons, cold-start parameters, similarity thresholds
-- **RDF mapping** ([rdf_mapping.yaml](./config/rdf_mapping.yaml)): RDF namespace bindings, field extraction rules, entity type definitions
+- **Resolver configuration** ([resolver.yaml](./src/config/resolver.yaml)): Splink comparisons, cold-start parameters, similarity thresholds
+- **RDF mapping** ([rdf_mapping.yaml](./src/config/rdf_mapping.yaml)): RDF namespace bindings, field extraction rules, entity type definitions
 
-For detailed configuration options and tuning, see the [configuration page](./config/README.md).
+For detailed configuration options and tuning, see the [configuration page](./src/config/README.md).
 
 ### Examples
 
@@ -169,12 +169,12 @@ A working demo is available that demonstrates ERE as a black-box service communi
 
 ```bash
 # Prerequisites: Redis must be running, ERE service must be listening
-python demo/demo.py                              # Uses org-tiny.json (8 mentions, 2 clusters)
-python demo/demo.py --data demo/data/org-small.json  # 100 mentions, realistic clustering
+python src/demo/demo.py                                   # Uses org-tiny.json (8 mentions, 2 clusters)
+python src/demo/demo.py --data src/demo/data/org-small.json  # 100 mentions, realistic clustering
 ```
 
 The demo:
-- Loads entity mentions from JSON datasets stored in `demo/data/`
+- Loads entity mentions from JSON datasets stored in `src/demo/data/`
 - Sends mentions to the request queue via RDF Turtle messages
 - Listens for resolution responses with cluster assignments
 - Logs all interactions with timestamps and outputs a clustering summary
@@ -186,21 +186,32 @@ The demo:
 
 Note: For practical reasons (Turtle syntax is more verbose and less popular than JSON), the `demo.py` script accepts JSON files of a fixed structure and constructs RDF payloads from them on the fly.
 
-See [`demo/README.md`](demo/README.md) for datasets, configuration, logging, prerequisites, troubleshooting, and example output.
+See [`src/demo/README.md`](src/demo/README.md) for datasets, configuration, logging, prerequisites, troubleshooting, and example output.
 
 
 ## Project
 
 ### Structure
 
-ERE follows a **Cosmic Python layered architecture** that enforces clear separation of concerns and testability. The `src/ere/` directory contains four layers: domain models (pure business logic), services (use-case orchestration), adapters (infrastructure integrations), and entrypoints (external drivers). Test suites mirror this structure with unit, integration, and BDD scenarios, while documentation covers architecture decisions and implementation tasks. The `demo/` directory provides working examples with sample datasets, and `infra/` contains containerisation and configuration for local development.
+ERE follows a **Cosmic Python layered architecture** that enforces clear separation of concerns and testability. The `src/ere/` directory contains four layers: domain models (pure business logic), services (use-case orchestration), adapters (infrastructure integrations), and entrypoints (external drivers). Test suites mirror this structure with unit, integration, and BDD scenarios, while documentation covers architecture decisions and implementation tasks. `src/demo/` provides working examples with sample datasets, and `infra/` contains containerisation and configuration for local development.
 
 ```
-src/ere/
-├── adapters/        # Redis client, cluster store, resolver implementations
-├── entrypoints/     # Redis pub/sub consumer
-├── models/          # Domain models (entities, value objects, exceptions)
-└── services/        # Resolution use-case orchestration
+src/
+├── ere/                  # Python package
+│   ├── adapters/         # Redis client, cluster store, resolver implementations
+│   ├── entrypoints/      # Redis pub/sub consumer
+│   ├── models/           # Domain models (entities, value objects, exceptions)
+│   └── services/         # Resolution use-case orchestration
+├── config/
+│   ├── resolver.yaml     # Splink comparisons, blocking rules, thresholds
+│   ├── rdf_mapping.yaml  # RDF namespace bindings, field extraction rules
+│   └── README.md         # Configuration documentation
+├── demo/
+│   ├── demo.py           # Entity resolution demonstration script
+│   ├── data/             # Sample datasets (derived from TED procurement data)
+│   └── README.md         # Demo usage and configuration guide
+├── pyproject.toml        # Project metadata and dependencies
+└── poetry.lock
 
 test/
 ├── features/        # Gherkin BDD feature files
@@ -216,20 +227,10 @@ docs/
 ├── ERS-ERE-System-Technical-Contract.pdf
 └── *.md             # Topic documentation
 
-config/
-├── resolver.yaml         # Splink comparisons, blocking rules, thresholds
-├── rdf_mapping.yaml      # RDF namespace bindings, field extraction rules
-└── README.md             # Configuration documentation
-
 infra/
 ├── Dockerfile       # ERE service image definition
 ├── compose.dev.yaml # Docker Compose for local development
 └── .env.example     # Environment variable template
-
-demo/
-├── demo.py          # Entity resolution demonstration script
-├── data/            # Sample datasets (derived from TED procurement data)
-└── README.md        # Demo usage and configuration guide
 ```
 
 ### Tooling

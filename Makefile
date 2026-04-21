@@ -81,7 +81,7 @@ help: ## Display available targets
 	@ echo "    infra-rebuild        - Rebuild images and start services"
 	@ echo "    infra-rebuild-clean  - Rebuild from scratch (no cache) and start"
 	@ echo "    infra-logs           - Follow service logs"
-	@ echo "    infra-watch          - Start services with file watching (sync src/ and config/)"
+	@ echo "    infra-watch          - Start services with file watching (sync src/ and src/config/)"
 	@ echo ""
 	@ echo -e "  $(BUILD_PRINT)Utilities:$(END_BUILD_PRINT)"
 	@ echo "    clean                - Remove build artifacts and caches"
@@ -95,13 +95,13 @@ install-poetry: ## Install Poetry if not present
 
 install: install-poetry ## Install project dependencies
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Installing ERE requirements$(END_BUILD_PRINT)"
-	@ poetry lock
-	@ poetry install --with dev
+	@ poetry -C ./src lock
+	@ poetry -C ./src install --with dev
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) ERE requirements are installed$(END_BUILD_PRINT)"
 
 build: ## Build the package distribution
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Building package$(END_BUILD_PRINT)"
-	@ poetry build
+	@ poetry -C ./src build
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Package built successfully$(END_BUILD_PRINT)"
 
 #-----------------------------------------------------------------------------
@@ -110,24 +110,24 @@ build: ## Build the package distribution
 .PHONY: test test-unit test-integration test-coverage
 test: ## Run all tests
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running all tests$(END_BUILD_PRINT)"
-	@ poetry run pytest $(TEST_PATH)
+	@ poetry -C ./src run pytest --rootdir=$(SRC_PATH) $(TEST_PATH)
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) All tests passed$(END_BUILD_PRINT)"
 
 test-unit: ## Run unit tests with coverage (fast, uses your venv)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running unit tests with coverage$(END_BUILD_PRINT)"
-	@ poetry run pytest $(TEST_PATH) -m "not integration" \
-	    --cov=src --cov-report=term-missing --cov-report=html
+	@ poetry -C ./src run pytest --rootdir=$(SRC_PATH) $(TEST_PATH) -m "not integration" \
+	    --cov=ere --cov-report=term-missing --cov-report=html:htmlcov
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Unit tests passed (coverage: htmlcov/index.html)$(END_BUILD_PRINT)"
 
 test-integration: check-env ## Run integration tests only (requires Redis — run make infra-up first)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running integration tests$(END_BUILD_PRINT)"
-	@ poetry run pytest $(TEST_PATH) -m "integration"
+	@ poetry -C ./src run pytest --rootdir=$(SRC_PATH) $(TEST_PATH) -m "integration"
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Integration tests passed$(END_BUILD_PRINT)"
 
 test-coverage: ## Generate detailed HTML coverage report
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Generating coverage report$(END_BUILD_PRINT)"
-	@ poetry run pytest $(TEST_PATH) -m "not integration" \
-	    --cov=src --cov-report=html --cov-report=term-missing
+	@ poetry -C ./src run pytest --rootdir=$(SRC_PATH) $(TEST_PATH) -m "not integration" \
+	    --cov=ere --cov-report=html:htmlcov --cov-report=term-missing
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Coverage report: htmlcov/index.html$(END_BUILD_PRINT)"
 
 #-----------------------------------------------------------------------------
@@ -137,27 +137,27 @@ test-coverage: ## Generate detailed HTML coverage report
 
 format: ## Format code with Ruff
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Formatting code$(END_BUILD_PRINT)"
-	@ poetry run ruff format $(SRC_PATH) $(TEST_PATH)
+	@ poetry -C ./src run ruff format $(SRC_PATH) $(TEST_PATH)
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Format complete$(END_BUILD_PRINT)"
 
 lint: ## Run pylint checks (style, naming, SOLID principles) — uses your venv
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running pylint checks$(END_BUILD_PRINT)"
-	@ poetry run pylint --rcfile=.pylintrc ./src ./test
+	@ poetry -C ./src run pylint --rcfile=$(PROJECT_PATH)/.pylintrc $(SRC_PATH)/ere $(TEST_PATH)
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Pylint checks passed$(END_BUILD_PRINT)"
 
 lint-fix: ## Auto-fix code style with Ruff
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Auto-fixing with Ruff$(END_BUILD_PRINT)"
-	@ poetry run ruff check --fix $(SRC_PATH) $(TEST_PATH)
+	@ poetry -C ./src run ruff check --fix $(SRC_PATH) $(TEST_PATH)
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Auto-fix complete$(END_BUILD_PRINT)"
 
 check-clean-code: ## Clean-code checks: pylint + radon + xenon (isolated tox)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running clean-code checks (tox isolated)$(END_BUILD_PRINT)"
-	@ tox -e clean-code
+	@ poetry -C ./src run tox -e clean-code
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Clean-code checks passed$(END_BUILD_PRINT)"
 
 check-architecture: ## Validate architectural boundaries (isolated tox)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Checking architecture contracts (tox isolated)$(END_BUILD_PRINT)"
-	@ tox -e architecture
+	@ poetry -C ./src run tox -e architecture
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Architecture checks passed$(END_BUILD_PRINT)"
 
 all-quality-checks: lint check-clean-code check-architecture ## Run all: lint + clean-code + architecture
@@ -165,7 +165,7 @@ all-quality-checks: lint check-clean-code check-architecture ## Run all: lint + 
 
 ci: ## Full CI pipeline for GitHub Actions (tox)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running full CI pipeline$(END_BUILD_PRINT)"
-	@ set -a && . $(ENV_FILE) && set +a && tox -e py312,architecture,clean-code
+	@ set -a && . $(ENV_FILE) && set +a && poetry -C ./src run tox -e py312,architecture,clean-code
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) CI pipeline complete$(END_BUILD_PRINT)"
 
 #-----------------------------------------------------------------------------
@@ -210,7 +210,7 @@ infra-rebuild-clean: check-env ## Rebuild from scratch (no cache) and start
 infra-logs: check-env ## Follow service logs
 	@ docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) logs -f
 
-infra-watch: check-env ## Start services with file watching (sync src/ and config/)
+infra-watch: check-env ## Start services with file watching (sync src/ and src/config/)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Starting ERE stack with watch$(END_BUILD_PRINT)"
 	@ docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) watch
 
@@ -224,8 +224,9 @@ clean: ## Remove build artifacts and caches
 	@ rm -rf .pytest_cache
 	@ rm -rf .tox
 	@ rm -rf *.egg-info
+	@ rm -rf src/*.egg-info
 	@ rm -rf htmlcov coverage.xml
-	@ poetry run ruff clean
+	@ poetry -C ./src run ruff clean
 	@ find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	@ find . -type f -name "*.pyc" -delete 2>/dev/null || true
 	@ find . -type f -name "*.pyo" -delete 2>/dev/null || true

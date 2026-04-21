@@ -14,7 +14,7 @@ Usage:
         --dataset test/stress/data/org-mid.csv \
         --seed 200 \
         --records 500 \
-        --config config/resolver.yaml \
+        --config src/config/resolver.yaml \
         --output /tmp/stress_mid.json
 """
 
@@ -412,7 +412,7 @@ def main():
     )
     parser.add_argument(
         "--config",
-        default="config/resolver.yaml",
+        default="src/config/resolver.yaml",
         help="Path to resolver config YAML",
     )
     parser.add_argument(

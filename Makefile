@@ -27,7 +27,7 @@ PROJECT_PATH = $(shell pwd)
 SRC_PATH = ${PROJECT_PATH}/src
 TEST_PATH = ${PROJECT_PATH}/test
 BUILD_PATH = ${PROJECT_PATH}/dist
-INFRA_PATH = ${PROJECT_PATH}/infra
+INFRA_PATH = ${PROJECT_PATH}/src/infra
 COMPOSE_FILE = ${INFRA_PATH}/compose.dev.yaml
 ENV_FILE = ${INFRA_PATH}/.env
 
@@ -95,13 +95,13 @@ install-poetry: ## Install Poetry if not present
 
 install: install-poetry ## Install project dependencies
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Installing ERE requirements$(END_BUILD_PRINT)"
-	@ poetry -C ./src lock
-	@ poetry -C ./src install --with dev
+	@ cd src && poetry lock
+	@ cd src && poetry install --with dev
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) ERE requirements are installed$(END_BUILD_PRINT)"
 
 build: ## Build the package distribution
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Building package$(END_BUILD_PRINT)"
-	@ poetry -C ./src build
+	@ cd src && poetry build
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Package built successfully$(END_BUILD_PRINT)"
 
 #-----------------------------------------------------------------------------
@@ -110,23 +110,23 @@ build: ## Build the package distribution
 .PHONY: test test-unit test-integration test-coverage
 test: ## Run all tests
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running all tests$(END_BUILD_PRINT)"
-	@ poetry -C ./src run pytest --rootdir=$(SRC_PATH) $(TEST_PATH)
+	@ cd src && poetry run pytest --rootdir=$(SRC_PATH) $(TEST_PATH)
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) All tests passed$(END_BUILD_PRINT)"
 
 test-unit: ## Run unit tests with coverage (fast, uses your venv)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running unit tests with coverage$(END_BUILD_PRINT)"
-	@ poetry -C ./src run pytest --rootdir=$(SRC_PATH) $(TEST_PATH) -m "not integration" \
+	@ cd src && poetry run pytest --rootdir=$(SRC_PATH) $(TEST_PATH) -m "not integration" \
 	    --cov=ere --cov-report=term-missing --cov-report=html:htmlcov
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Unit tests passed (coverage: htmlcov/index.html)$(END_BUILD_PRINT)"
 
 test-integration: check-env ## Run integration tests only (requires Redis — run make infra-up first)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running integration tests$(END_BUILD_PRINT)"
-	@ poetry -C ./src run pytest --rootdir=$(SRC_PATH) $(TEST_PATH) -m "integration"
+	@ cd src && poetry run pytest --rootdir=$(SRC_PATH) $(TEST_PATH) -m "integration"
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Integration tests passed$(END_BUILD_PRINT)"
 
 test-coverage: ## Generate detailed HTML coverage report
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Generating coverage report$(END_BUILD_PRINT)"
-	@ poetry -C ./src run pytest --rootdir=$(SRC_PATH) $(TEST_PATH) -m "not integration" \
+	@ cd src && poetry run pytest --rootdir=$(SRC_PATH) $(TEST_PATH) -m "not integration" \
 	    --cov=ere --cov-report=html:htmlcov --cov-report=term-missing
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Coverage report: htmlcov/index.html$(END_BUILD_PRINT)"
 
@@ -137,27 +137,27 @@ test-coverage: ## Generate detailed HTML coverage report
 
 format: ## Format code with Ruff
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Formatting code$(END_BUILD_PRINT)"
-	@ poetry -C ./src run ruff format $(SRC_PATH) $(TEST_PATH)
+	@ cd src && poetry run ruff format $(SRC_PATH) $(TEST_PATH)
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Format complete$(END_BUILD_PRINT)"
 
 lint: ## Run pylint checks (style, naming, SOLID principles) — uses your venv
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running pylint checks$(END_BUILD_PRINT)"
-	@ poetry -C ./src run pylint --rcfile=$(PROJECT_PATH)/.pylintrc $(SRC_PATH)/ere $(TEST_PATH)
+	@ cd src && poetry run pylint --rcfile=$(PROJECT_PATH)/.pylintrc $(SRC_PATH)/ere $(TEST_PATH)
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Pylint checks passed$(END_BUILD_PRINT)"
 
 lint-fix: ## Auto-fix code style with Ruff
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Auto-fixing with Ruff$(END_BUILD_PRINT)"
-	@ poetry -C ./src run ruff check --fix $(SRC_PATH) $(TEST_PATH)
+	@ cd src && poetry run ruff check --fix $(SRC_PATH) $(TEST_PATH)
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Auto-fix complete$(END_BUILD_PRINT)"
 
 check-clean-code: ## Clean-code checks: pylint + radon + xenon (isolated tox)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Running clean-code checks (tox isolated)$(END_BUILD_PRINT)"
-	@ poetry -C ./src run tox -e clean-code
+	@ cd src && poetry run tox -e clean-code
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Clean-code checks passed$(END_BUILD_PRINT)"
 
 check-architecture: ## Validate architectural boundaries (isolated tox)
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Checking architecture contracts (tox isolated)$(END_BUILD_PRINT)"
-	@ poetry -C ./src run tox -e architecture
+	@ cd src && poetry run tox -e architecture
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) Architecture checks passed$(END_BUILD_PRINT)"
 
 all-quality-checks: lint check-clean-code check-architecture ## Run all: lint + clean-code + architecture
@@ -226,7 +226,7 @@ clean: ## Remove build artifacts and caches
 	@ rm -rf *.egg-info
 	@ rm -rf src/*.egg-info
 	@ rm -rf htmlcov coverage.xml
-	@ poetry -C ./src run ruff clean
+	@ cd src && poetry run ruff clean
 	@ find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	@ find . -type f -name "*.pyc" -delete 2>/dev/null || true
 	@ find . -type f -name "*.pyo" -delete 2>/dev/null || true

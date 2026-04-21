@@ -18,7 +18,7 @@ RUN apt-get update \
 RUN pip install --no-cache-dir "poetry${POETRY_VERSION}" poetry-plugin-export
 
 WORKDIR /app
-COPY pyproject.toml poetry.lock ./
+COPY src/pyproject.toml src/poetry.lock ./
 
 # Export dependencies, build wheels (including git repos), then clean the requirements file
 RUN poetry export -f requirements.txt --output requirements.txt --without-hashes \
@@ -46,8 +46,10 @@ COPY --from=fetcher /app/requirements.txt /requirements.txt
 # Install dependencies without using the network
 RUN pip install --no-cache-dir --no-index --find-links=/wheels -r /requirements.txt
 
-COPY pyproject.toml poetry.lock README.md ./
-COPY src/ ./src/
+COPY README.md /README.md
+COPY src/pyproject.toml src/poetry.lock ./
+COPY src/ere ere/
+COPY src/config config/
 
 # Install the application itself without re-triggering dependency resolution
 RUN pip install --no-deps .
@@ -69,7 +71,8 @@ WORKDIR /app
 
 # Copy only the virtual environment and necessary app files
 COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/src /app/src
+COPY --from=builder /app/ere /app/ere
+COPY --from=builder /app/config /app/config
 # Volume mount point for DuckDB persistent storage
 RUN mkdir -p /data && chown appuser:appuser /data
 

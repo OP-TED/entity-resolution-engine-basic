@@ -141,7 +141,9 @@ def test_single_request_resolution_flow(redis_client, redis_queues, queue_worker
     redis_client.rpush(request_queue, request_bytes)
 
     # 2. Process message using worker
-    assert queue_worker.process_single_message() is True, "Worker should process message"
+    assert queue_worker.process_single_message() is True, (
+        "Worker should process message"
+    )
 
     # 3. Verify response in queue
     result = redis_client.brpop(response_queue, timeout=1)

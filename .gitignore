@@ -136,6 +136,7 @@ celerybeat.pid
 
 # Environments
 .env
+infra/.env
 .envrc
 .venv
 env/
@@ -215,4 +216,4 @@ poetry.toml
 .vscode
 .import_linter_cache
 .pycharm_plugin
-
+.idea

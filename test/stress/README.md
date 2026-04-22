@@ -45,7 +45,7 @@ poetry run python3 test/stress/stress_test.py \
 ### Optional
 
 **`--config PATH`**
-- Path to resolver config YAML (default: `infra/config/resolver.yaml`)
+- Path to resolver config YAML (default: `config/resolver.yaml`)
 - Determines blocking rules, thresholds, and Splink settings
 
 **`--seed N`**

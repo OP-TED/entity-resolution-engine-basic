@@ -150,7 +150,7 @@ To disable: Set `auto_train_threshold: 0`
 
 - **Fellegi-Sunter model**: [The Fellegi-Sunter model in Splink](https://moj-analytical-services.github.io/splink/theory/fellegi_sunter.html)
 
-- **ERE algorithm**: See `docs/algorithm.md` for detailed explanation of the online greedy clustering approach.
+- **ERE algorithm**: See `../../docs/algorithm.md` for detailed explanation of the online greedy clustering approach.
 
 ---
 

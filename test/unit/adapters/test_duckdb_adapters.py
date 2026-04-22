@@ -80,7 +80,7 @@ def test_resolve_first_mention_persists_to_db(service, con):
     """
     mention = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Acme Corp", "country_code": "US"}
+        attributes={"legal_name": "Acme Corp", "country_code": "US"},
     )
 
     result = service.resolve(mention)
@@ -89,7 +89,9 @@ def test_resolve_first_mention_persists_to_db(service, con):
     mention_count = con.execute("SELECT COUNT(*) FROM mentions").fetchone()[0]
     assert mention_count == 1
 
-    cluster_count = con.execute("SELECT COUNT(DISTINCT cluster_id) FROM clusters").fetchone()[0]
+    cluster_count = con.execute(
+        "SELECT COUNT(DISTINCT cluster_id) FROM clusters"
+    ).fetchone()[0]
     assert cluster_count == 1
 
     # Check state
@@ -109,11 +111,11 @@ def test_resolve_strong_match_joins_cluster_in_db(service, con):
     """
     m1 = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Acme", "country_code": "US"}
+        attributes={"legal_name": "Acme", "country_code": "US"},
     )
     m2 = Mention(
         id=MentionId(value="m2"),
-        attributes={"legal_name": "Acme", "country_code": "US"}
+        attributes={"legal_name": "Acme", "country_code": "US"},
     )
 
     # Set up linker to return high score
@@ -144,11 +146,11 @@ def test_resolve_weak_match_creates_separate_cluster(service, con):
     """
     m1 = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Acme", "country_code": "US"}
+        attributes={"legal_name": "Acme", "country_code": "US"},
     )
     m2 = Mention(
         id=MentionId(value="m2"),
-        attributes={"legal_name": "Similar but different", "country_code": "US"}
+        attributes={"legal_name": "Similar but different", "country_code": "US"},
     )
 
     # Linker returns score below clustering threshold (0.8)
@@ -179,11 +181,11 @@ def test_resolve_no_match_creates_singleton_cluster(service, con):
     """
     m1 = Mention(
         id=MentionId(value="m1"),
-        attributes={"legal_name": "Acme", "country_code": "US"}
+        attributes={"legal_name": "Acme", "country_code": "US"},
     )
     m2 = Mention(
         id=MentionId(value="m2"),
-        attributes={"legal_name": "Completely Different", "country_code": "UK"}
+        attributes={"legal_name": "Completely Different", "country_code": "UK"},
     )
 
     # No similarity map entry = no match
@@ -202,12 +204,10 @@ def test_resolve_no_match_creates_singleton_cluster(service, con):
 def test_state_returns_correct_counts(service, con):
     """Verify that service.state() returns accurate counts."""
     m1 = Mention(
-        id=MentionId(value="m1"),
-        attributes={"legal_name": "A", "country_code": "US"}
+        id=MentionId(value="m1"), attributes={"legal_name": "A", "country_code": "US"}
     )
     m2 = Mention(
-        id=MentionId(value="m2"),
-        attributes={"legal_name": "B", "country_code": "US"}
+        id=MentionId(value="m2"), attributes={"legal_name": "B", "country_code": "US"}
     )
 
     service._linker._similarity_map = {frozenset(["m1", "m2"]): 0.9}
@@ -224,12 +224,10 @@ def test_state_returns_correct_counts(service, con):
 def test_cluster_membership_mapping(service, con):
     """Verify cluster_membership dict is correctly structured."""
     m1 = Mention(
-        id=MentionId(value="m1"),
-        attributes={"legal_name": "A", "country_code": "US"}
+        id=MentionId(value="m1"), attributes={"legal_name": "A", "country_code": "US"}
     )
     m2 = Mention(
-        id=MentionId(value="m2"),
-        attributes={"legal_name": "B", "country_code": "US"}
+        id=MentionId(value="m2"), attributes={"legal_name": "B", "country_code": "US"}
     )
 
     service._linker._similarity_map = {frozenset(["m1", "m2"]): 0.9}
@@ -246,3 +244,29 @@ def test_cluster_membership_mapping(service, con):
     assert len(memberships[cluster_id]) == 2
     assert MentionId(value="m1") in memberships[cluster_id]
     assert MentionId(value="m2") in memberships[cluster_id]
+
+
+def test_mention_repository_load_all_returns_persisted_mentions(con, entity_fields):
+    """load_all should return all mentions previously saved."""
+    repo = DuckDBMentionRepository(con, entity_fields)
+    m1 = Mention(id=MentionId(value="la1"), attributes={"legal_name": "Alpha", "country_code": "DE"})
+    m2 = Mention(id=MentionId(value="la2"), attributes={"legal_name": "Beta", "country_code": "FR"})
+
+    repo.save(m1)
+    repo.save(m2)
+
+    loaded = repo.load_all()
+
+    assert len(loaded) == 2
+    ids = {m.id.value for m in loaded}
+    assert ids == {"la1", "la2"}
+
+
+def test_similarity_repository_save_all_empty_is_noop(con):
+    """save_all with an empty list should not raise and not write any rows."""
+    repo = DuckDBSimilarityRepository(con)
+
+    repo.save_all([])  # must not raise
+
+    count = con.execute("SELECT COUNT(*) FROM similarities").fetchone()[0]
+    assert count == 0

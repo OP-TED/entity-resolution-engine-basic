@@ -14,7 +14,7 @@ Usage:
         --dataset test/stress/data/org-mid.csv \
         --seed 200 \
         --records 500 \
-        --config infra/config/resolver.yaml \
+        --config src/config/resolver.yaml \
         --output /tmp/stress_mid.json
 """
 
@@ -141,7 +141,10 @@ def create_resolver(
 
 
 def seed_and_train(
-    resolver: EntityResolver, mentions: list[Mention], n_seed: int, skip_train: bool = False
+    resolver: EntityResolver,
+    mentions: list[Mention],
+    n_seed: int,
+    skip_train: bool = False,
 ):
     """
     Seed resolver with first n_seed mentions and optionally trigger training.
@@ -409,7 +412,7 @@ def main():
     )
     parser.add_argument(
         "--config",
-        default="infra/config/resolver.yaml",
+        default="src/config/resolver.yaml",
         help="Path to resolver config YAML",
     )
     parser.add_argument(

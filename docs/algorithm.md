@@ -100,7 +100,7 @@ The algorithm processes mentions one at a time, making immediate clustering deci
 | **top_n** | Maximum candidate clusters returned per mention |
 | **blocking_rules** | Pre-filters to reduce similarity computation |
 
-The complete list of configuration parameters together with comprehensive description is available in [Configuration](../infra/config/README.md).
+The complete list of configuration parameters together with comprehensive description is available in [Configuration](../config/README.md).
 
 ## Outputs
 

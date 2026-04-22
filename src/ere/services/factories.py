@@ -19,7 +19,10 @@ from ere.adapters.duckdb_repositories import (
 from ere.adapters.duckdb_schema import init_schema
 from ere.adapters.rdf_mapper_port import RDFMapper
 from ere.adapters.splink_linker_impl import SpLinkSimilarityLinker
-from ere.services.entity_resolution_service import EntityResolver, EntityResolutionService
+from ere.services.entity_resolution_service import (
+    EntityResolver,
+    EntityResolutionService,
+)
 from ere.services.resolver_config import ResolverConfig
 
 
@@ -47,7 +50,11 @@ def build_entity_resolver(
         Fully-constructed EntityResolver with DuckDB backend and Splink linker.
     """
     if resolver_config_path is None:
-        config_path = Path(__file__).parent.parent.parent.parent / "infra" / "config" / "resolver.yaml"
+        config_path = (
+            Path(__file__).parent.parent.parent
+            / "config"
+            / "resolver.yaml"
+        )
     else:
         config_path = Path(resolver_config_path)
 

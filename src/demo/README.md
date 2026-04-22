@@ -18,7 +18,7 @@ The demo treats ERE as a black box service accessible only through Redis message
 
 ## Configuration
 
-Configuration is loaded from `.env.local` (or environment variables):
+Configuration is loaded from `infra/.env` (or environment variables):
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
@@ -44,14 +44,13 @@ The script tries the configured host first, then falls back to `localhost` if th
 Start the full stack including Redis and ERE:
 
 ```bash
-cd /home/greg/PROJECTS/ERS/ere-basic
-docker-compose -f infra/docker-compose.yml up -d
+make infra-rebuild
 ```
 
 Wait for services to be ready (check logs):
 
 ```bash
-docker-compose -f infra/docker-compose.yml logs -f
+make infra-logs
 ```
 
 ### 2. Locally (development)
@@ -64,13 +63,13 @@ redis-cli ping  # should return "PONG"
 
 # Run the demo
 cd /home/greg/PROJECTS/ERS/ere-basic
-python3 demo/demo.py
+python3 src/demo/demo.py
 ```
 
 Or with Poetry:
 
 ```bash
-poetry run python3 demo/demo.py
+poetry run python3 src/demo/demo.py
 ```
 
 **Runtime**: Approximately 5-35 seconds (5s sending + up to 30s waiting for responses).
@@ -78,17 +77,17 @@ The demo sends messages with 1-second delays between them, then waits for respon
 
 ### Using Different Datasets
 
-By default, the demo loads `demo/data/org-tiny.json`. Specify a different dataset with the `--data` parameter:
+By default, the demo loads `src/demo/data/org-tiny.json`. Specify a different dataset with the `--data` parameter:
 
 ```bash
 # Use mentions dataset
-poetry run python3 demo/demo.py --data demo/data/mentions_100b.json
+poetry run python3 src/demo/demo.py --data src/demo/data/mentions_100b.json
 
 # Use larger dataset
-poetry run python3 demo/demo.py --data demo/data/org-mid.json
+poetry run python3 src/demo/demo.py --data src/demo/data/org-mid.json
 ```
 
-Available datasets in `demo/data/`:
+Available datasets in `src/demo/data/`:
 - `org-tiny.json` (default) — 8 organization mentions, 2 clusters
 - `org-small.json` — Small (100 mentions) organization dataset
 - `org-mid.json` — Mid-size (1000 mentions) organization dataset
@@ -138,12 +137,12 @@ CLUSTERING SUMMARY
 The demo logs:
 - **Request tracking**: Each sent mention with descriptive details
 - **Response logging**: Received cluster candidates with confidence/similarity scores
-- **Clustering summary**: Final cluster assignments with member organizations (by default, saved to `demo/log/`)
+- **Clustering summary**: Final cluster assignments with member organizations (by default, saved to `src/demo/log/`)
 - **Extended logging**: Trace-level logging for detailed resolution diagnostics
 
 ## Demo Data
 
-Datasets are stored in `demo/data/` (JSON format with RDF Turtle content).
+Datasets are stored in `src/demo/data/` (JSON format with RDF Turtle content).
 
 ### Dataset Correspondence to Stress Tests
 
@@ -205,7 +204,7 @@ If it returns `PONG`, Redis is running. If not:
 
 - **Docker**: `docker run -d -p 6379:6379 redis:latest`
 - **Local Redis**: `brew install redis && brew services start redis` (macOS)
-- **Docker Compose**: Ensure the service is running: `docker-compose -f infra/docker-compose.yml up redis`
+- **Docker Compose**: Ensure the service is running: `make infra-up`
 
 ### Timeout waiting for responses
 
@@ -216,14 +215,14 @@ If it returns `PONG`, Redis is running. If not:
 
 **Check ERE logs:**
 ```bash
-docker-compose -f infra/docker-compose.yml logs ere
+make infra-logs
 ```
 
 ### Password authentication fails
 
 **Edit Redis connection parameters:**
 
-Option 1: Modify `.env.local`:
+Option 1: Modify `infra/.env`:
 ```bash
 REDIS_PASSWORD=your_password
 ```
@@ -231,7 +230,7 @@ REDIS_PASSWORD=your_password
 Option 2: Set environment variable:
 ```bash
 export REDIS_PASSWORD=your_password
-python3 demo/demo.py
+python3 src/demo/demo.py
 ```
 
 ## Design Notes
@@ -247,12 +246,12 @@ python3 demo/demo.py
 
 The demo logs all activity to:
 - **Console**: INFO-level messages (requests, responses, clustering summary)
-- **Log file**: `demo/log/demo_YYYYMMDD-HHMM--DATASETNAME.log` with TRACE-level diagnostics
+- **Log file**: `src/demo/log/demo_YYYYMMDD-HHMM--DATASETNAME.log` with TRACE-level diagnostics
   - Trace logs include detailed resolution diagnostics (field extraction, similarity scoring, etc.)
   - Clustering summary included at the end of each log file
 
 Configure logging via environment variable:
 ```bash
 export LOG_LEVEL=TRACE  # TRACE, DEBUG, INFO, WARNING, ERROR
-python3 demo/demo.py
+python3 src/demo/demo.py
 ```

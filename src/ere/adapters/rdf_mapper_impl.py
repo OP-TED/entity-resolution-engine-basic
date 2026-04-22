@@ -42,7 +42,11 @@ class TurtleRDFMapper(RDFMapper):
             dict: Entity type mappings from config.
         """
         if rdf_mapping_path is None:
-            rdf_mapping_path = Path(__file__).parent.parent.parent.parent / "infra" / "config" / "rdf_mapping.yaml"
+            rdf_mapping_path = (
+                Path(__file__).parent.parent.parent
+                / "config"
+                / "rdf_mapping.yaml"
+            )
         else:
             rdf_mapping_path = Path(rdf_mapping_path)
         return load_entity_mappings(rdf_mapping_path)
@@ -70,9 +74,13 @@ class TurtleRDFMapper(RDFMapper):
             )
 
         mention_id = MentionId(
-            value=self._derive_mention_id(eid.source_id, eid.request_id, eid.entity_type)
+            value=self._derive_mention_id(
+                eid.source_id, eid.request_id, eid.entity_type
+            )
         )
-        attributes = extract_mention_attributes(entity_mention.content, entity_type_config)
+        attributes = extract_mention_attributes(
+            entity_mention.content, entity_type_config
+        )
         return Mention(id=mention_id, attributes=attributes)
 
     @staticmethod

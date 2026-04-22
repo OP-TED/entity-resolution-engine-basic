@@ -3,9 +3,9 @@
 name: ere-local
 
 services:
-  redis:
+  ersys-redis:
     image: redis:7-alpine
-    container_name: "redis"
+    container_name: "ersys-redis"
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}
     ports:
@@ -18,7 +18,7 @@ services:
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
     networks:
-      - ere-net
+      - ersys-local
 
   redisinsight:
     image: redis/redisinsight:3.2.0
@@ -32,7 +32,7 @@ services:
       timeout: 3s
       retries: 5
     networks:
-      - ere-net
+      - ersys-local
 
   ere:
     build:
@@ -52,7 +52,7 @@ services:
       timeout: 3s
       retries: 3
     depends_on:
-      redis:
+      ersys-redis:
         condition: service_healthy
     volumes:
       - ere-data:/data
@@ -70,10 +70,11 @@ services:
         - action: rebuild
           path: ../../src/poetry.lock
     networks:
-      - ere-net
+      - ersys-local
 
 volumes:
   ere-data:
 
 networks:
-  ere-net:
+  ersys-local:
+    external: true

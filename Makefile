@@ -182,6 +182,7 @@ infra-build: check-env ## Build the ERE Docker image
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) ERE image built$(END_BUILD_PRINT)"
 
 infra-up: check-env ## Start services (docker compose up -d)
+	@ docker network create ersys-local || true
 	@ echo -e "$(BUILD_PRINT)$(ICON_PROGRESS) Starting ERE stack$(END_BUILD_PRINT)"
 	@ docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) up -d
 	@ echo -e "$(BUILD_PRINT)$(ICON_DONE) ERE stack is running — use 'make infra-logs' to follow output$(END_BUILD_PRINT)"

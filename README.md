@@ -80,7 +80,7 @@ The defaults work for local development. Notable variables in `src/infra/.env`:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `REDIS_HOST` | `redis` | Redis host (use `localhost` when running ERE outside Docker) |
+| `REDIS_HOST` | `ersys-redis` | Redis host (shared network `ersys-local`) |
 | `REDIS_PORT` | `6379` | Redis port |
 | `REDIS_PASSWORD` | `changeme` | Redis password — **must match ERS** |
 | `REDIS_DB` | `0` | Redis database index |
@@ -94,6 +94,9 @@ The defaults work for local development. Notable variables in `src/infra/.env`:
 make infra-up     # start ERE + Redis + RedisInsight
 make infra-logs   # follow service logs
 make infra-down   # stop all services
+
+Note: `make infra-up` creates a shared external network `ersys-local` used for cross-component communication.
+To remove it manually: `docker network rm ersys-local`
 ```
 
 | Service | URL / Port |
@@ -116,8 +119,8 @@ ERS starts its own Redis on port 6379. ERE also starts Redis on port 6379 by def
 
 **Solution**: let ERS own Redis, point ERE at it:
 
-1. In `src/infra/.env`, set `REDIS_HOST=host.docker.internal`
-2. Comment out the `redis` service block in `src/infra/compose.dev.yaml`
+1. In `src/infra/.env`, set `REDIS_HOST=ersys-redis`
+2. Comment out the `ersys-redis` service block in `src/infra/compose.dev.yaml`
 3. Start ERS first (`make up` in the ERS repo), then ERE (`make infra-up`)
 
 Queue names and `REDIS_PASSWORD` must match between both `.env` files (defaults already align).

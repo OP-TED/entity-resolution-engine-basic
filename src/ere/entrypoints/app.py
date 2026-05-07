@@ -12,6 +12,7 @@ Environment variables:
     REDIS_HOST            Redis hostname (default: localhost)
     REDIS_PORT            Redis port (default: 6379)
     REDIS_DB              Redis DB index (default: 0)
+    REDIS_PASSWORD        Redis authentication password (default: unset)
     REDIS_TLS             Enable TLS for Redis connection (default: false)
     ERE_LOG_LEVEL         Python log level name (default: INFO) — supports TRACE
     RDF_MAPPING_PATH      Path to rdf_mapping.yaml config file

@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from ere.adapters.redis_client import RedisConnectionConfig
 
 
@@ -79,3 +77,25 @@ class TestCreateClient:
 
         _, kwargs = mock_redis_cls.call_args
         assert kwargs["decode_responses"] is False
+
+    def test_password_none_when_unset(self, monkeypatch):
+        monkeypatch.delenv("REDIS_PASSWORD", raising=False)
+        cfg = RedisConnectionConfig.from_env()
+
+        with patch("ere.adapters.redis_client.redis.Redis") as mock_redis_cls:
+            mock_redis_cls.return_value = MagicMock()
+            cfg.create_client()
+
+        _, kwargs = mock_redis_cls.call_args
+        assert kwargs["password"] is None
+
+    def test_password_passed_to_redis_client(self, monkeypatch):
+        monkeypatch.setenv("REDIS_PASSWORD", "s3cr3t")
+        cfg = RedisConnectionConfig.from_env()
+
+        with patch("ere.adapters.redis_client.redis.Redis") as mock_redis_cls:
+            mock_redis_cls.return_value = MagicMock()
+            cfg.create_client()
+
+        _, kwargs = mock_redis_cls.call_args
+        assert kwargs["password"] == "s3cr3t"

@@ -2,36 +2,22 @@
 
 import logging
 import os
+from dataclasses import dataclass
 
 import redis
 
 log = logging.getLogger(__name__)
 
 
+@dataclass
 class RedisConnectionConfig:
-    """Holds Redis connection parameters and creates the sync client.
+    """Holds Redis connection parameters and creates the sync client."""
 
-    Args:
-        host: Redis hostname.
-        port: Redis port.
-        db: Redis database index.
-        password: Optional authentication password.
-        tls: Enable TLS-encrypted connection when True.
-    """
-
-    def __init__(
-        self,
-        host: str,
-        port: int,
-        db: int,
-        password: str | None = None,
-        tls: bool = False,
-    ):
-        self.host = host
-        self.port = port
-        self.db = db
-        self.password = password
-        self.tls = tls
+    host: str
+    port: int
+    db: int
+    password: str | None = None
+    tls: bool = False
 
     @classmethod
     def from_env(cls) -> "RedisConnectionConfig":

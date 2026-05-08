@@ -12,6 +12,8 @@ Environment variables:
     REDIS_HOST            Redis hostname (default: localhost)
     REDIS_PORT            Redis port (default: 6379)
     REDIS_DB              Redis DB index (default: 0)
+    REDIS_PASSWORD        Redis authentication password (default: unset)
+    REDIS_TLS             Enable TLS for Redis connection (default: false)
     ERE_LOG_LEVEL         Python log level name (default: INFO) — supports TRACE
     RDF_MAPPING_PATH      Path to rdf_mapping.yaml config file
     RESOLVER_CONFIG_PATH  Path to resolver.yaml config file
@@ -29,9 +31,8 @@ import os
 import signal
 import sys
 
-import redis
-
 from ere.adapters.factories import build_rdf_mapper
+from ere.adapters.redis_client import RedisConnectionConfig
 from ere.entrypoints.queue_worker import RedisQueueWorker
 from ere.services.factories import (
     build_entity_resolver,
@@ -69,10 +70,7 @@ def main() -> None:
     log.info("ERE service starting")
 
     # Read configuration from environment or CLI
-    redis_host = os.environ.get("REDIS_HOST", "localhost")
-    redis_port = int(os.environ.get("REDIS_PORT", "6379"))
-    redis_db = int(os.environ.get("REDIS_DB", "0"))
-    redis_password = os.environ.get("REDIS_PASSWORD", None)
+    redis_config = RedisConnectionConfig.from_env()
     request_queue = os.environ.get("REQUEST_QUEUE", "ere_requests")
     response_queue = os.environ.get("RESPONSE_QUEUE", "ere_responses")
 
@@ -84,10 +82,11 @@ def main() -> None:
     duckdb_path = os.environ.get("DUCKDB_PATH")
 
     log.info(
-        "Configuration: redis=%s:%d/%d, request_queue=%s, response_queue=%s",
-        redis_host,
-        redis_port,
-        redis_db,
+        "Configuration: redis=%s:%d/%d, tls=%s, request_queue=%s, response_queue=%s",
+        redis_config.host,
+        redis_config.port,
+        redis_config.db,
+        redis_config.tls,
         request_queue,
         response_queue,
     )
@@ -99,13 +98,7 @@ def main() -> None:
 
     # Connect to Redis
     try:
-        client = redis.Redis(
-            host=redis_host,
-            port=redis_port,
-            db=redis_db,
-            password=redis_password,
-            decode_responses=False,
-        )
+        client = redis_config.create_client()
         client.ping()
         log.info("Connected to Redis")
     except Exception as e:  # pylint: disable=broad-exception-caught

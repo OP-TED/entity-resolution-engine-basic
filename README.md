@@ -84,8 +84,8 @@ The defaults work for local development. Notable variables in `src/infra/.env`:
 | `REDIS_PORT` | `6379` | Redis port |
 | `REDIS_PASSWORD` | `changeme` | Redis password — **must match ERS** |
 | `REDIS_DB` | `0` | Redis database index |
-| `ERE_REQUEST_QUEUE` | `ere_requests` | Inbound request queue name — **must match ERS** |
-| `ERE_RESPONSE_QUEUE` | `ere_responses` | Outbound response queue name — **must match ERS** |
+| `ERSYS_REQUEST_QUEUE` | `ere_requests` | Inbound request queue name — **must match ERS** |
+| `ERSYS_RESPONSE_QUEUE` | `ere_responses` | Outbound response queue name — **must match ERS** |
 | `ERE_LOG_LEVEL` | `INFO` | Log level |
 
 ### 3. Start the stack

@@ -101,7 +101,7 @@ def main() -> None:
         client = redis_config.create_client()
         client.ping()
         log.info("Connected to Redis")
-    except Exception as e:  # pylint: disable=broad-exception-caught
+    except Exception:  # pylint: disable=broad-exception-caught
         log.exception("Failed to connect to Redis")
         sys.exit(1)
 

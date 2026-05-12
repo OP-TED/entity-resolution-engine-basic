@@ -86,7 +86,7 @@ class RedisQueueWorker:
             self.redis_client.lpush(self.response_queue, response_str)
             request_id = getattr(response, "ere_request_id", "unknown")
             log.info("Sent response for request_id=%s", request_id)
-        except Exception as e:  # pylint: disable=broad-exception-caught
+        except Exception:  # pylint: disable=broad-exception-caught
             log.exception("Failed to send response")
 
     @staticmethod

@@ -239,6 +239,7 @@ def redis_client():
 
     client = None
     last_error = None
+    host = configured_host
     for host in hosts_to_try:
         try:
             client = redis.Redis(

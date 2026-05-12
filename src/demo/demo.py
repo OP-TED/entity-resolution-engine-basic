@@ -349,7 +349,7 @@ def main(data_file: str | None = None):
             f"Loaded {len(demo_mentions)} mentions from {data_file or DEFAULT_DATA_FILE}"
         )
     except (FileNotFoundError, ValueError) as e:
-        logger.error(f"Failed to load demo mentions: {e}")
+        logger.exception("Failed to load demo mentions")
         return 1
 
     # Check Redis connectivity
@@ -363,7 +363,7 @@ def main(data_file: str | None = None):
         )
         logger.info("✓ Redis is available")
     except RuntimeError as e:
-        logger.error(f"✗ Redis check failed: {e}")
+        logger.exception("✗ Redis check failed")
         return 1
 
     # Clear queues

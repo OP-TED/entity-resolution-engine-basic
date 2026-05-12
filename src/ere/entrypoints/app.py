@@ -102,7 +102,7 @@ def main() -> None:
         client.ping()
         log.info("Connected to Redis")
     except Exception as e:  # pylint: disable=broad-exception-caught
-        log.error("Failed to connect to Redis: %s", e)
+        log.exception("Failed to connect to Redis")
         sys.exit(1)
 
     # Build resolver, mapper, and service once before the loop
@@ -117,7 +117,7 @@ def main() -> None:
         service = build_entity_resolution_service(resolver, mapper)
         log.info("Entity resolution service ready")
     except Exception as e:  # pylint: disable=broad-exception-caught
-        log.error("Failed to build entity resolution service: %s", e)
+        log.exception("Failed to build entity resolution service")
         sys.exit(1)
 
     # Create queue worker

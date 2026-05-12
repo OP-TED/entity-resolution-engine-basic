@@ -72,7 +72,7 @@ class RedisQueueWorker:
             request = get_request_from_message(raw_msg)
             response = self.service.process_request(request)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            log.error("Failed to parse or process request: %s", e)
+            log.exception("Failed to parse or process request")
             response = self._build_error_response(str(e), request_id)
 
         # Send response
@@ -87,7 +87,7 @@ class RedisQueueWorker:
             request_id = getattr(response, "ere_request_id", "unknown")
             log.info("Sent response for request_id=%s", request_id)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            log.error("Failed to send response: %s", e)
+            log.exception("Failed to send response")
 
     @staticmethod
     def _build_error_response(

@@ -1,0 +1,221 @@
+SHELL := /bin/bash
+
+BUILD_PRINT := \033[1;34m
+END_BUILD_PRINT := \033[0m
+
+PROJECT_PATH := $(CURDIR)
+SRC_PATH := $(PROJECT_PATH)/src
+TEST_PATH := $(PROJECT_PATH)/test
+BUILD_PATH := $(PROJECT_PATH)/dist
+INFRA_PATH := $(PROJECT_PATH)/src/infra
+COMPOSE_FILE := $(INFRA_PATH)/compose.dev.yaml
+ENV_FILE := $(INFRA_PATH)/.env
+
+# Auto-export simple KEY=value variables from .env if present.
+# Portable across Linux/macOS make + sed.
+ifneq ($(wildcard $(ENV_FILE)),)
+include $(ENV_FILE)
+ENV_VARS := $(shell sed -n '/^[[:space:]]*\#/d; /^[[:space:]]*$$/d; s/^[[:space:]]*\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\1/p' "$(ENV_FILE)")
+export $(ENV_VARS)
+endif
+
+PACKAGE_NAME := ere
+
+ICON_DONE := [OK]
+ICON_ERROR := [x]
+ICON_WARNING := [!]
+ICON_PROGRESS := [..]
+
+#-----------------------------------------------------------------------------
+# Dev commands
+#-----------------------------------------------------------------------------
+.PHONY: help install-poetry install build
+
+help: ## Display available targets
+	@printf "%b\n" "$(BUILD_PRINT)Available targets:$(END_BUILD_PRINT)"
+	@printf "%b\n" ""
+	@printf "%b\n" "  $(BUILD_PRINT)Development:$(END_BUILD_PRINT)"
+	@printf "%b\n" "    install              - Install project dependencies via Poetry"
+	@printf "%b\n" "    install-poetry       - Install Poetry if not present"
+	@printf "%b\n" "    build                - Build the package distribution"
+	@printf "%b\n" ""
+	@printf "%b\n" "  $(BUILD_PRINT)Testing:$(END_BUILD_PRINT)"
+	@printf "%b\n" "    test                 - Run all tests"
+	@printf "%b\n" "    test-unit            - Run unit tests with coverage"
+	@printf "%b\n" "    test-integration     - Run integration tests only"
+	@printf "%b\n" "    test-coverage        - Generate HTML coverage report"
+	@printf "%b\n" ""
+	@printf "%b\n" "  $(BUILD_PRINT)Code Quality:$(END_BUILD_PRINT)"
+	@printf "%b\n" "    format               - Format code with Ruff"
+	@printf "%b\n" "    lint                 - Run pylint checks"
+	@printf "%b\n" "    lint-fix             - Auto-fix with Ruff"
+	@printf "%b\n" "    check-clean-code     - Clean-code checks via tox"
+	@printf "%b\n" "    check-architecture   - Validate layer contracts via tox"
+	@printf "%b\n" "    all-quality-checks   - Run all quality checks"
+	@printf "%b\n" "    ci                   - Full CI pipeline"
+	@printf "%b\n" ""
+	@printf "%b\n" "  $(BUILD_PRINT)Infrastructure:$(END_BUILD_PRINT)"
+	@printf "%b\n" "    infra-build          - Build the ERE Docker image"
+	@printf "%b\n" "    infra-up             - Start services"
+	@printf "%b\n" "    infra-down           - Stop and remove stack containers and networks"
+	@printf "%b\n" "    infra-down-volumes   - Stop services and remove volumes"
+	@printf "%b\n" "    infra-rebuild        - Rebuild images and start services"
+	@printf "%b\n" "    infra-rebuild-clean  - Rebuild from scratch and start"
+	@printf "%b\n" "    infra-logs           - Follow service logs"
+	@printf "%b\n" "    infra-watch          - Start services with file watching"
+	@printf "%b\n" ""
+	@printf "%b\n" "  $(BUILD_PRINT)Utilities:$(END_BUILD_PRINT)"
+	@printf "%b\n" "    clean                - Remove build artifacts and caches"
+	@printf "%b\n" "    help                 - Display this help message"
+
+install-poetry: ## Install Poetry if not present
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Installing Poetry $(END_BUILD_PRINT)"
+	@pip install "poetry>=2.0.0"
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) Poetry is installed$(END_BUILD_PRINT)"
+
+install: install-poetry ## Install project dependencies
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Installing ERE requirements$(END_BUILD_PRINT)"
+	@cd src && poetry lock
+	@cd src && poetry install --with dev
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) ERE requirements are installed$(END_BUILD_PRINT)"
+
+build: ## Build the package distribution
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Building package$(END_BUILD_PRINT)"
+	@cd src && poetry build
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) Package built successfully$(END_BUILD_PRINT)"
+
+#-----------------------------------------------------------------------------
+# Testing commands
+#-----------------------------------------------------------------------------
+.PHONY: test test-unit test-integration test-coverage
+
+test: ## Run all tests
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Running all tests$(END_BUILD_PRINT)"
+	@cd src && poetry run pytest --rootdir="$(SRC_PATH)" "$(TEST_PATH)"
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) All tests passed$(END_BUILD_PRINT)"
+
+test-unit: ## Run unit tests with coverage
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Running unit tests with coverage$(END_BUILD_PRINT)"
+	@cd src && poetry run pytest --rootdir="$(SRC_PATH)" "$(TEST_PATH)" -m "not integration" \
+		--cov=ere --cov-report=term-missing --cov-report=html:htmlcov
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) Unit tests passed. Coverage: htmlcov/index.html$(END_BUILD_PRINT)"
+
+test-integration: check-env ## Run integration tests only
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Running integration tests$(END_BUILD_PRINT)"
+	@cd src && poetry run pytest --rootdir="$(SRC_PATH)" "$(TEST_PATH)" -m "integration"
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) Integration tests passed$(END_BUILD_PRINT)"
+
+test-coverage: ## Generate detailed HTML coverage report
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Generating coverage report$(END_BUILD_PRINT)"
+	@cd src && poetry run pytest --rootdir="$(SRC_PATH)" "$(TEST_PATH)" -m "not integration" \
+		--cov=ere --cov-report=html:htmlcov --cov-report=term-missing
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) Coverage report: htmlcov/index.html$(END_BUILD_PRINT)"
+
+#-----------------------------------------------------------------------------
+# Code quality commands
+#-----------------------------------------------------------------------------
+.PHONY: format lint lint-fix check-clean-code check-architecture all-quality-checks ci
+
+format: ## Format code with Ruff
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Formatting code$(END_BUILD_PRINT)"
+	@cd src && poetry run ruff format "$(SRC_PATH)" "$(TEST_PATH)"
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) Format complete$(END_BUILD_PRINT)"
+
+lint: ## Run pylint checks
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Running pylint checks$(END_BUILD_PRINT)"
+	@cd src && poetry run pylint --rcfile="$(PROJECT_PATH)/.pylintrc" "$(SRC_PATH)/ere" "$(TEST_PATH)"
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) Pylint checks passed$(END_BUILD_PRINT)"
+
+lint-fix: ## Auto-fix code style with Ruff
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Auto-fixing with Ruff$(END_BUILD_PRINT)"
+	@cd src && poetry run ruff check --fix "$(SRC_PATH)" "$(TEST_PATH)"
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) Auto-fix complete$(END_BUILD_PRINT)"
+
+check-clean-code: ## Clean-code checks: pylint + radon + xenon
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Running clean-code checks with tox$(END_BUILD_PRINT)"
+	@cd src && poetry run tox -e clean-code
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) Clean-code checks passed$(END_BUILD_PRINT)"
+
+check-architecture: ## Validate architectural boundaries
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Checking architecture contracts with tox$(END_BUILD_PRINT)"
+	@cd src && poetry run tox -e architecture
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) Architecture checks passed$(END_BUILD_PRINT)"
+
+all-quality-checks: lint check-clean-code check-architecture ## Run all quality checks
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) All quality checks passed$(END_BUILD_PRINT)"
+
+ci: check-env ## Full CI pipeline
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Running full CI pipeline$(END_BUILD_PRINT)"
+	@poetry -C ./src run tox -e py312,architecture,clean-code
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) CI pipeline complete$(END_BUILD_PRINT)"
+
+#-----------------------------------------------------------------------------
+# Infrastructure commands
+#-----------------------------------------------------------------------------
+.PHONY: check-env infra-build infra-up infra-down infra-down-volumes infra-rebuild infra-rebuild-clean infra-logs infra-watch
+
+check-env:
+	@test -f "$(ENV_FILE)" || { \
+		printf "%b\n" "$(BUILD_PRINT)$(ICON_ERROR) Missing $(ENV_FILE). Run: cp src/infra/.env.example src/infra/.env$(END_BUILD_PRINT)"; \
+		exit 1; \
+	}
+
+infra-build: check-env ## Build the ERE Docker image
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Building ERE Docker image$(END_BUILD_PRINT)"
+	@docker compose -f "$(COMPOSE_FILE)" --env-file "$(ENV_FILE)" build
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) ERE image built$(END_BUILD_PRINT)"
+
+infra-up: check-env ## Start services
+	@docker network create ersys-local >/dev/null 2>&1 || true
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Starting ERE stack$(END_BUILD_PRINT)"
+	@docker compose -f "$(COMPOSE_FILE)" --env-file "$(ENV_FILE)" up -d
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) ERE stack is running. Use 'make infra-logs' to follow output$(END_BUILD_PRINT)"
+
+infra-down: check-env ## Stop and remove ERE stack containers and networks
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Stopping ERE stack$(END_BUILD_PRINT)"
+	@docker compose -f "$(COMPOSE_FILE)" --env-file "$(ENV_FILE)" down
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) ERE stack stopped$(END_BUILD_PRINT)"
+
+infra-down-volumes: check-env ## Stop services and remove volumes
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Stopping ERE stack and removing volumes$(END_BUILD_PRINT)"
+	@docker compose -f "$(COMPOSE_FILE)" --env-file "$(ENV_FILE)" down -v
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) ERE stack stopped and volumes removed$(END_BUILD_PRINT)"
+
+infra-rebuild: check-env ## Rebuild images and start services
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Rebuilding ERE stack$(END_BUILD_PRINT)"
+	@docker compose -f "$(COMPOSE_FILE)" --env-file "$(ENV_FILE)" up -d --build
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) ERE stack rebuilt and started$(END_BUILD_PRINT)"
+
+infra-rebuild-clean: check-env ## Rebuild from scratch and start
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Rebuilding ERE stack without cache$(END_BUILD_PRINT)"
+	@docker compose -f "$(COMPOSE_FILE)" --env-file "$(ENV_FILE)" build --no-cache
+	@docker compose -f "$(COMPOSE_FILE)" --env-file "$(ENV_FILE)" up -d
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) ERE stack rebuilt cleanly and started$(END_BUILD_PRINT)"
+
+infra-logs: check-env ## Follow service logs
+	@docker compose -f "$(COMPOSE_FILE)" --env-file "$(ENV_FILE)" logs -f
+
+infra-watch: check-env ## Start services with file watching
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Starting ERE stack with watch$(END_BUILD_PRINT)"
+	@docker compose -f "$(COMPOSE_FILE)" --env-file "$(ENV_FILE)" watch
+
+#-----------------------------------------------------------------------------
+# Utility commands
+#-----------------------------------------------------------------------------
+.PHONY: clean
+
+clean: ## Remove build artifacts and caches
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_PROGRESS) Cleaning build artifacts and caches$(END_BUILD_PRINT)"
+	@rm -rf "$(BUILD_PATH)"
+	@rm -rf .pytest_cache
+	@rm -rf .tox
+	@rm -rf ./*.egg-info
+	@rm -rf src/*.egg-info
+	@rm -rf htmlcov coverage.xml
+	@cd src && poetry run ruff clean
+	@find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
+	@find . -type f -name "*.pyo" -delete 2>/dev/null || true
+	@printf "%b\n" "$(BUILD_PRINT)$(ICON_DONE) Clean complete$(END_BUILD_PRINT)"
+
+.DEFAULT_GOAL := help

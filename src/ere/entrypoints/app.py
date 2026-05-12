@@ -116,7 +116,7 @@ def main() -> None:
         mapper = build_rdf_mapper(rdf_mapping_path=rdf_mapping_path)
         service = build_entity_resolution_service(resolver, mapper)
         log.info("Entity resolution service ready")
-    except Exception as e:  # pylint: disable=broad-exception-caught
+    except Exception:  # pylint: disable=broad-exception-caught
         log.exception("Failed to build entity resolution service")
         sys.exit(1)
 

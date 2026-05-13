@@ -25,8 +25,6 @@ dev = [
     "pytest-bdd==8.1.0",
     "pytest-cov==6.3.0",
     "assertpy==1.1",
-    "rdflib==7.6.0",
-    "pyyaml==6.0.3",
     "ruff==0.15.11",
     "pylint==3.3.9",
     "import-linter==2.11",
@@ -46,6 +44,8 @@ chardet = "5.2.0"
 duckdb = "1.5.2"
 pandas = "2.3.3"
 splink = "4.0.16"
+rdflib = "7.6.0"
+pyyaml = "6.0.3"
 
 # TODO: should we have a registry?
 ers-spec = { git = "https://github.com/OP-TED/entity-resolution-spec.git", branch = "release/1.0.0", subdirectory = "src" }

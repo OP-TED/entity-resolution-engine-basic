@@ -4,7 +4,7 @@ name: ere-local
 
 services:
   ersys-redis:
-    image: redis:7-alpine
+    image: redis:7.4.4-alpine
     container_name: "ersys-redis"
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}

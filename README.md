@@ -36,6 +36,7 @@ For detailed documentation, see:
 - [Architecture](docs/architecture.md) - description of the applied architecture
 - [Algorithm](docs/algorithm.md) - incremental probabilistic entity linking
 - [Configuration](src/config/README.md) - field mapping, model tuning, Splink setup
+- [Environment variables](src/config/README.md#environment-variables) - all env var definitions, defaults, and groups
 - [ERS–ERE Technical Contract v0.2](docs/ERS-ERE-System-Technical-Contract.pdf)
 
 
@@ -88,6 +89,9 @@ The defaults work for local development. Notable variables in `src/infra/.env`:
 | `ERSYS_REQUEST_QUEUE` | `ere_requests` | Inbound request queue name — **must match ERS** |
 | `ERSYS_RESPONSE_QUEUE` | `ere_responses` | Outbound response queue name — **must match ERS** |
 | `ERE_LOG_LEVEL` | `INFO` | Log level |
+| `RDF_MAPPING_PATH` | *(required)* | Path to the RDF field mapping config YAML (default in Docker: `src/config/rdf_mapping.yaml`) |
+| `RESOLVER_CONFIG_PATH` | *(required)* | Path to the Splink resolver config YAML (default in Docker: `src/config/resolver.yaml`) |
+| `DUCKDB_PATH` | *(resolver default)* | Path to the DuckDB database file. Leave unset to use the path defined in `resolver.yaml`. |
 
 ### 3. Start the stack
 

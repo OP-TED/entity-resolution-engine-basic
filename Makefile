@@ -34,7 +34,8 @@ ENV_FILE = ${INFRA_PATH}/.env
 # Auto-export all .env variables to every recipe shell (if the file exists)
 ifneq ($(wildcard $(ENV_FILE)),)
 include $(ENV_FILE)
-export $(shell sed -n 's/^\([^#= ][^= ]*\)[ ]*=.*/\1/p' $(ENV_FILE))
+ENV_VARS := $(shell sed -n '/^[[:space:]]*\#/d; /^[[:space:]]*$$/d; s/^[[:space:]]*\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=.*/\1/p' "$(ENV_FILE)")
+export $(ENV_VARS)
 endif
 
 PACKAGE_NAME = ere

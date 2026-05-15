@@ -57,6 +57,10 @@ To function, the ERE service requires the following external infrastructure:
 
 ## Getting Started
 
+> **To set up the complete ERSys stack** (ERS + ERE + Webapp), see the
+> [Installation Guide](https://github.com/OP-TED/entity-resolution-service/blob/develop/INSTALL.md).
+> The instructions below cover running ERE standalone.
+
 ### Prerequisites
 
 - Python 3.12+
@@ -66,7 +70,7 @@ To function, the ERE service requires the following external infrastructure:
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/meaningfy-ws/entity-resolution-engine-basic.git
+git clone https://github.com/OP-TED/entity-resolution-engine-basic.git
 cd entity-resolution-engine-basic
 make install
 ```
@@ -115,17 +119,21 @@ This repo starts ERE and its own Redis instance. It does **not** include the ERS
 
 ERE communicates exclusively through Redis queues — it has no HTTP API. Without ERS publishing requests to `ere_requests`, ERE will start and listen but process nothing.
 
-- To add ERS: follow the Getting Started section in [entity-resolution-service](https://github.com/meaningfy-ws/entity-resolution-service#getting-started).
-- To add the web UI: follow the Getting Started section in [entity-resolution-service-webapp](https://github.com/meaningfy-ws/entity-resolution-service-webapp#getting-started).
+- To set up the complete ERSys stack (ERS + ERE + Webapp), see the [Installation Guide](https://github.com/OP-TED/entity-resolution-service/blob/develop/INSTALL.md).
+- For ERS standalone: follow the Getting Started section in [entity-resolution-service](https://github.com/OP-TED/entity-resolution-service#getting-started).
+- For the web UI standalone: follow the Getting Started section in [entity-resolution-service-webapp](https://github.com/OP-TED/entity-resolution-service-webapp#getting-started).
 
 #### Running ERE alongside ERS (shared Redis)
+
+> For the full stack setup, see the
+> [Installation Guide](https://github.com/OP-TED/entity-resolution-service/blob/develop/INSTALL.md).
 
 ERS starts its own Redis on port 6379. ERE also starts Redis on port 6379 by default — running both simultaneously causes a port conflict.
 
 **Solution**: let ERS own Redis, point ERE at it:
 
 1. In `src/infra/.env`, set `REDIS_HOST=ersys-redis`
-2. Comment out the `ersys-redis` service block in `src/infra/compose.dev.yaml`
+2. Comment out the `ersys-redis` and `redisinsight` service blocks in `src/infra/compose.dev.yaml`
 3. Start ERS first (`make up` in the ERS repo), then ERE (`make infra-up`)
 
 Queue names and `REDIS_PASSWORD` must match between both `.env` files (defaults already align).

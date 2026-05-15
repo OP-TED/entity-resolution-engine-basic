@@ -1,6 +1,6 @@
 [project]
 name = "ere-basic"
-version = "1.0.0"
+version = "1.1.0"
 description = "A basic implementation of the Entity Resolution Engine (ERE)."
 authors = [
     {name = "Meaningfy",email = "hi@meaningfy.ws"}
@@ -21,31 +21,31 @@ packages = [
 
 [dependency-groups]
 dev = [
-    "pytest (>=9.0.1,<10.0.0)",
-    "pytest-bdd (>=8.0,<9.0)",
-    "pytest-cov (>=6.0,<7.0)",
-    "assertpy (>=1.1,<2.0)",
-    "rdflib (>=7.5.0,<8.0.0)",
-    "pyyaml (>=6.0,<7.0)",
-    "ruff (>=0.9.0,<1.0.0)",
-    "pylint (>=3.3.4,<4.0.0)",
-    "import-linter (>=2.3,<3.0)",
-    "tox (>=4.0,<5.0)",
-    "radon (>=6.0,<7.0)",
-    "xenon (>=0.9,<1.0)",
-    "testcontainers[redis] (>=4.13.3,<5.0.0)",
+    "pytest==9.0.3",
+    "pytest-bdd==8.1.0",
+    "pytest-cov==6.3.0",
+    "assertpy==1.1",
+    "ruff==0.15.11",
+    "pylint==3.3.9",
+    "import-linter==2.11",
+    "tox==4.53.0",
+    "radon==6.0.1",
+    "xenon==0.9.3",
+    "testcontainers[redis]==4.14.2",
 ]
 
 [tool.poetry.dependencies]
-pydantic = "^2.12.5"
-redis = "^7.1.0"
-linkml-runtime = "^1.9.5"
-urllib3 = ">=2.0,<3.0"
-charset-normalizer = ">=3.0,<4.0"
-chardet = ">=3.0.2,<6.0.0"
-duckdb = ">=1.0,<2.0"
-pandas = ">=2.0,<3.0"
-splink = ">=4.0,<5.0"
+pydantic = "2.13.3"
+redis = "7.4.0"
+linkml-runtime = "1.10.0"
+urllib3 = "2.6.3"
+charset-normalizer = "3.4.7"
+chardet = "5.2.0"
+duckdb = "1.5.2"
+pandas = "2.3.3"
+splink = "4.0.16"
+rdflib = "7.6.0"
+pyyaml = "6.0.3"
 
 # TODO: should we have a registry?
 ers-spec = { git = "https://github.com/OP-TED/entity-resolution-spec.git", branch = "release/1.0.0", subdirectory = "src" }

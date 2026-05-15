@@ -32,6 +32,38 @@ The entity fields defined in `resolver.yaml` must match the field names in `rdf_
 
 ---
 
+## Environment Variables
+
+ERE is configured at runtime through environment variables. The service reads directly from the process environment; it does not load `.env` files itself. When running via Docker Compose, the `env_file` directive in `compose.dev.yaml` applies `src/infra/.env` to the container. When running the service directly, export the variables in your shell beforehand.
+
+### Configuration groups
+
+**Logging** — Controls verbosity of the ERE service log output. `ERE_LOG_LEVEL` accepts standard Python logging level strings (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) plus the custom `TRACE` level (below `DEBUG`) defined in `src/ere/utils/logging.py`.
+
+**Queues** — Redis list keys used to exchange messages with ERS. `ERSYS_REQUEST_QUEUE` is the inbound queue ERE reads resolution requests from; `ERSYS_RESPONSE_QUEUE` is the queue ERE writes results back to. Both must match the corresponding values set on the ERS side.
+
+**Redis** — Connection settings for the Redis message broker. The four connection variables (`REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`, `REDIS_PASSWORD`) must point to the same Redis instance used by ERS. Set `REDIS_TLS=true` to require a TLS-encrypted connection (e.g. AWS ElastiCache with in-transit encryption).
+
+**Storage** — Paths to the DuckDB database and the YAML configuration files that drive entity resolution behaviour. When unset, `RESOLVER_CONFIG_PATH` and `RDF_MAPPING_PATH` fall back to the bundled files baked into the Docker image at `/app/config/`. `DUCKDB_PATH` is optional — when unset, the path defined inside `resolver.yaml` is used.
+
+### Variable reference
+
+| Name | Group | Description | Default | Mandatory |
+| :--- | :--- | :--- | :--- | :---: |
+| `DUCKDB_PATH` | Storage | Path to the DuckDB database file. Leave unset to use the path defined in `resolver.yaml`. | *(from resolver.yaml)* | No |
+| `ERE_LOG_LEVEL` | Logging | Python logging level for the ERE service. Accepts `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`, and the custom `TRACE` level. | `INFO` | No |
+| `ERSYS_REQUEST_QUEUE` | Queues | Redis list key ERE reads inbound resolution requests from. Must match the ERS-side queue name. | `ere_requests` | No |
+| `ERSYS_RESPONSE_QUEUE` | Queues | Redis list key ERE writes resolution responses to. Must match the ERS-side queue name. | `ere_responses` | No |
+| `RDF_MAPPING_PATH` | Storage | Path to the RDF field mapping config YAML. Defines namespace bindings and field extraction rules for each entity type. When unset, falls back to the bundled file at `/app/config/rdf_mapping.yaml` inside the Docker image. | *(bundled `/app/config/rdf_mapping.yaml`)* | No |
+| `REDIS_DB` | Redis | Redis database index. | `0` | No |
+| `REDIS_HOST` | Redis | Redis server hostname or endpoint. | `localhost` | No |
+| `REDIS_PASSWORD` | Redis | Redis authentication password. Leave empty if Redis AUTH is not configured. | | No |
+| `REDIS_PORT` | Redis | Redis server port. | `6379` | No |
+| `REDIS_TLS` | Redis | Enable TLS-encrypted connections to Redis. Set to `true` when the Redis endpoint requires TLS (e.g. AWS ElastiCache with in-transit encryption). | `false` | No |
+| `RESOLVER_CONFIG_PATH` | Storage | Path to the Splink resolver config YAML. Defines comparisons, blocking rules, and similarity thresholds. When unset, falls back to the bundled file at `/app/config/resolver.yaml` inside the Docker image. | *(bundled `/app/config/resolver.yaml`)* | No |
+
+---
+
 ## Configuration Parameters
 
 | Parameter | Type | Default | Purpose |

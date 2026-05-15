@@ -1,7 +1,7 @@
 # Basic Entity Resolution Engine (Basic ERE)
 
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=meaningfy-ws_entity-resolution-engine-basic&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=meaningfy-ws_entity-resolution-engine-basic)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=meaningfy-ws_entity-resolution-engine-basic&metric=coverage)](https://sonarcloud.io/summary/new_code?id=meaningfy-ws_entity-resolution-engine-basic)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=OP-TED_entity-resolution-engine-basic&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=OP-TED_entity-resolution-engine-basic)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=OP-TED_entity-resolution-engine-basic&metric=coverage)](https://sonarcloud.io/summary/new_code?id=OP-TED_entity-resolution-engine-basic)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/downloads/)
 
@@ -36,6 +36,7 @@ For detailed documentation, see:
 - [Architecture](docs/architecture.md) - description of the applied architecture
 - [Algorithm](docs/algorithm.md) - incremental probabilistic entity linking
 - [Configuration](src/config/README.md) - field mapping, model tuning, Splink setup
+- [Environment variables](src/config/README.md#environment-variables) - all env var definitions, defaults, and groups
 - [ERS–ERE Technical Contract v0.2](docs/ERS-ERE-System-Technical-Contract.pdf)
 
 
@@ -56,6 +57,10 @@ To function, the ERE service requires the following external infrastructure:
 
 ## Getting Started
 
+> **To set up the complete ERSys stack** (ERS + ERE + Webapp), see the
+> [Installation Guide](https://github.com/OP-TED/entity-resolution-service/blob/develop/INSTALL.md).
+> The instructions below cover running ERE standalone.
+
 ### Prerequisites
 
 - Python 3.12+
@@ -65,7 +70,7 @@ To function, the ERE service requires the following external infrastructure:
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/meaningfy-ws/entity-resolution-engine-basic.git
+git clone https://github.com/OP-TED/entity-resolution-engine-basic.git
 cd entity-resolution-engine-basic
 make install
 ```
@@ -84,9 +89,13 @@ The defaults work for local development. Notable variables in `src/infra/.env`:
 | `REDIS_PORT` | `6379` | Redis port |
 | `REDIS_PASSWORD` | `changeme` | Redis password — **must match ERS** |
 | `REDIS_DB` | `0` | Redis database index |
-| `ERE_REQUEST_QUEUE` | `ere_requests` | Inbound request queue name — **must match ERS** |
-| `ERE_RESPONSE_QUEUE` | `ere_responses` | Outbound response queue name — **must match ERS** |
+| `REDIS_TLS` | `false` | Enable TLS-encrypted Redis connection — set to `true` when the Redis endpoint requires TLS |
+| `ERSYS_REQUEST_QUEUE` | `ere_requests` | Inbound request queue name — **must match ERS** |
+| `ERSYS_RESPONSE_QUEUE` | `ere_responses` | Outbound response queue name — **must match ERS** |
 | `ERE_LOG_LEVEL` | `INFO` | Log level |
+| `RDF_MAPPING_PATH` | *(bundled `/app/config/rdf_mapping.yaml`)* | Path to the RDF field mapping config YAML. Override to use a custom mapping outside Docker. |
+| `RESOLVER_CONFIG_PATH` | *(bundled `/app/config/resolver.yaml`)* | Path to the Splink resolver config YAML. Override to use a custom resolver config outside Docker. |
+| `DUCKDB_PATH` | *(resolver default)* | Path to the DuckDB database file. Leave unset to use the path defined in `resolver.yaml`. |
 
 ### 3. Start the stack
 
@@ -110,17 +119,20 @@ This repo starts ERE and its own Redis instance. It does **not** include the ERS
 
 ERE communicates exclusively through Redis queues — it has no HTTP API. Without ERS publishing requests to `ere_requests`, ERE will start and listen but process nothing.
 
-- To add ERS: follow the Getting Started section in [entity-resolution-service](https://github.com/meaningfy-ws/entity-resolution-service#getting-started).
-- To add the web UI: follow the Getting Started section in [entity-resolution-service-webapp](https://github.com/meaningfy-ws/entity-resolution-service-webapp#getting-started).
+- To add ERS: follow the Getting Started section in [entity-resolution-service](https://github.com/OP-TED/entity-resolution-service#getting-started).
+- To add the web UI: follow the Getting Started section in [entity-resolution-service-webapp](https://github.com/OP-TED/entity-resolution-service-webapp#getting-started).
 
 #### Running ERE alongside ERS (shared Redis)
+
+> For the full stack setup, see the
+> [Installation Guide](https://github.com/OP-TED/entity-resolution-service/blob/develop/INSTALL.md).
 
 ERS starts its own Redis on port 6379. ERE also starts Redis on port 6379 by default — running both simultaneously causes a port conflict.
 
 **Solution**: let ERS own Redis, point ERE at it:
 
 1. In `src/infra/.env`, set `REDIS_HOST=ersys-redis`
-2. Comment out the `ersys-redis` service block in `src/infra/compose.dev.yaml`
+2. Comment out the `ersys-redis` and `redisinsight` service blocks in `src/infra/compose.dev.yaml`
 3. Start ERS first (`make up` in the ERS repo), then ERE (`make infra-up`)
 
 Queue names and `REDIS_PASSWORD` must match between both `.env` files (defaults already align).

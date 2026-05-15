@@ -57,6 +57,10 @@ To function, the ERE service requires the following external infrastructure:
 
 ## Getting Started
 
+> **To set up the complete ERSys stack** (ERS + ERE + Webapp), see the
+> [Installation Guide](https://github.com/OP-TED/entity-resolution-service/blob/develop/INSTALL.md).
+> The instructions below cover running ERE standalone.
+
 ### Prerequisites
 
 - Python 3.12+
@@ -120,12 +124,15 @@ ERE communicates exclusively through Redis queues — it has no HTTP API. Withou
 
 #### Running ERE alongside ERS (shared Redis)
 
+> For the full stack setup, see the
+> [Installation Guide](https://github.com/OP-TED/entity-resolution-service/blob/develop/INSTALL.md).
+
 ERS starts its own Redis on port 6379. ERE also starts Redis on port 6379 by default — running both simultaneously causes a port conflict.
 
 **Solution**: let ERS own Redis, point ERE at it:
 
 1. In `src/infra/.env`, set `REDIS_HOST=ersys-redis`
-2. Comment out the `ersys-redis` service block in `src/infra/compose.dev.yaml`
+2. Comment out the `ersys-redis` and `redisinsight` service blocks in `src/infra/compose.dev.yaml`
 3. Start ERS first (`make up` in the ERS repo), then ERE (`make infra-up`)
 
 Queue names and `REDIS_PASSWORD` must match between both `.env` files (defaults already align).

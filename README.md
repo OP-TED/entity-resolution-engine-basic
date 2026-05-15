@@ -1,7 +1,7 @@
 # Basic Entity Resolution Engine (Basic ERE)
 
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=meaningfy-ws_entity-resolution-engine-basic&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=meaningfy-ws_entity-resolution-engine-basic)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=meaningfy-ws_entity-resolution-engine-basic&metric=coverage)](https://sonarcloud.io/summary/new_code?id=meaningfy-ws_entity-resolution-engine-basic)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=OP-TED_entity-resolution-engine-basic&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=OP-TED_entity-resolution-engine-basic)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=OP-TED_entity-resolution-engine-basic&metric=coverage)](https://sonarcloud.io/summary/new_code?id=OP-TED_entity-resolution-engine-basic)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/downloads/)
 
@@ -119,9 +119,8 @@ This repo starts ERE and its own Redis instance. It does **not** include the ERS
 
 ERE communicates exclusively through Redis queues — it has no HTTP API. Without ERS publishing requests to `ere_requests`, ERE will start and listen but process nothing.
 
-- To set up the complete ERSys stack (ERS + ERE + Webapp), see the [Installation Guide](https://github.com/OP-TED/entity-resolution-service/blob/develop/INSTALL.md).
-- For ERS standalone: follow the Getting Started section in [entity-resolution-service](https://github.com/OP-TED/entity-resolution-service#getting-started).
-- For the web UI standalone: follow the Getting Started section in [entity-resolution-service-webapp](https://github.com/OP-TED/entity-resolution-service-webapp#getting-started).
+- To add ERS: follow the Getting Started section in [entity-resolution-service](https://github.com/OP-TED/entity-resolution-service#getting-started).
+- To add the web UI: follow the Getting Started section in [entity-resolution-service-webapp](https://github.com/OP-TED/entity-resolution-service-webapp#getting-started).
 
 #### Running ERE alongside ERS (shared Redis)
 

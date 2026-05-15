@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-15
+
+### Added
+- Optional TLS support for Redis connections via `REDIS_TLS` environment variable
+- Redis adapter extracted as a reusable, standalone component
+- `REDIS_PASSWORD` documented in configuration reference
+- Environment variable reference section added to configuration documentation
+
+### Changed
+- `REQUEST_QUEUE` / `RESPONSE_QUEUE` renamed to `ERSYS_REQUEST_QUEUE` / `ERSYS_RESPONSE_QUEUE` — update `.env` files accordingly
+- Dependency versions pinned to exact values for reproducible builds
+- Makefile made compatible with macOS `make` tool
+- `rdflib` and `pyyaml` moved from development to main dependencies
+- `logging.exception` used instead of `logging.error` for exception logging with stack traces
+
+
 ## [1.0.0-rc.1] - 2026-04-21
 
 ### Added

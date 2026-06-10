@@ -97,6 +97,15 @@ The defaults work for local development. Notable variables in `src/infra/.env`:
 | `RESOLVER_CONFIG_PATH` | *(bundled `/app/config/resolver.yaml`)* | Path to the Splink resolver config YAML. Override to use a custom resolver config outside Docker. |
 | `DUCKDB_PATH` | *(resolver default)* | Path to the DuckDB database file. Leave unset to use the path defined in `resolver.yaml`. |
 
+> **Schema or configuration changes:** If you have modified `src/config/resolver.yaml` or
+> `src/config/rdf_mapping.yaml` and the DuckDB database has already been initialised,
+> remove the data volume before restarting to avoid schema mismatch errors:
+> ```bash
+> docker volume rm ere-local_ere-data
+> # or for a full clean slate:
+> make infra-down-volumes
+> ```
+
 ### 3. Start the stack
 
 ```bash
@@ -107,6 +116,12 @@ make infra-down   # stop all services
 Note: `make infra-up` creates a shared external network `ersys-local` used for cross-component communication.
 To remove it manually: `docker network rm ersys-local`
 ```
+
+> **Rebuilding with a clean cache:** If you have upgraded the source or made changes to the
+> image and need to discard Docker layer cache, run:
+> ```bash
+> make infra-rebuild-clean
+> ```
 
 | Service | URL / Port |
 |---------|-----------|
@@ -355,5 +370,4 @@ Contributions are welcome. Please open an issue before submitting a pull request
 - Keep commits small and well-described
 - Branch naming: `feature/<ticket>/<short-description>` (e.g. `feature/ERS1-124/conflict-detection`)
 
-For active tasks and current work, edit [WORKING.md](WORKING.md).
 For development workflow and architecture guidelines, see [CLAUDE.md](.claude/CLAUDE.md).

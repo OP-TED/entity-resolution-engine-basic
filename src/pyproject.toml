@@ -3,7 +3,7 @@ name = "ere-basic"
 version = "1.1.0"
 description = "A basic implementation of the Entity Resolution Engine (ERE)."
 authors = [
-    {name = "Meaningfy",email = "hi@meaningfy.ws"}
+    {name = "Publications Office of the European Union"}
 ]
 readme = "../README.md"
 requires-python = ">=3.12,<3.15"
@@ -48,7 +48,7 @@ rdflib = "7.6.0"
 pyyaml = "6.0.3"
 
 # TODO: should we have a registry?
-ers-spec = { git = "https://github.com/OP-TED/entity-resolution-spec.git", branch = "release/1.0.0", subdirectory = "src" }
+ers-spec = { git = "https://github.com/OP-TED/entity-resolution-spec.git", branch = "release/1.1.0", subdirectory = "src" }
 
 
 [tool.pytest.ini_options]

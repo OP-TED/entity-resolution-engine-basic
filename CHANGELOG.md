@@ -9,7 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.0] - 2026-05-15
+## [1.1.0-rc.3] - 2026-06-10
+
+### Changed
+- Package author updated to Publications Office of the European Union
+- `poetry.lock` refreshed with updated dependency pins
+- Installation instructions updated
+
+## [1.1.0-rc.2] - 2026-05-15
 
 ### Added
 - Optional TLS support for Redis connections via `REDIS_TLS` environment variable

@@ -4,7 +4,7 @@
 # =============================================================================
 # Fetcher stage: resolve dependencies and build wheels
 # =============================================================================
-FROM python:3.12-slim AS fetcher
+FROM docker.io/library/python:3.12-slim AS fetcher
 
 ARG POETRY_VERSION=">=2.0.0,<3.0.0"
 
@@ -28,7 +28,7 @@ RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
 # =============================================================================
 # Builder stage: install wheels into a virtual environment
 # =============================================================================
-FROM python:3.12-slim AS builder
+FROM docker.io/library/python:3.12-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -58,7 +58,7 @@ RUN pip install --no-deps .
 # =============================================================================
 # Runtime stage: minimal production image
 # =============================================================================
-FROM python:3.12-slim AS runtime
+FROM docker.io/library/python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

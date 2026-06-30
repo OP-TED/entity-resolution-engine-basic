@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [1.1.0-rc.4] - 2026-06-30
+
+### Changed
+* Dockerfile updated to use fully qualified Docker Hub reference for the Python base image
+
+
 ## [1.1.0-rc.3] - 2026-06-10
 
 ### Changed

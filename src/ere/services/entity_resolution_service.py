@@ -489,7 +489,7 @@ class EntityResolutionService(AbstractResolver):
                 timestamp=now,
             )
         except Exception as exc:  # pylint: disable=broad-exception-caught
-            log.error(
+            log.error(  # NOSONAR - intentionally no traceback; service converts to EREErrorResponse
                 "Resolution error for mention %s: %s",
                 request.ere_request_id,
                 exc,

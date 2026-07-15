@@ -4,9 +4,7 @@
 #
 # Jobs:
 #   1. quality — Install, lint, test & verify (tox)
-#
-# Required secrets:
-#   - CI_GH_TOKEN: org-level PAT for cross-repo workflow dispatch
+
 
 name: CI
 

@@ -69,10 +69,10 @@ RUN groupadd --gid 1000 appuser && \
 
 WORKDIR /app
 
-# Copy only the virtual environment and necessary app files
-COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/ere /app/ere
-COPY --from=builder /app/config /app/config
+# Copy only the virtual environment and necessary app files — chown to appuser so non-root process can read
+COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
+COPY --from=builder --chown=appuser:appuser /app/ere /app/ere
+COPY --from=builder --chown=appuser:appuser /app/config /app/config
 # Volume mount point for DuckDB persistent storage
 RUN mkdir -p /data && chown appuser:appuser /data
 

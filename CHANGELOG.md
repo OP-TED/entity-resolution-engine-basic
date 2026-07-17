@@ -10,6 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.1.0-rc.6] - 2026-07-16
+
+### Changed
+* Disable logging of error traceback for controlled exceptions; the traceback logging is retained for uncontrolled exceptions (TEDSWS-529, TEDSWS-534)
+
+### Removed
+* SonarCloud integration, as it depended on contractor-specific configuration (TEDSWS-528).
+
+
+## [1.0.0-rc.2] - 2026-06-30
+
+### Changed
+* ERSys installation instructions and related documentation improved (TEDSWS-520)
+* Contractor-specific references removed from the source code repositories (TEDSWS-528)
+
+
 ## [1.1.0-rc.4] - 2026-06-30
 
 ### Changed

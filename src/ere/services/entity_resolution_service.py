@@ -20,6 +20,7 @@ from ere.adapters.repositories import (
     MentionRepository,
     SimilarityRepository,
 )
+from ere.models.exceptions import ConflictError
 from ere.models.resolver import (
     CandidateCluster,
     ClusterId,
@@ -229,8 +230,6 @@ class EntityResolver:
         Raises:
             ConflictError: If mention_id already exists with different attributes.
         """
-        from ere.models.exceptions import ConflictError
-
         existing = self._mention_repo.find_by_id(mention.id)
         if existing is not None and existing.attributes != mention.attributes:
             raise ConflictError(
@@ -488,16 +487,29 @@ class EntityResolutionService(AbstractResolver):
                 ere_request_id=request.ere_request_id,
                 timestamp=now,
             )
-        except Exception as exc:  # pylint: disable=broad-exception-caught
-            log.exception(
-                "Resolution error for mention %s",
+        except (ValueError, ConflictError) as exc:
+            log.error(  # NOSONAR - intentionally no traceback for controlled exceptions
+                "Resolution error for mention %s: %s",
                 request.ere_request_id,
+                exc,
             )
             return EREErrorResponse(
                 ere_request_id=request.ere_request_id,
                 error_type=type(exc).__name__,
                 error_title="Resolution error",
                 error_detail=str(exc),
+                timestamp=now,
+            )
+        except Exception:  # pylint: disable=broad-exception-caught
+            log.exception(
+                "Unexpected error for mention %s",
+                request.ere_request_id,
+            )
+            return EREErrorResponse(
+                ere_request_id=request.ere_request_id,
+                error_type="InternalError",
+                error_title="Unexpected error",
+                error_detail="An unexpected error occurred",
                 timestamp=now,
             )
 

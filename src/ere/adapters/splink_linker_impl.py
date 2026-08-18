@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import threading
 
 import duckdb
@@ -93,7 +94,9 @@ class SpLinkSimilarityLinker(SimilarityLinker):
         self._match_weight_threshold = config.get("match_weight_threshold", -10)
 
         # In-memory connection for Splink operations (avoids file I/O)
+        os.makedirs('/data/.duckdb_tmp', exist_ok=True)
         self._splink_con = duckdb.connect()
+        self._splink_con.execute("SET temp_directory = '/data/.duckdb_tmp'")
         self._db_api = DuckDBAPI(connection=self._splink_con)
 
         # Initialize TF DataFrame from parameter or empty
@@ -402,7 +405,9 @@ class SpLinkSimilarityLinker(SimilarityLinker):
             )
 
             # Create new linker on fresh in-memory connection (no shared state)
+            os.makedirs('/data/.duckdb_tmp', exist_ok=True)
             splink_con_new = duckdb.connect()
+            splink_con_new.execute("SET temp_directory = '/data/.duckdb_tmp'")
             db_api_new = DuckDBAPI(connection=splink_con_new)
             settings = self._build_settings()
             linker_new = Linker(tf_df_snapshot, settings, db_api=db_api_new)

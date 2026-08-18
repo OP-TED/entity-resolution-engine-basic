@@ -1,0 +1,11 @@
+[importlinter]
+root_packages =
+    ere
+
+[importlinter:contract:layers]
+name = ERE three-layer architecture
+type = layers
+layers =
+    ere.entrypoints
+    ere.services
+    ere.adapters

@@ -1,0 +1,77 @@
+# Docker Compose configuration for local development
+
+name: ere-local
+
+services:
+  ersys-redis:
+    image: redis:7.4.4-alpine
+    container_name: "ersys-redis"
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "redis-cli --no-auth-warning -a $REDIS_PASSWORD ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
+    networks:
+      - ersys-local
+
+  redisinsight:
+    image: redis/redisinsight:3.2.0
+    container_name: "redisinsight"
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:5540/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - ersys-local
+
+  ere:
+    build:
+      context: ../..
+      dockerfile: src/infra/Dockerfile
+    container_name: "ere"
+    env_file: .env
+    restart: unless-stopped
+    environment:
+      - DUCKDB_PATH=${DUCKDB_PATH:-/data/app.duckdb}
+      - RDF_MAPPING_PATH=/app/config/rdf_mapping.yaml
+      - RESOLVER_CONFIG_PATH=/app/config/resolver.yaml
+      # Remaining REDIS_* and queue vars inherited from env_file
+    healthcheck:
+      test: ["CMD", "sh", "-c", "test -f /proc/1/cmdline"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    volumes:
+      - ere-data:/data
+      - ../../src/config:/app/config
+    develop:
+      watch:
+        - action: sync
+          path: ../../src/ere
+          target: /app/ere
+        - action: sync
+          path: ../../src/config
+          target: /app/config
+        - action: rebuild
+          path: ../../src/pyproject.toml
+        - action: rebuild
+          path: ../../src/poetry.lock
+    networks:
+      - ersys-local
+
+volumes:
+  ere-data:
+
+networks:
+  ersys-local:
+    external: true

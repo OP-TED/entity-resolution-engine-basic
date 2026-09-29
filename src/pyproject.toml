@@ -1,0 +1,94 @@
+[project]
+name = "ere-basic"
+version = "1.1.0"
+description = "A basic implementation of the Entity Resolution Engine (ERE)."
+authors = [
+    {name = "Publications Office of the European Union"}
+]
+readme = "../README.md"
+requires-python = ">=3.12,<3.15"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+packages = [
+  { include = "ere" }
+]
+
+
+[dependency-groups]
+dev = [
+    "pytest==9.0.3",
+    "pytest-bdd==8.1.0",
+    "pytest-cov==6.3.0",
+    "assertpy==1.1",
+    "ruff==0.15.11",
+    "pylint==3.3.9",
+    "import-linter==2.11",
+    "tox==4.53.0",
+    "radon==6.0.1",
+    "xenon==0.9.3",
+    "testcontainers[redis]==4.14.2",
+]
+
+[tool.poetry.dependencies]
+pydantic = "2.13.3"
+redis = "7.4.0"
+linkml-runtime = "1.10.0"
+urllib3 = "2.6.3"
+charset-normalizer = "3.4.7"
+chardet = "5.2.0"
+duckdb = "1.5.2"
+pandas = "2.3.3"
+splink = "4.0.16"
+rdflib = "7.6.0"
+pyyaml = "6.0.3"
+
+# TODO: should we have a registry?
+ers-spec = { git = "https://github.com/OP-TED/entity-resolution-spec.git", branch = "release/1.1.0", subdirectory = "src" }
+
+
+[tool.pytest.ini_options]
+addopts = [
+  "-v",
+  "--basetemp=/tmp/pytest",
+  "--cov=ere",
+  "--cov-report=term-missing",
+  "--cov-fail-under=80",
+]
+testpaths = ["../test"]
+# Skips warning from 3rd party libs, such as rdflib
+filterwarnings = [
+  "once",
+  "ignore",
+  "default::Warning:ere\\..*"
+]
+# Logging is set up in conftest.py
+
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "C90"]
+ignore = ["E501"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_return_any = true
+
+
+[tool.coverage.run]
+source = ["ere"]
+omit = ["*/__init__.py"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true

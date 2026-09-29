@@ -1,0 +1,95 @@
+# CI workflow for Entity Resolution Engine (ERE)
+# ===============================================
+# Runs on push to develop and on PRs targeting develop.
+#
+# Jobs:
+#   1. quality — Install, lint, test & verify (tox)
+
+
+name: CI
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint, Test & Verify
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      # ------------------------------------------------------------------
+      # Checkout
+      # ------------------------------------------------------------------
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      # ------------------------------------------------------------------
+      # Python & Poetry
+      # ------------------------------------------------------------------
+      - name: Read Python version from pyproject.toml
+        id: python-version
+        run: echo "version=$(grep -m1 'python = ' src/pyproject.toml | grep -oP '\d+\.\d+' | head -1)" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ steps.python-version.outputs.version }}
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Configure git credentials for private dependencies
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+        # NOTE: If GITHUB_TOKEN lacks cross-repo access, replace with:
+        # git config --global url."https://x-access-token:${{ secrets.GH_TOKEN_PRIVATE_REPOS }}@github.com/".insteadOf "https://github.com/"
+
+      # ------------------------------------------------------------------
+      # Dependency caching
+      # ------------------------------------------------------------------
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            .tox
+          key: poetry-${{ runner.os }}-${{ hashFiles('src/poetry.lock', 'tox.ini') }}
+          restore-keys: |
+            poetry-${{ runner.os }}-
+
+      # ------------------------------------------------------------------
+      # Install
+      # ------------------------------------------------------------------
+      - name: Install dependencies
+        run: cd src && poetry install --with dev
+
+      # ------------------------------------------------------------------
+      # Lint, Test & Verify (tox)
+      # ------------------------------------------------------------------
+      - name: Prepare environment file
+        run: cp src/infra/.env.example src/infra/.env
+
+      - name: Run quality checks (unit tests + architecture + clean-code)
+        run: cd src && poetry run tox -e py312,architecture,clean-code
+        env:
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: ""

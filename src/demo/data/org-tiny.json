@@ -1,0 +1,78 @@
+{
+  "name": "TED organizations - tiny dataset",
+  "description": "Demo with real EU data (Germany/France), 2 countries, 2 clusters. Blocking rule prevents cross-country candidates.",
+  "mentions": [
+    {
+      "request_id": "m1",
+      "source_id": "DEMO",
+      "entity_type": "ORGANISATION",
+      "legal_name": "Stadt Osnabrück",
+      "country_code": "DEU",
+      "nuts_code": "DE944",
+      "post_code": "49074",
+      "post_name": "Osnabrück",
+      "thoroughfare": "Krahnstraße 10",
+      "description": "Mention 1 - German municipality, initial mention"
+    },
+    {
+      "request_id": "m2",
+      "source_id": "DEMO",
+      "entity_type": "ORGANISATION",
+      "legal_name": "Stadt Osnabrück — Fachdienst Öffentliche Aufträge",
+      "country_code": "DEU",
+      "nuts_code": "DE944",
+      "post_code": "49074",
+      "post_name": "Osnabrück",
+      "thoroughfare": "Krahnstraße 10",
+      "description": "Mention 2 - high similarity to m1 with department name (JW~0.82)"
+    },
+    {
+      "request_id": "m3",
+      "source_id": "DEMO",
+      "entity_type": "ORGANISATION",
+      "legal_name": "Conseil départemental Haute-Garonne",
+      "country_code": "FRA",
+      "nuts_code": "FRJ23",
+      "post_code": "31090",
+      "post_name": "Toulouse",
+      "thoroughfare": "Boulevard de Strasbourg",
+      "description": "Mention 3 - different entity (France), new cluster"
+    },
+    {
+      "request_id": "m4",
+      "source_id": "DEMO",
+      "entity_type": "ORGANISATION",
+      "legal_name": "Conseil départemental Haute-Garonne Service Public",
+      "country_code": "FRA",
+      "nuts_code": "FRJ23",
+      "post_code": "31090",
+      "post_name": "Toulouse",
+      "thoroughfare": "Boulevard de Strasbourg",
+      "description": "Mention 4 - high similarity to m3 (JW~0.88)"
+    },
+    {
+      "request_id": "m5",
+      "source_id": "DEMO",
+      "entity_type": "ORGANISATION",
+      "legal_name": "Stadt Osnabrück, Zentrale",
+      "country_code": "DEU",
+      "nuts_code": "DE944",
+      "post_code": "49074",
+      "post_name": "Osnabrück",
+      "thoroughfare": "Krahnstraße 10",
+      "description": "Mention 5 - similar to m2 (JW~0.89), extends cluster 1"
+    },
+    {
+      "request_id": "m6",
+      "source_id": "DEMO",
+      "entity_type": "ORGANISATION",
+      "legal_name": "Conseil Haute-Garonne",
+      "country_code": "FRA",
+      "nuts_code": "FRJ23",
+      "post_code": "31090",
+      "post_name": "Toulouse",
+      "thoroughfare": "Boulevard de Strasbourg",
+      "description": "Mention 6 - similar to m3/m4 (JW~0.78), extends cluster 2"
+    }
+  ]
+}

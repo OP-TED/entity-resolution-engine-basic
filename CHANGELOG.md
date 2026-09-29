@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0-rc.8] - 2026-09-30
+
+### Added
+* Configurable DuckDB storage, memory limit, thread count, and temporary directory settings
+* Bounded batch processing with configurable target duration, mention and byte limits, and queue-drain linger time
+* Structured, payload-free mention lifecycle logs with Redis queue-wait and per-stage timing
+* Persistent trained model loading and warm-start resolution from stored mentions after restart
+
+### Changed
+* **Breaking:** Existing DuckDB files are not migrated. Stop the ERE and remove the old database file before upgrading; its persisted state will be discarded and rebuilt.
+* **Breaking:** Candidate matching now requires matching country and normalized-name similarity; the cluster threshold changes from 0.20 to 0.7, and weak-tail candidates may no longer be returned.
+* EM training runs once after 200 mentions; the trained model is persisted and reloaded instead of retraining during operation.
+* Queue responses are published in batches, in request order. The Redis queue and response format are unchanged; Redis 6.2 or newer is required.
+* Raw request bodies are no longer logged at INFO. The previous log-based measurement comparing Redis send and ERE receipt is no longer available; use the new Redis queue-wait timing in lifecycle logs instead.
+
+### Fixed
+* Resolution now warm-starts from persisted mentions after restart instead of temporarily scoring against an empty search space.
+* Validate that LinkTable ID and score columns have matching lengths, preventing silent link truncation.
+
 
 ## [1.1.0-rc.6] - 2026-07-16
 

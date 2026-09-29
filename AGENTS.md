@@ -109,25 +109,6 @@ Do **not** save to memory:
 
 ---
 
-## Spec-Driven Workflow (OpenSpec) — Golden Thread
-
-Work is shaped and tracked in `openspec/` using the pinned `meaningfy` schema (`openspec/schemas/meaningfy/`, OpenSpec 1.4.1).
-
-- **EPIC** ≡ `openspec/changes/<id>/proposal.md` (Shape-Up work shape: appetite + no-gos).
-- **PLAN** ≡ `design.md` + `tasks.md` — scored by the clarity gate (≥9/10) before `/opsx:apply`.
-- **Normative requirements** ≡ `specs/` deltas (RFC-2119 SHALL + Given/When/Then scenarios).
-- **Truth** ≡ `openspec/specs/` — deltas merge there on `/opsx:archive`; if anything else disagrees, specs win.
-
-**Golden thread — cite your parent:** EPIC → PLAN → specs → commit.
-- `tasks.md` cites its parent EPIC (change id) on the first line.
-- Each spec delta names its capability.
-- Commits reference the change id they implement.
-
-Commands: `/opsx:explore`, `/opsx:propose`, `/opsx:apply`, `/opsx:sync`, `/opsx:archive`.
-Validate with `make check-specs` (`openspec validate --all --strict`).
-
----
-
 ## Gotchas
 
 - **`logging.basicConfig` is a no-op** when handlers already exist (conftest sets them up via `dictConfig`). Mock it with `patch("logging.basicConfig")` in logging tests.
